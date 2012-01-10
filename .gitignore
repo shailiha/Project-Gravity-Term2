@@ -1,0 +1,15 @@
+# Compiled source #
+###################
+*.lib
+*.exe
+*.exp
+*.obj
+
+*.sdf
+*.opensdf
+*.pch
+
+# Logs #
+######################
+*.log
+*.tlog
