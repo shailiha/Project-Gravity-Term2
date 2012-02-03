@@ -71,6 +71,7 @@ PGFrameListener::PGFrameListener (
     mCount = 0;
     mCurrentObject = NULL;
     mLMouseDown = false;
+	spawnDistance = 500;
 
 	// Create RaySceneQuery
     mRaySceneQuery = mSceneMgr->createRayQuery(Ogre::Ray());
@@ -88,16 +89,28 @@ PGFrameListener::PGFrameListener (
 
 	playerBody->setShape(	mSceneMgr->getSceneNode("PlayerNode"),
  				playerBoxShape,
- 				0.6f,			// dynamic body restitution
- 				0.0f,			// dynamic body friction
- 				30.0f, 			// dynamic bodymass
+ 				0.1f,			// dynamic body restitution
+ 				1.0f,			// dynamic body friction
+ 				10.0f, 			// dynamic bodymass
 				(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 10),	// starting position
 				Quaternion(1,0,0,0));// orientation
 	//Prevents the box from 'falling asleep'
 	playerBody->getBulletRigidBody()->setSleepingThresholds(0.0, 0.0);
+	playerBody->getBulletRigidBody()->setGravity(btVector3(0,-35,0));
 	// push the created objects to the dequeue
  	mShapes.push_back(playerBoxShape);
  	mBodies.push_back(playerBody);
+
+	editMode = false;
+	//Create the box to show where spawned object will be placed
+ 	Entity *boxEntity = mSceneMgr->createEntity(
+ 			"SpawnBox",
+ 			"cube.mesh");			    
+ 	boxEntity->setCastShadows(true);
+ 	boxEntity->setMaterialName("Examples/BumpyMetal");
+	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
+    mSpawnObject->attachObject(boxEntity);
+	mSpawnLocation = Ogre::Vector3(0.f,0.f,0.f);
 }
 
 PGFrameListener::~PGFrameListener()
@@ -195,7 +208,8 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 	else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
 	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
 	else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = true;
-	else if (evt.key == OIS::KC_PGUP) mGoingUp = true;
+	else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
+	else if (evt.key == OIS::KC_PGUP) eOnOff = true; // for edit mode
 	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
 	else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
 	else if (evt.key == OIS::KC_I) nGoingForward = true; // nVariables for fish movement
@@ -262,7 +276,7 @@ bool PGFrameListener::keyReleased(const OIS::KeyEvent &evt)
 	else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = false;
 	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = false;
 	else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = false;
-	else if (evt.key == OIS::KC_PGUP) mGoingUp = false;
+	else if (evt.key == OIS::KC_SPACE) mGoingUp = false;
 	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = false;
 	else if (evt.key == OIS::KC_LSHIFT) mFastMove = false;
 	else if (evt.key == OIS::KC_I) nGoingForward = false; // nVariables for fish movement
@@ -272,6 +286,13 @@ bool PGFrameListener::keyReleased(const OIS::KeyEvent &evt)
 	else if (evt.key == OIS::KC_U) nGoingUp = false;
 	else if (evt.key == OIS::KC_O) nGoingDown = false;
 	else if (evt.key == OIS::KC_RSHIFT) nYaw = false;
+	else if (evt.key == OIS::KC_PGUP)
+	{
+		eOnOff = false;
+		editMode = !editMode;
+	}
+
+	//Toggle edit mode
 
 	//This will be used for pause menu interface
 	CEGUI::System::getSingleton().injectKeyUp(evt.key);
@@ -350,6 +371,19 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 		if (evt.state.Z.rel)
 			sys.injectMouseWheelChange(evt.state.Z.rel / 120.0f);
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
+	}
+
+	if (editMode)
+	{
+		//Set object spawning distance
+		std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
+		spawnDistance = spawnDistance + evt.state.Z.rel;
+		mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
+		mSpawnLocation.x = floor(mSpawnLocation.x/100) * 100;
+		mSpawnLocation.y = floor(mSpawnLocation.y/100) * 100;
+		mSpawnLocation.z = floor(mSpawnLocation.z/100) * 100;
+		std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
+		mSpawnObject->setPosition(mSpawnLocation);
 	}
 
 	// This is to move a spawned robot to the center of the screen using raycasting
@@ -664,7 +698,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("PlayerCam"));
 	//mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("RTTCam"));
 
-	cout << mCamera->getPosition().x << "    " << mCamera->getPosition().y << "    " << mCamera->getPosition().z << endl;
+	//cout << mCamera->getPosition().x << "    " << mCamera->getPosition().y << "    " << mCamera->getPosition().z << endl;
  
     return true;
 }
@@ -795,7 +829,12 @@ void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 		linVelX -= Ogre::Math::Sin(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
 		linVelZ -= Ogre::Math::Cos(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
 	}
+	if (mGoingUp)
+	{
+		linVelY = 30; //Constant vertical velocity
+	}
 	playerBody->getBulletRigidBody()->setLinearVelocity(btVector3(linVelX, linVelY, linVelZ));
+
 }
 
 void PGFrameListener::showDebugOverlay(bool show)
@@ -863,46 +902,85 @@ void PGFrameListener::spawnBox(void)
 	Vector3 size = Vector3::ZERO;	// size of the box
  	// starting position of the box
  	Vector3 position = (mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 10);
+	//IF EDITOR MODE
+	if (editMode)
+	{
+		position = mSpawnLocation;
+	}
 	
-	std::cout << position.x << " " << position.y << " " << position.z << std::endl;
+	//std::cout << position.x << " " << position.y << " " << position.z << std::endl;
 
  	// create an ordinary, Ogre mesh with texture
- 	Entity *entity = mSceneMgr->createEntity(
- 			"Box" + StringConverter::toString(mNumEntitiesInstanced),
- 			"Coco.mesh");			    
- 	entity->setCastShadows(true);
+	if (!editMode)
+	{
+ 		Entity *entity = mSceneMgr->createEntity(
+ 				"Box" + StringConverter::toString(mNumEntitiesInstanced),
+ 				"Coco.mesh");
+		entity->setCastShadows(true);
 	
- 	// we need the bounding box of the box to be able to set the size of the Bullet-box
- 	AxisAlignedBox boundingB = entity->getBoundingBox();
- 	size = boundingB.getSize(); size /= 2.0f; // only the half needed
- 	size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
- 							// (Bullet 2.76 Physics SDK Manual page 18)
-	//size *= 3;
+ 		// we need the bounding box of the box to be able to set the size of the Bullet-box
+ 		AxisAlignedBox boundingB = entity->getBoundingBox();
+ 		size = boundingB.getSize(); size /= 2.0f; // only the half needed
+ 		size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
+ 								// (Bullet 2.76 Physics SDK Manual page 18)
+		//size *= 3;
  	
- 	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
- 	node->attachObject(entity);
-	//node->setScale(3, 3, 3);
+ 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 		node->attachObject(entity);
+		//node->setScale(3, 3, 3);
  
- 	// after that create the Bullet shape with the calculated size
- 	OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
- 	// and the Bullet rigid body
- 	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 			"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
- 			mWorld);
- 	defaultBody->setShape(	node,
- 				sceneBoxShape,
- 				0.6f,			// dynamic body restitution
- 				0.6f,			// dynamic body friction
- 				5.0f, 			// dynamic bodymass
- 				position,		// starting position of the box
- 				Quaternion(0,0,0,1));// orientation of the box
- 		mNumEntitiesInstanced++;				
- 
- 	defaultBody->setLinearVelocity(
- 				mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
- 	// push the created objects to the dequese
- 	mShapes.push_back(sceneBoxShape);
- 	mBodies.push_back(defaultBody);
+ 		// after that create the Bullet shape with the calculated size
+ 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		// and the Bullet rigid body
+ 		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
+ 				mWorld);
+	
+		 		defaultBody->setShape(	node,
+ 					sceneBoxShape,
+ 					0.6f,			// dynamic body restitution
+ 					0.6f,			// dynamic body friction
+ 					5.0f, 			// dynamic bodymass
+ 					position,		// starting position of the box
+ 					Quaternion(0,0,0,1));// orientation of the box
+ 				mNumEntitiesInstanced++;
+ 				defaultBody->setLinearVelocity(
+ 							mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
+	
+
+ 		// push the created objects to the dequeue
+ 		mShapes.push_back(sceneBoxShape);
+ 		mBodies.push_back(defaultBody);
+	}
+	else //edit mode
+	{
+		//Entity will have to change depending on what type of object is selected
+ 		Entity *entity = mSceneMgr->createEntity(
+ 				"Box" + StringConverter::toString(mNumEntitiesInstanced),
+ 				"cube.mesh");			    
+ 		entity->setCastShadows(true);
+ 		AxisAlignedBox boundingB = entity->getBoundingBox();
+ 		size = boundingB.getSize(); size /= 2.0f; // only the half needed
+		size *= 0.98f;
+ 		entity->setMaterialName("Examples/BumpyMetal");
+ 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 		node->attachObject(entity);
+ 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
+ 				mWorld);
+ 		defaultBody->setShape(	node,
+ 					sceneBoxShape,
+ 					0.1f,			// dynamic body restitution
+ 					1.0f,			// dynamic body friction
+ 					0.0f, 			// dynamic bodymass - 0 makes it static
+ 					position,		// starting position of the box
+ 					Quaternion(0,0,0,1));// orientation of the box
+ 			mNumEntitiesInstanced++;				
+		defaultBody->setCastShadows(true);
+ 		mShapes.push_back(sceneBoxShape);
+ 		mBodies.push_back(defaultBody);
+	}
 }
 
 void PGFrameListener::spawnFish(void)

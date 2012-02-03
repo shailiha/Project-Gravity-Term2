@@ -43,7 +43,7 @@ private:
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
     bool mShutDown;
-	
+
 	//Camera controls
 	Ogre::Real mTopSpeed;
 	Ogre::Vector3 mVelocity;
@@ -63,6 +63,15 @@ private:
 	bool nGoingUp;
 	bool nGoingDown;
 	bool nYaw;
+
+	//For level editing
+	bool eOnOff; //key to toggle edit mode
+	bool editMode;
+	bool mScrollUp;
+	bool mScrollDown;
+	Ogre::Vector3 mSpawnLocation;
+	int spawnDistance;
+	Ogre::SceneNode *mSpawnObject;
 
 	Ogre::Vector3 transVector;
 	
