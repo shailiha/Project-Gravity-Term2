@@ -4,6 +4,36 @@
 
 using namespace std;
 
+//Custom Callback function
+static bool CustomCallback(btManifoldPoint& cp,	const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
+{
+	//We check for collisions between Targets and Projectiles - we know which is which from their Friction value
+	//if ((obj0->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT) && (obj1->getCollisionFlags() | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK));
+	if (((obj0->getFriction()==0.93f) && (obj1->getFriction()==0.61f))
+		||((obj0->getFriction()==0.61f) && (obj1->getFriction()==0.93f)))
+	{
+		if (obj0->getFriction()==0.93f) //Targets have a friction of 0.93
+		{
+			btCollisionShape* projectile = (btCollisionShape*)obj1->getCollisionShape();
+			btRigidBody* target = (btRigidBody*)obj0;
+			std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
+			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+			target->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* target = (btRigidBody*)obj1;
+			btCollisionShape* projectile = (btCollisionShape*)obj0->getCollisionShape();
+			std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
+			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+			target->setFriction(0.94f);
+		}
+	}
+	return true;
+}
+//Tell Bullet to use our collision callback function
+extern ContactAddedCallback		gContactAddedCallback;
+
 PGFrameListener::PGFrameListener (
 			SceneManager *sceneMgr, 
 			RenderWindow* mWin, 
@@ -59,6 +89,10 @@ PGFrameListener::PGFrameListener (
 	mNumEntitiesInstanced = 0; // how many shapes are created
 	mWorld = new OgreBulletDynamics::DynamicsWorld(mSceneMgr, bounds, gravityVector);
 	createBulletTerrain();
+	
+	//gContactAddedCallback = CustomCallback;
+	gContactAddedCallback = CustomCallback;
+	cout << "CALLBACK: " << gContactAddedCallback << endl;
 
 	// Create the walking robot and fish
 	createRobot();
@@ -101,11 +135,26 @@ PGFrameListener::PGFrameListener (
  	mShapes.push_back(playerBoxShape);
  	mBodies.push_back(playerBody);
 
+
+	/*We set up variables for edit mode.
+	* objSpawnType indicates the type of object to be placed:
+	* 1		Box
+	* 2		Coconut
+	* 3		Target
+	*/
 	editMode = false;
+	snap = true;
+	objSpawnType = 1;
 	//Create the box to show where spawned object will be placed
- 	Entity *boxEntity = mSceneMgr->createEntity(
+ 	boxEntity = mSceneMgr->createEntity(
  			"SpawnBox",
- 			"cube.mesh");			    
+ 			"cube.mesh");
+	coconutEntity = mSceneMgr->createEntity(
+			"CoconutBox",
+			"Coco.mesh");
+	targetEntity = mSceneMgr->createEntity(
+			"TargetBox",
+			"robot.mesh");
  	boxEntity->setCastShadows(true);
  	boxEntity->setMaterialName("Examples/BumpyMetal");
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
@@ -209,7 +258,6 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
 	else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = true;
 	else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
-	else if (evt.key == OIS::KC_PGUP) eOnOff = true; // for edit mode
 	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
 	else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
 	else if (evt.key == OIS::KC_I) nGoingForward = true; // nVariables for fish movement
@@ -261,6 +309,10 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 	{
 		mSceneMgr->getSceneNode("palmNode")->setPosition(mSceneMgr->getSceneNode("palmNode")->getPosition() + 1);
 	}
+	else if(evt.key == (OIS::KC_RETURN))
+	{
+		saveLevel();
+	}
 
 	// This will be used for the pause menu interface
 	CEGUI::System &sys = CEGUI::System::getSingleton();
@@ -287,12 +339,25 @@ bool PGFrameListener::keyReleased(const OIS::KeyEvent &evt)
 	else if (evt.key == OIS::KC_O) nGoingDown = false;
 	else if (evt.key == OIS::KC_RSHIFT) nYaw = false;
 	else if (evt.key == OIS::KC_PGUP)
+		editMode = !editMode; //Toggle edit mode
+	else if (evt.key == OIS::KC_1)
 	{
-		eOnOff = false;
-		editMode = !editMode;
+		objSpawnType = 1;
+		mSpawnObject->detachAllObjects();
+		mSpawnObject->attachObject(boxEntity);
 	}
-
-	//Toggle edit mode
+	else if (evt.key == OIS::KC_2)
+	{
+		objSpawnType = 2;
+		mSpawnObject->detachAllObjects();
+		mSpawnObject->attachObject(coconutEntity);
+	}
+	else if (evt.key == OIS::KC_3)
+	{
+		objSpawnType = 3;
+		mSpawnObject->detachAllObjects();
+		mSpawnObject->attachObject(targetEntity);
+	}
 
 	//This will be used for pause menu interface
 	CEGUI::System::getSingleton().injectKeyUp(evt.key);
@@ -376,13 +441,16 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 	if (editMode)
 	{
 		//Set object spawning distance
-		std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
+		//std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
 		spawnDistance = spawnDistance + evt.state.Z.rel;
 		mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
-		mSpawnLocation.x = floor(mSpawnLocation.x/100) * 100;
-		mSpawnLocation.y = floor(mSpawnLocation.y/100) * 100;
-		mSpawnLocation.z = floor(mSpawnLocation.z/100) * 100;
-		std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
+		if (snap)
+		{
+			mSpawnLocation.x = floor(mSpawnLocation.x/100) * 100;
+			mSpawnLocation.y = floor(mSpawnLocation.y/100) * 100;
+			mSpawnLocation.z = floor(mSpawnLocation.z/100) * 100;
+		}
+		//std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
 		mSpawnObject->setPosition(mSpawnLocation);
 	}
 
@@ -494,6 +562,10 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 			mPickedBody = NULL;
 		}
     }
+	if (id == OIS::MB_Middle)
+	{
+		snap = !snap;
+	}
 
 	// This is for the pause menu interface
 	CEGUI::System::getSingleton().injectMouseButtonUp(convertButton(id));
@@ -699,6 +771,23 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	//mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("RTTCam"));
 
 	//cout << mCamera->getPosition().x << "    " << mCamera->getPosition().y << "    " << mCamera->getPosition().z << endl;
+
+	//Here we check the status of targets, and remove if necessary
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
+ 	while (levelTargets.end() != itLevelTargets)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
+		if(currentBody->getBulletRigidBody()->getFriction()==0.94f)
+		{
+			currentBody->getBulletRigidBody()->setFriction(0.941f);
+			//currentBody->getBulletRigidBody()->setMassProps(0.0f, btVector3(0.0f,0.0f,0.0f));
+			currentBody->getSceneNode()->detachAllObjects();
+			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
+			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+			std::cout << "Target: " << currentBody->getName() << " hit!" << std::endl;
+		}
+		++itLevelTargets;
+ 	}
  
     return true;
 }
@@ -939,25 +1028,32 @@ void PGFrameListener::spawnBox(void)
 		 		defaultBody->setShape(	node,
  					sceneBoxShape,
  					0.6f,			// dynamic body restitution
- 					0.6f,			// dynamic body friction
+ 					0.61f,			// dynamic body friction
  					5.0f, 			// dynamic bodymass
  					position,		// starting position of the box
  					Quaternion(0,0,0,1));// orientation of the box
  				mNumEntitiesInstanced++;
  				defaultBody->setLinearVelocity(
  							mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
-	
-
- 		// push the created objects to the dequeue
+		//Use special callback function when handing collisions
+		defaultBody->getBulletRigidBody()->setCollisionFlags(defaultBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+ 		// push the created objects to the deque
  		mShapes.push_back(sceneBoxShape);
  		mBodies.push_back(defaultBody);
 	}
 	else //edit mode
 	{
 		//Entity will have to change depending on what type of object is selected
- 		Entity *entity = mSceneMgr->createEntity(
- 				"Box" + StringConverter::toString(mNumEntitiesInstanced),
- 				"cube.mesh");			    
+		Entity *entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		mNumEntitiesInstanced++;
+		switch(objSpawnType)
+		{
+			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
+			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
+			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
+			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		}
+ 		
  		entity->setCastShadows(true);
  		AxisAlignedBox boundingB = entity->getBoundingBox();
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
@@ -975,11 +1071,18 @@ void PGFrameListener::spawnBox(void)
  					1.0f,			// dynamic body friction
  					0.0f, 			// dynamic bodymass - 0 makes it static
  					position,		// starting position of the box
- 					Quaternion(0,0,0,1));// orientation of the box
+ 					Quaternion(1,0,0,0));// orientation of the box
  			mNumEntitiesInstanced++;				
 		defaultBody->setCastShadows(true);
  		mShapes.push_back(sceneBoxShape);
- 		mBodies.push_back(defaultBody);
+ 		//mBodies.push_back(defaultBody);
+		switch(objSpawnType)
+		{
+			case 1: defaultBody->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(defaultBody); break;
+			case 2: defaultBody->getBulletRigidBody()->setFriction(0.92f); levelCoconuts.push_back(defaultBody); break;
+			case 3: defaultBody->getBulletRigidBody()->setFriction(0.93f); levelTargets.push_back(defaultBody); break;
+			default: levelBodies.push_back(defaultBody);
+		}
 	}
 }
 
@@ -1054,10 +1157,10 @@ void PGFrameListener::moveFish(void) {
 		mFish.at(i)->setLinearVelocity((centreOfMass+averageVelocity+avoidCollision));
 
 		if(i == 2){
-			std::cout << "CoM" << centreOfMass.x << " " << centreOfMass.y << " " << centreOfMass.z << std::endl;
-			std::cout << "AvV" << averageVelocity.x << " " << averageVelocity.y << " " << averageVelocity.z << std::endl;
-			std::cout << "ACo" << avoidCollision.x << " " << avoidCollision.y << " " << avoidCollision.z << std::endl;
-			std::cout << "NeV" << mFish.at(i)->getLinearVelocity().x << " " << mFish.at(i)->getLinearVelocity().y << " " << mFish.at(i)->getLinearVelocity().z << std::endl;
+			//std::cout << "CoM" << centreOfMass.x << " " << centreOfMass.y << " " << centreOfMass.z << std::endl;
+			//std::cout << "AvV" << averageVelocity.x << " " << averageVelocity.y << " " << averageVelocity.z << std::endl;
+			//std::cout << "ACo" << avoidCollision.x << " " << avoidCollision.y << " " << avoidCollision.z << std::endl;
+			//std::cout << "NeV" << mFish.at(i)->getLinearVelocity().x << " " << mFish.at(i)->getLinearVelocity().y << " " << mFish.at(i)->getLinearVelocity().z << std::endl;
 		}
 
 	}
@@ -1130,8 +1233,8 @@ void PGFrameListener::createBulletTerrain(void)
 	debugDrawer = new OgreBulletCollisions::DebugDrawer();
 	debugDrawer->setDrawWireframe(false);	// we want to see the Bullet containers
 	mWorld->setDebugDrawer(debugDrawer);
-	mWorld->setShowDebugShapes(false);	// enable it if you want to see the Bullet containers
-	showDebugOverlay(false);
+	mWorld->setShowDebugShapes(true);	// enable it if you want to see the Bullet containers
+	showDebugOverlay(true);
 	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode("debugDrawer", Ogre::Vector3::ZERO);
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
@@ -1206,4 +1309,31 @@ void PGFrameListener::createCaelumSystem(void)
 	Root::getSingletonPtr()->addFrameListener(mCaelumSystem);
 
     UpdateSpeedFactor(mCaelumSystem->getUniversalClock ()->getTimeScale ());
+}
+
+void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
+{
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
+ 	while (levelBodies.end() != itLevelBodies)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelBodies;
+		std::cout << "Box, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		++itLevelBodies;
+ 	}
+
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelCoconuts = levelCoconuts.begin();
+ 	while (levelCoconuts.end() != itLevelCoconuts)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelCoconuts;
+		std::cout << "Coconut, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		++itLevelCoconuts;
+ 	}
+
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
+ 	while (levelTargets.end() != itLevelTargets)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
+		std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		++itLevelTargets;
+ 	}
 }

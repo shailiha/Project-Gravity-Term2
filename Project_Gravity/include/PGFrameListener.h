@@ -65,13 +65,21 @@ private:
 	bool nYaw;
 
 	//For level editing
-	bool eOnOff; //key to toggle edit mode
 	bool editMode;
 	bool mScrollUp;
 	bool mScrollDown;
+	bool snap; //snap to grid
 	Ogre::Vector3 mSpawnLocation;
 	int spawnDistance;
+	int objSpawnType;
 	Ogre::SceneNode *mSpawnObject;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
+	//preview objects
+	Ogre::Entity *boxEntity;
+	Ogre::Entity *coconutEntity;
+	Ogre::Entity *targetEntity;
 
 	Ogre::Vector3 transVector;
 	
@@ -165,6 +173,8 @@ public:
 	void createBulletTerrain(void);
 	void createRobot(void);
 	void createCaelumSystem(void);
+	//The following will be moved into Level manager class eventually
+	void saveLevel(void);
 };
 
 #endif
