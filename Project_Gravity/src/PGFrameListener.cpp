@@ -195,7 +195,7 @@ PGFrameListener::PGFrameListener (
 	* 2		Coconut
 	* 3		Target
 	*/
-	editMode = false;
+	editMode = true;
 	snap = true;
 	objSpawnType = 1;
 	//Create the box to show where spawned object will be placed
@@ -611,7 +611,10 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 		//If there was a collision..
 		if (body != NULL)
 		{  
-			if (!(body->isStaticObject()))
+			if(editMode) {
+				placeNewObject(pickPos);
+			}
+			else if (!(body->isStaticObject()))
 			{
 				mPickedBody = body;
 				mPickedBody->disableDeactivation();		
@@ -733,7 +736,7 @@ void PGFrameListener::placeNewObject(Vector3 location) {
 	String objectDetails = name+","+mesh+","+StringConverter::toString(location.x)+","+StringConverter::toString(location.y)+","+StringConverter::toString(location.z)+"\n";
 	std::cout << objectDetails << std::endl;
 	ofstream outputToFile;
-	outputToFile.open("../../Levels/Level1Objects.txt", ios::app);
+	outputToFile.open("../../res/Levels/Level1Objects.txt", ios::app);
 	outputToFile << objectDetails;
 	outputToFile.close();
 

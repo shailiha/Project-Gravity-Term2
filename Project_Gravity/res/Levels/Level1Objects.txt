@@ -1,0 +1,5 @@
+Box0placed,cube.mesh,1651.19,166.026,1038.68
+Box1placed,cube.mesh,1651.83,165.994,1039.17
+Box2placed,cube.mesh,1651.91,165.98,1039.12
+Box3placed,cube.mesh,1652.64,165.968,1040.07
+Box4placed,cube.mesh,1651.63,170.532,1128.71
