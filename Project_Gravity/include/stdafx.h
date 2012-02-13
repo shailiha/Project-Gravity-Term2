@@ -13,6 +13,9 @@
 #include "Shapes/OgreBulletCollisionsBoxShape.h"		 // for Boxes
 #include "Shapes/OgreBulletCollisionsTerrainShape.h"	 // for the terrain
 #include "Shapes/OgreBulletCollisionsCapsuleShape.h"	// for player capsule
+#include "Shapes/OgreBulletCollisionsTrimeshShape.h"
+#include "Utils\OgreBulletCollisionsMeshToShapeConverter.h"
+#include "Shapes\OgreBulletCollisionsCylinderShape.h"
 
 #include <OgreCamera.h>
 #include <OgreEntity.h>
@@ -40,6 +43,7 @@
 
 #include "Hydrax/Hydrax.h"
 #include "Hydrax/Noise/Perlin/Perlin.h"
+#include "Hydrax/Modules/RadialGrid/RadialGrid.h"
 #include "Hydrax/Modules/ProjectedGrid/ProjectedGrid.h"
 
 #include "Caelum.h"

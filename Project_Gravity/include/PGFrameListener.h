@@ -9,7 +9,8 @@ class PGFrameListener :
 	public Ogre::FrameListener, 
 	public Ogre::WindowEventListener, 
 	public OIS::KeyListener,
-	public OIS::MouseListener
+	public OIS::MouseListener,
+	public Ogre::RenderTargetListener
 {
 private:
 	SceneManager* mSceneMgr; 
@@ -43,7 +44,7 @@ private:
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
     bool mShutDown;
-
+	
 	//Camera controls
 	Ogre::Real mTopSpeed;
 	Ogre::Vector3 mVelocity;
@@ -64,26 +65,6 @@ private:
 	bool nGoingDown;
 	bool nYaw;
 
-	//For level editing
-	bool editMode;
-	bool mScrollUp;
-	bool mScrollDown;
-	bool snap; //snap to grid
-	Ogre::Vector3 mSpawnLocation;
-	int spawnDistance;
-	int objSpawnType;
-	Ogre::SceneNode *mSpawnObject;
-	//Stuff loaded from level
-	int coconutCount;
-	int targetCount;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
-	//preview objects
-	Ogre::Entity *boxEntity;
-	Ogre::Entity *coconutEntity;
-	Ogre::Entity *targetEntity;
-
 	Ogre::Vector3 transVector;
 	
     Ogre::Entity *mEntity;                 // The Entity we are animating
@@ -92,9 +73,9 @@ private:
 
     Ogre::AnimationState *mAnimationState; // The current animation state of the object
 	Ogre::AnimationState* anim;
-	Ogre::AnimationState* anim2;
-	Ogre::AnimationState* anim3;
-	Ogre::AnimationState* anim4;
+	Ogre::AnimationState* gunAnimate;
+	bool gunActive;
+	bool shotGun;
     Ogre::Real mDistance;                  // The distance the object has left to travel
     Ogre::Vector3 mDirection;              // The direction the object is moving
     Ogre::Vector3 mDestination;            // The destination the object is moving towards
@@ -103,12 +84,11 @@ private:
 	bool freeRoam;
 
     Ogre::RaySceneQuery *mRaySceneQuery;// The ray scene query pointer
-    bool mLMouseDown;		// True if the mouse buttons are down
+    bool mRMouseDown;		// True if the mouse buttons are down
     int mCount;							// The number of robots on the screen
     Ogre::SceneNode *mCurrentObject;	// The newly created object
     CEGUI::Renderer *mGUIRenderer;		// CEGUI renderer
 	Hydrax::Hydrax *mHydrax;
-
 	bool mPaused;
 	Caelum::CaelumSystem *mCaelumSystem;
     float mSpeedFactor;
@@ -137,6 +117,59 @@ private:
 	btScalar linVelX;
 	btScalar linVelY;
 	btScalar linVelZ;
+	
+	// Cubemap gravity gun
+	Ogre::SceneNode* gravityGun;
+	Ogre::SceneNode* pivotNode;
+	Ogre::SceneNode* pivotNodePitch;
+	Ogre::SceneNode* pivotNodeRoll;
+	Camera* mCubeCamera;
+	RenderTarget* mTargets[6];
+	RenderTarget* mTargets2[6];
+	Radian fovy;
+	int camAsp;
+	Ogre::Vector3 gunPosBuffer;
+	Ogre::Vector3 gunPosBuffer2;
+	Ogre::Vector3 gunPosBuffer3;
+	Ogre::Vector3 gunPosBuffer4;
+	Ogre::Vector3 gunPosBuffer5;
+	Ogre::Vector3 gunPosBuffer6;
+	Ogre::Quaternion gunOrBuffer;
+	Ogre::Quaternion gunOrBuffer2;
+	Ogre::Quaternion gunOrBuffer3;
+	Ogre::Quaternion gunOrBuffer4;
+	Ogre::Quaternion gunOrBuffer5;
+	Ogre::Quaternion gunOrBuffer6;
+
+	SceneNode* ocean;
+	SceneNode* oceanFade;
+	TexturePtr mTexture;
+	Ogre::Entity* mOceanSurfaceEnt;
+	Ogre::Entity* mOceanFadeEnt;
+
+	OgreBulletDynamics::RigidBody *targetBody;
+	SceneNode *targetPivot;
+	SceneNode *target;
+	SceneNode *actualTarget;
+	double spinTime;
+
+	//For level editing
+	bool editMode;
+	bool mScrollUp;
+	bool mScrollDown;
+	bool snap; //snap to grid
+	Ogre::Vector3 mSpawnLocation;
+	int spawnDistance;
+	int objSpawnType;
+	Ogre::SceneNode *mSpawnObject;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
+	//preview objects
+	Ogre::Entity *boxEntity;
+	Ogre::Entity *coconutEntity;
+	Ogre::Entity *targetEntity;
+
 
 public:
     PGFrameListener(
@@ -171,11 +204,16 @@ public:
     bool nextLocation(void);
 	void UpdateSpeedFactor(double factor);
 	void spawnBox(void);
-	void spawnFish(void);
-	void moveFish(void);
 	void createBulletTerrain(void);
 	void createRobot(void);
 	void createCaelumSystem(void);
+	void createCubeMap();
+	void postRenderTargetUpdate(const RenderTargetEvent& evt);
+	void preRenderTargetUpdate(const RenderTargetEvent& evt);
+	void gunController(void);
+	void createTargets(void);
+	void moveFish(void);
+	void spawnFish(void);
 	//The following will be moved into Level manager class eventually
 	void saveLevel(void);
 };
