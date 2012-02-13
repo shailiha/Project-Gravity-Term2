@@ -16,7 +16,8 @@ private:
 	OgreBulletDynamics::DynamicsWorld *mWorld;	// OgreBullet World
 	OgreBulletCollisions::DebugDrawer *debugDrawer;
 	int mNumEntitiesInstanced;
-	
+	int mNumObjectsPlaced;
+
     //OIS Input devices
     OIS::InputManager* mInputManager;
     OIS::Mouse*    mMouse;
@@ -155,6 +156,7 @@ public:
     bool mouseMoved( const OIS::MouseEvent& evt );
     bool mousePressed( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
     bool mouseReleased( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
+	void placeNewObject(Vector3 location);
 
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void updateStats(void);

@@ -87,6 +87,7 @@ PGFrameListener::PGFrameListener (
 
 	// Start Bullet
 	mNumEntitiesInstanced = 0; // how many shapes are created
+	mNumObjectsPlaced = 0;
 	mWorld = new OgreBulletDynamics::DynamicsWorld(mSceneMgr, bounds, gravityVector);
 	createBulletTerrain();
 	
@@ -572,6 +573,57 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 	return true;
 }
 
+void PGFrameListener::placeNewObject(Vector3 location) {
+	String name;
+	String mesh;
+	Entity *entity;
+
+	switch(objSpawnType)
+		{
+			case 1: name = "Box"+StringConverter::toString(mNumObjectsPlaced)+"placed";
+					mesh = "cube.mesh";
+					break;
+			case 2: name = "Coconut"+StringConverter::toString(mNumObjectsPlaced)+"placed";
+					mesh = "Coco.mesh";
+					break;
+			case 3: name = "Target"+StringConverter::toString(mNumObjectsPlaced)+"placed";
+					mesh = "robot.mesh";
+					break;
+			default: name = "Box"+StringConverter::toString(mNumObjectsPlaced)+"placed";
+					mesh = "cube.mesh";
+		}	    
+	entity = mSceneMgr->createEntity(name, mesh); 
+ 	entity->setCastShadows(true);
+
+	// we need the bounding box of the box to be able to set the size of the Bullet-box
+ 	AxisAlignedBox boundingB = entity->getBoundingBox();
+ 	Vector3 size = boundingB.getSize(); 
+	size /= 2.0f; // only the half needed
+ 	size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
+
+	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 	node->attachObject(entity);
+
+	// after that create the Bullet shape with the calculated size
+	OgreBulletCollisions::CollisionShape *sceneBoxShape = new OgreBulletCollisions::CollisionShape();
+ 	// and the Bullet rigid body
+ 	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 			"rigid"+name+StringConverter::toString(mNumObjectsPlaced), mWorld);
+	defaultBody->setStaticShape(sceneBoxShape, 0.6, 0.6, location, Quaternion(0,0,0,1));
+ 	mNumObjectsPlaced++;				
+	//defaultBody->setShape(node, sceneBoxShape, 0.6, 0.6, 1.0, location, Quaternion(0,0,0,1));
+
+	String objectDetails = name+","+mesh+","+StringConverter::toString(location.x)+","+StringConverter::toString(location.y)+","+StringConverter::toString(location.z)+"\n";
+	std::cout << objectDetails << std::endl;
+	ofstream outputToFile;
+	outputToFile.open("../../Levels/Level1Objects.txt", ios::app);
+	outputToFile << objectDetails;
+	outputToFile.close();
+
+ 	// push the created objects to the dequeues
+ 	mShapes.push_back(sceneBoxShape);
+ 	mBodies.push_back(defaultBody);
+}
 
 /*bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
