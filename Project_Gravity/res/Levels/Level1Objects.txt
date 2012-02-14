@@ -3,3 +3,5 @@ Box1placed,cube.mesh,1651.83,165.994,1039.17
 Box2placed,cube.mesh,1651.91,165.98,1039.12
 Box3placed,cube.mesh,1652.64,165.968,1040.07
 Box4placed,cube.mesh,1651.63,170.532,1128.71
+Box0placed,cube.mesh,3929.88,10,-590.211
+Box1placed,cube.mesh,2805.99,10,235.965

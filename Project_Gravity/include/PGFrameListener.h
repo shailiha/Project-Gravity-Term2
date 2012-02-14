@@ -163,6 +163,9 @@ private:
 	int spawnDistance;
 	int objSpawnType;
 	Ogre::SceneNode *mSpawnObject;
+	//Stuff loaded from level
+	int coconutCount;
+	int targetCount;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
