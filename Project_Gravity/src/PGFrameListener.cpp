@@ -1084,9 +1084,15 @@ void PGFrameListener::windowClosed(Ogre::RenderWindow* rw)
 
 void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 {
-	linVelX = 0.5 * playerBody->getLinearVelocity().x;
-	linVelY = playerBody->getLinearVelocity().y;
-	linVelZ = 0.5 * playerBody->getLinearVelocity().z;
+	if(!mFastMove) {
+		linVelX = 0.5 * playerBody->getLinearVelocity().x;
+		linVelY = playerBody->getLinearVelocity().y;
+		linVelZ = 0.5 * playerBody->getLinearVelocity().z;
+	} else if(mFastMove) {
+		linVelX = 0.8 * playerBody->getLinearVelocity().x;
+		linVelY = playerBody->getLinearVelocity().y;
+		linVelZ = 0.8 * playerBody->getLinearVelocity().z;
+	}
 
 	if (mGoingForward)
 	{
