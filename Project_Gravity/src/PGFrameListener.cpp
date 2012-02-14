@@ -744,40 +744,51 @@ void PGFrameListener::placeNewObject() {
 	if(editMode) {
 		position = mSpawnLocation;
 		//Entity will have to change depending on what type of object is selected
-		Entity *entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		Entity *entity;
+		String name;
+		String mesh;
+		float friction;
+
 		mNumEntitiesInstanced++;
 		switch(objSpawnType)
 		{
-			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
-			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
-			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
-			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+			case 1: name = "Box" + StringConverter::toString(mNumEntitiesInstanced); mesh = "cube.mesh"; friction=0.91; break;
+			case 2: name = "Coconut" + StringConverter::toString(mNumEntitiesInstanced); mesh = "Coco.mesh"; friction=0.92; break;
+			case 3: name = "Target" + StringConverter::toString(mNumEntitiesInstanced); mesh = "robot.mesh"; friction=0.93; break;
+			default: name = "Box" + StringConverter::toString(mNumEntitiesInstanced); mesh = "cube.mesh"; friction=0.91;
 		}
- 		
+ 		entity = mSceneMgr->createEntity(name, mesh);
+
  		entity->setCastShadows(true);
  		AxisAlignedBox boundingB = entity->getBoundingBox();
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
  		entity->setMaterialName("Examples/BumpyMetal");
- 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 		
+		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
  		node->attachObject(entity);
 		node->setScale(scale);
- 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		
+		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
  				mWorld);
- 		defaultBody->setShape(	node,
+ 		defaultBody->setShape(node,
  					sceneBoxShape,
  					0.1f,			// dynamic body restitution
- 					1.0f,			// dynamic body friction
+ 					friction,			// dynamic body friction
  					0.0f, 			// dynamic bodymass - 0 makes it static
  					position,		// starting position of the box
- 					orientation);	// orientation of the box
- 			mNumEntitiesInstanced++;				
+ 					orientation);	// orientation of the box			
 		defaultBody->setCastShadows(true);
 
-		String objectDetails = name+","+mesh+","+StringConverter::toString(location.x)+","+StringConverter::toString(location.y)+","+StringConverter::toString(location.z)+"\n";
+		String objectDetails = name+","+mesh+","+
+			StringConverter::toString(position.x)+","+StringConverter::toString(position.y)+","+StringConverter::toString(position.z)+","+
+			StringConverter::toString(orientation.x)+","+StringConverter::toString(orientation.y)+","+StringConverter::toString(orientation.z)+","+StringConverter::toString(orientation.w)+","+
+			StringConverter::toString(scale.x)+","+StringConverter::toString(scale.y)+","+StringConverter::toString(scale.z)+","+
+			StringConverter::toString(friction)+
+			"\n";
 		std::cout << objectDetails << std::endl;
 		ofstream outputToFile;
 		outputToFile.open("../../res/Levels/Level1Objects.txt", ios::app);
