@@ -154,6 +154,7 @@ private:
 	SceneNode *actualTarget;
 	double spinTime;
 
+	int currentLevel;
 	//For level editing
 	bool editMode;
 	bool mScrollUp;
