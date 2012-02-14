@@ -430,13 +430,6 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 	else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
 	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
 	else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
-	else if (evt.key == OIS::KC_I) nGoingForward = true; // nVariables for fish movement
-	else if (evt.key == OIS::KC_K) nGoingBack = true;
-	else if (evt.key == OIS::KC_J) nGoingLeft = true;
-	else if (evt.key == OIS::KC_L) nGoingRight = true;
-	else if (evt.key == OIS::KC_U) nGoingUp = true;
-	else if (evt.key == OIS::KC_O) nGoingDown = true;
-	else if (evt.key == OIS::KC_RSHIFT) nYaw = true;
     else if (evt.key == OIS::KC_R)   // cycle polygon rendering mode
     {
         Ogre::String newVal;
@@ -467,71 +460,91 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     {
         mWindow->writeContentsToTimestampedFile("screenshot", ".jpg");
     }
-	else if(evt.key == (OIS::KC_B)) // OgreBullet tutorial to spawn boxes
- 	{
-		spawnBox();
- 	}
     else if (evt.key == OIS::KC_ESCAPE)
     {
         mShutDown = true;
     }
-	else if (evt.key ==  (OIS::KC_8))
-	{
-		mSceneMgr->getSceneNode("palmNode")->setPosition(mSceneMgr->getSceneNode("palmNode")->getPosition() + 1);
+	else if (evt.key == OIS::KC_PGUP) editMode = !editMode; //Toggle edit mode
+	else if(evt.key == OIS::KC_Q) spawnBox();
+
+	if(editMode) {
+		//Toggle object to place
+		if (evt.key == OIS::KC_1)
+		{
+			objSpawnType = 1;
+			mSpawnObject->detachAllObjects();
+			mSpawnObject->attachObject(boxEntity);
+		}
+		else if (evt.key == OIS::KC_2)
+		{
+			objSpawnType = 2;
+			mSpawnObject->detachAllObjects();
+			mSpawnObject->attachObject(coconutEntity);
+		}
+		else if (evt.key == OIS::KC_3)
+		{
+			objSpawnType = 3;
+			mSpawnObject->detachAllObjects();
+			mSpawnObject->attachObject(targetEntity);
+		}
+		else if (evt.key ==  (OIS::KC_8))
+		{
+			mSceneMgr->getSceneNode("palmNode")->setPosition(mSceneMgr->getSceneNode("palmNode")->getPosition() + 1);
+		}
+		//Rotation of object to spawn
+		else if (evt.key == OIS::KC_NUMPAD0)
+		{
+			mSpawnObject->setOrientation(1, 0, 0, 0);
+		}
+		else if (evt.key == OIS::KC_NUMPAD1)
+		{
+			mSpawnObject->yaw(Degree(-5.0f));
+		}
+		else if (evt.key == OIS::KC_NUMPAD2)
+		{
+			mSpawnObject->pitch(Degree(-5.0f));
+		}
+		else if (evt.key == OIS::KC_NUMPAD3)
+		{
+			mSpawnObject->roll(Degree(-5.0f));
+		}
+		else if (evt.key == OIS::KC_NUMPAD4)
+		{
+			mSpawnObject->yaw(Degree(5.0f));
+		}
+		else if (evt.key == OIS::KC_NUMPAD5)
+		{
+			mSpawnObject->pitch(Degree(5.0f));
+		}
+		else if (evt.key == OIS::KC_NUMPAD6)
+		{
+			mSpawnObject->roll(Degree(5.0f));
+		}
+		//Scale object
+		else if (evt.key == OIS::KC_SUBTRACT)
+		{
+			mSpawnObject->scale(0.8,0.8,0.8);
+		}
+		else if (evt.key == OIS::KC_ADD)
+		{
+			mSpawnObject->scale(1.2,1.2,1.2);
+		}
+		else if (evt.key == OIS::KC_DECIMAL)
+		{
+			mSpawnObject->setScale(1,1,1);
+		}
+		//Save level
+		else if(evt.key == (OIS::KC_RETURN))
+		{
+			saveLevel();
+		} 
 	}
-	else if(evt.key == (OIS::KC_RETURN))
-	{
-		saveLevel();
-	}
-	//Rotation of object to spawn
-	else if (evt.key == OIS::KC_NUMPAD0)
-	{
-		mSpawnObject->setOrientation(1, 0, 0, 0);
-	}
-	else if (evt.key == OIS::KC_NUMPAD1)
-	{
-		mSpawnObject->yaw(Degree(-5.0f));
-	}
-	else if (evt.key == OIS::KC_NUMPAD2)
-	{
-		mSpawnObject->pitch(Degree(-5.0f));
-	}
-	else if (evt.key == OIS::KC_NUMPAD3)
-	{
-		mSpawnObject->roll(Degree(-5.0f));
-	}
-	else if (evt.key == OIS::KC_NUMPAD4)
-	{
-		mSpawnObject->yaw(Degree(5.0f));
-	}
-	else if (evt.key == OIS::KC_NUMPAD5)
-	{
-		mSpawnObject->pitch(Degree(5.0f));
-	}
-	else if (evt.key == OIS::KC_NUMPAD6)
-	{
-		mSpawnObject->roll(Degree(5.0f));
-	}
-	//Scale object
-	else if (evt.key == OIS::KC_SUBTRACT)
-	{
-		mSpawnObject->scale(0.8,0.8,0.8);
-	}
-	else if (evt.key == OIS::KC_ADD)
-	{
-		mSpawnObject->scale(1.2,1.2,1.2);
-	}
-	else if (evt.key == OIS::KC_DECIMAL)
-	{
-		mSpawnObject->setScale(1,1,1);
-	}
-	///cout << "camera1 " << mCamera->getDerivedPosition() << endl;
+
 	// This will be used for the pause menu interface
 	CEGUI::System &sys = CEGUI::System::getSingleton();
 	sys.injectKeyDown(evt.key);
 	sys.injectChar(evt.text);
 	
-	//cout << "camera1 " << mCamera->getDerivedPosition() << endl;
  	return true;
 }
 
@@ -542,35 +555,7 @@ bool PGFrameListener::keyReleased(const OIS::KeyEvent &evt)
 	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = false;
 	else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = false;
 	else if (evt.key == OIS::KC_SPACE) mGoingUp = false;
-	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = false;
 	else if (evt.key == OIS::KC_LSHIFT) mFastMove = false;
-	else if (evt.key == OIS::KC_I) nGoingForward = false; // nVariables for fish movement
-	else if (evt.key == OIS::KC_K) nGoingBack = false;
-	else if (evt.key == OIS::KC_J) nGoingLeft = false;
-	else if (evt.key == OIS::KC_L) nGoingRight = false;
-	else if (evt.key == OIS::KC_U) nGoingUp = false;
-	else if (evt.key == OIS::KC_O) nGoingDown = false;
-	else if (evt.key == OIS::KC_RSHIFT) nYaw = false;
-	else if (evt.key == OIS::KC_PGUP)
-		editMode = !editMode; //Toggle edit mode
-	else if (evt.key == OIS::KC_1)
-	{
-		objSpawnType = 1;
-		mSpawnObject->detachAllObjects();
-		mSpawnObject->attachObject(boxEntity);
-	}
-	else if (evt.key == OIS::KC_2)
-	{
-		objSpawnType = 2;
-		mSpawnObject->detachAllObjects();
-		mSpawnObject->attachObject(coconutEntity);
-	}
-	else if (evt.key == OIS::KC_3)
-	{
-		objSpawnType = 3;
-		mSpawnObject->detachAllObjects();
-		mSpawnObject->attachObject(targetEntity);
-	}
 
 	//This will be used for pause menu interface
 	CEGUI::System::getSingleton().injectKeyUp(evt.key);
@@ -584,6 +569,20 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 	{
 		mCamera->yaw(Ogre::Degree(-evt.state.X.rel * 0.15f));
 		mCamera->pitch(Ogre::Degree(-evt.state.Y.rel * 0.15f));
+
+		if (editMode)
+		{
+			//Set object spawning distance
+			spawnDistance = spawnDistance + evt.state.Z.rel;
+			mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
+			if (snap)
+			{
+				mSpawnLocation.x = floor(mSpawnLocation.x/100) * 100;
+				mSpawnLocation.y = floor(mSpawnLocation.y/100) * 100;
+				mSpawnLocation.z = floor(mSpawnLocation.z/100) * 100;
+			}
+			mSpawnObject->setPosition(mSpawnLocation);
+		}
 	}
 	else // if it is false then the pause menu is activated, the cursor is shown and the camera stops
 	{
@@ -595,132 +594,105 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
 	}
 	CEGUI::MouseCursor::getSingleton().setVisible(false);
-
-	if (editMode)
-	{
-		//Set object spawning distance
-		//std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
-		spawnDistance = spawnDistance + evt.state.Z.rel;
-		mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
-		if (snap)
-		{
-			mSpawnLocation.x = floor(mSpawnLocation.x/100) * 100;
-			mSpawnLocation.y = floor(mSpawnLocation.y/100) * 100;
-			mSpawnLocation.z = floor(mSpawnLocation.z/100) * 100;
-		}
-		//std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
-		mSpawnObject->setPosition(mSpawnLocation);
-	}
-
-	// This is to move a spawned robot to the center of the screen using raycasting
-	// eg hold mouse button down when looking at island and move mouse
-    /*if (mRMouseDown)
-    {
-        CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
-        Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(mousePos.d_x/float(evt.state.width),mousePos.d_y/float(evt.state.height));
-        mRaySceneQuery->setRay(mouseRay);
- 
-        Ogre::RaySceneQueryResult &result = mRaySceneQuery->execute();
-        Ogre::RaySceneQueryResult::iterator itr = result.begin();
- 
-        if (itr != result.end() && itr->worldFragment)
-            mCurrentObject->setPosition(itr->worldFragment->singleIntersection);
-    }*/
 		
 	return true;
 }
 
 bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
-	if (id == OIS::MB_Right)
-	{
-		// Pick nearest object to player
-		Ogre::Vector3 pickPos;
-		Ogre::Ray rayTo;
-		OgreBulletDynamics::RigidBody * body = NULL;
-		CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
-
-		//Gets mouse co-ordinates
-		rayTo = mCamera->getCameraToViewportRay (mousePos.d_x/mWindow->getWidth(), mousePos.d_y/mWindow->getHeight());
-
-		if(mCollisionClosestRayResultCallback != NULL) {
-			delete mCollisionClosestRayResultCallback;
-		}
-
-		mCollisionClosestRayResultCallback = new OgreBulletCollisions::CollisionClosestRayResultCallback(rayTo, mWorld, mCamera->getFarClipDistance());
-
-		//Fire ray towards mouse position
-		mWorld->launchRay (*mCollisionClosestRayResultCallback);
-
-		//Draw ray
-		/*myManualObjectNode->detachObject(myManualObject);
-		myManualObject->begin("manual1Material", Ogre::RenderOperation::OT_LINE_LIST); 
-		myManualObject->position(rayTo.getOrigin().x, rayTo.getOrigin().y, rayTo.getOrigin().z); 
-		myManualObject->position(mCollisionClosestRayResultCallback->getRayEndPoint().x, mCollisionClosestRayResultCallback->getRayEndPoint().y, mCollisionClosestRayResultCallback->getRayEndPoint().z); 
-		myManualObject->end(); 
-		myManualObjectNode->attachObject(myManualObject);
-		*/
-		//If there was a collision, select the one nearest the player
-		if (mCollisionClosestRayResultCallback->doesCollide ())
+	if(editMode) {
+		if(id == (OIS::MB_Left)) 
+			placeNewObject();
+	}
+	else {
+		if (id == OIS::MB_Right && !mRMouseDown)
 		{
-			std::cout << "Collision found" << std::endl;
-			body = static_cast <OgreBulletDynamics::RigidBody *> 
-				(mCollisionClosestRayResultCallback->getCollidedObject());
-		
-			pickPos = mCollisionClosestRayResultCallback->getCollisionPoint ();
-			std::cout << body->getName() << std::endl;
-		} else {
-			 std::cout << "No collisions found" << std::endl;
-		}
+			// Pick nearest object to player
+			Ogre::Vector3 pickPos;
+			Ogre::Ray rayTo;
+			OgreBulletDynamics::RigidBody * body = NULL;
+			CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
 
+			//Gets mouse co-ordinates
+			rayTo = mCamera->getCameraToViewportRay (mousePos.d_x/mWindow->getWidth(), mousePos.d_y/mWindow->getHeight());
 
-		//If there was a collision..
-		if (body != NULL)
-		{  
-			if(editMode) {
-				placeNewObject(pickPos);
+			if(mCollisionClosestRayResultCallback != NULL) {
+				delete mCollisionClosestRayResultCallback;
 			}
-			else if (!(body->isStaticObject()))
+
+			mCollisionClosestRayResultCallback = new OgreBulletCollisions::CollisionClosestRayResultCallback(rayTo, mWorld, mCamera->getFarClipDistance());
+
+			//Fire ray towards mouse position
+			mWorld->launchRay (*mCollisionClosestRayResultCallback);
+
+			//Draw ray
+			/*myManualObjectNode->detachObject(myManualObject);
+			myManualObject->begin("manual1Material", Ogre::RenderOperation::OT_LINE_LIST); 
+			myManualObject->position(rayTo.getOrigin().x, rayTo.getOrigin().y, rayTo.getOrigin().z); 
+			myManualObject->position(mCollisionClosestRayResultCallback->getRayEndPoint().x, mCollisionClosestRayResultCallback->getRayEndPoint().y, mCollisionClosestRayResultCallback->getRayEndPoint().z); 
+			myManualObject->end(); 
+			myManualObjectNode->attachObject(myManualObject);
+			*/
+			//If there was a collision, select the one nearest the player
+			if (mCollisionClosestRayResultCallback->doesCollide ())
 			{
-				mPickedBody = body;
-				mPickedBody->disableDeactivation();		
-				const Ogre::Vector3 localPivot (body->getCenterOfMassPivot(pickPos));
-				OgreBulletDynamics::PointToPointConstraint *p2pConstraint  = new OgreBulletDynamics::PointToPointConstraint(body, localPivot);
-
-				if ((body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) > 30) &&
-					(body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) < 200))
-					mWorld->addConstraint(p2pConstraint);					    
-
-				//save mouse position for dragging
-				mOldPickingPos = pickPos;
-				const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
-				mOldPickingDist  = (pickPos - eyePos).length();
-
-				//very weak constraint for picking
-				p2pConstraint->setTau (0.1f);
-				mPickConstraint = p2pConstraint;
+				std::cout << "Collision found" << std::endl;
+				body = static_cast <OgreBulletDynamics::RigidBody *> 
+					(mCollisionClosestRayResultCallback->getCollidedObject());
+		
+				pickPos = mCollisionClosestRayResultCallback->getCollisionPoint ();
+				std::cout << body->getName() << std::endl;
+			} else {
+				 std::cout << "No collisions found" << std::endl;
 			}
+
+			//If there was a collision..
+			if (body != NULL)
+			{  
+				if(editMode) {
+					placeNewObject();
+				}
+				else if (!(body->isStaticObject()))
+				{
+					mPickedBody = body;
+					mPickedBody->disableDeactivation();		
+					const Ogre::Vector3 localPivot (body->getCenterOfMassPivot(pickPos));
+					OgreBulletDynamics::PointToPointConstraint *p2pConstraint  = new OgreBulletDynamics::PointToPointConstraint(body, localPivot);
+
+					if ((body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) > 30) &&
+						(body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) < 200))
+						mWorld->addConstraint(p2pConstraint);					    
+
+					//save mouse position for dragging
+					mOldPickingPos = pickPos;
+					const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
+					mOldPickingDist  = (pickPos - eyePos).length();
+
+					//very weak constraint for picking
+					p2pConstraint->setTau (0.1f);
+					mPickConstraint = p2pConstraint;
+				}
   
+			}
+			mRMouseDown = true;
 		}
+		else if (id == OIS::MB_Left && mRMouseDown)
+		{
+			if(mPickedBody != NULL) {
+				// was dragging, but button released
+				// Remove constraint
+				mWorld->removeConstraint(mPickConstraint);
+				delete mPickConstraint;
 
-		mRMouseDown = true;
-	}
-	else if (id == OIS::MB_Left && mRMouseDown)
-	{
-		if(mPickedBody != NULL) {
-			// was dragging, but button released
-			// Remove constraint
-			mWorld->removeConstraint(mPickConstraint);
-			delete mPickConstraint;
-
-			mPickConstraint = NULL;
-			mPickedBody->forceActivationState();
-			mPickedBody->setDeactivationTime( 0.f );
+				mPickConstraint = NULL;
+				mPickedBody->forceActivationState();
+				mPickedBody->setDeactivationTime( 0.f );
 			
-			mPickedBody->setLinearVelocity(
- 			mCamera->getDerivedDirection().normalisedCopy() * 300.0f ); // shooting speed
-			shotGun = true;
-			mPickedBody = NULL;
+				mPickedBody->setLinearVelocity(
+ 				mCamera->getDerivedDirection().normalisedCopy() * 300.0f ); // shooting speed
+				shotGun = true;
+				mPickedBody = NULL;
+			}
 		}
 	}
 
@@ -732,25 +704,29 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
 	// Left mouse button up
-    if (id == OIS::MB_Right)
-    {
-        mRMouseDown = false;
-
-		if(mPickedBody != NULL) {
-			// was dragging, but button released
-			// Remove constraint
-			mWorld->removeConstraint(mPickConstraint);
-			delete mPickConstraint;
-
-			mPickConstraint = NULL;
-			mPickedBody->forceActivationState();
-			mPickedBody->setDeactivationTime( 0.f );
-			mPickedBody = NULL;
+	if(editMode) {
+		if (id == OIS::MB_Middle)
+		{
+			snap = !snap;
 		}
-    }
-	if (id == OIS::MB_Middle)
-	{
-		snap = !snap;
+	}
+	else {
+		if (id == OIS::MB_Right)
+		{
+			mRMouseDown = false;
+
+			if(mPickedBody != NULL) {
+				// was dragging, but button released
+				// Remove constraint
+				mWorld->removeConstraint(mPickConstraint);
+				delete mPickConstraint;
+
+				mPickConstraint = NULL;
+				mPickedBody->forceActivationState();
+				mPickedBody->setDeactivationTime( 0.f );
+				mPickedBody = NULL;
+			}
+		}
 	}
 
 	// This is for the pause menu interface
@@ -758,117 +734,66 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 	return true;
 }
 
+void PGFrameListener::placeNewObject() {
+	Vector3 size = Vector3::ZERO;	// size of the box
+ 	// starting position of the box
+ 	Vector3 position = (mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100);
+	Quaternion orientation = mSpawnObject->getOrientation();
+	Vector3 scale = mSpawnObject->getScale();
 
-void PGFrameListener::placeNewObject(Vector3 location) {
-	String name;
-	String mesh;
-	Entity *entity;
-
-	switch(objSpawnType)
+	if(editMode) {
+		position = mSpawnLocation;
+		//Entity will have to change depending on what type of object is selected
+		Entity *entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		mNumEntitiesInstanced++;
+		switch(objSpawnType)
 		{
-			case 1: name = "Box"+StringConverter::toString(mNumObjectsPlaced)+"placed";
-					mesh = "cube.mesh";
-					break;
-			case 2: name = "Coconut"+StringConverter::toString(mNumObjectsPlaced)+"placed";
-					mesh = "Coco.mesh";
-					break;
-			case 3: name = "Target"+StringConverter::toString(mNumObjectsPlaced)+"placed";
-					mesh = "robot.mesh";
-					break;
-			default: name = "Box"+StringConverter::toString(mNumObjectsPlaced)+"placed";
-					mesh = "cube.mesh";
-		}	    
-	entity = mSceneMgr->createEntity(name, mesh); 
- 	entity->setCastShadows(true);
+			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
+			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
+			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
+			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		}
+ 		
+ 		entity->setCastShadows(true);
+ 		AxisAlignedBox boundingB = entity->getBoundingBox();
+ 		size = boundingB.getSize(); size /= 2.0f; // only the half needed
+		size *= 0.98f;
+		size *= (scale); // set to same scale as preview object
+ 		entity->setMaterialName("Examples/BumpyMetal");
+ 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 		node->attachObject(entity);
+		node->setScale(scale);
+ 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
+ 				mWorld);
+ 		defaultBody->setShape(	node,
+ 					sceneBoxShape,
+ 					0.1f,			// dynamic body restitution
+ 					1.0f,			// dynamic body friction
+ 					0.0f, 			// dynamic bodymass - 0 makes it static
+ 					position,		// starting position of the box
+ 					orientation);	// orientation of the box
+ 			mNumEntitiesInstanced++;				
+		defaultBody->setCastShadows(true);
 
-	// we need the bounding box of the box to be able to set the size of the Bullet-box
- 	AxisAlignedBox boundingB = entity->getBoundingBox();
- 	Vector3 size = boundingB.getSize(); 
-	size /= 2.0f; // only the half needed
- 	size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
+		String objectDetails = name+","+mesh+","+StringConverter::toString(location.x)+","+StringConverter::toString(location.y)+","+StringConverter::toString(location.z)+"\n";
+		std::cout << objectDetails << std::endl;
+		ofstream outputToFile;
+		outputToFile.open("../../res/Levels/Level1Objects.txt", ios::app);
+		outputToFile << objectDetails;
+		outputToFile.close();
 
-	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
- 	node->attachObject(entity);
-
-	// after that create the Bullet shape with the calculated size
-	OgreBulletCollisions::CollisionShape *sceneBoxShape = new OgreBulletCollisions::CollisionShape();
- 	// and the Bullet rigid body
- 	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 			"rigid"+name+StringConverter::toString(mNumObjectsPlaced), mWorld);
-	defaultBody->setStaticShape(sceneBoxShape, 0.6, 0.6, location, Quaternion(0,0,0,1));
- 	mNumObjectsPlaced++;				
-	//defaultBody->setShape(node, sceneBoxShape, 0.6, 0.6, 1.0, location, Quaternion(0,0,0,1));
-
-	String objectDetails = name+","+mesh+","+StringConverter::toString(location.x)+","+StringConverter::toString(location.y)+","+StringConverter::toString(location.z)+"\n";
-	std::cout << objectDetails << std::endl;
-	ofstream outputToFile;
-	outputToFile.open("../../res/Levels/Level1Objects.txt", ios::app);
-	outputToFile << objectDetails;
-	outputToFile.close();
-
- 	// push the created objects to the dequeues
- 	mShapes.push_back(sceneBoxShape);
- 	mBodies.push_back(defaultBody);
-}
-
-/*bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
-{
-	// Left mouse button down spawns a robot
-	if (id == OIS::MB_Left)
-	{
-		// Setup the ray scene query, use CEGUI's mouse position
-        CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
-        Ogre::Ray mouseRay = mCamera->getCameraToViewportRay(mousePos.d_x/float(evt.state.width), 
-															mousePos.d_y/float(evt.state.height));
-        mRaySceneQuery->setRay(mouseRay);
-
-		// Execute query
-        Ogre::RaySceneQueryResult &result = mRaySceneQuery->execute();
-        Ogre::RaySceneQueryResult::iterator itr = result.begin( );
- 
-        // Get results, create a node/entity on the position
-        if (itr != result.end() && itr->worldFragment)
-        {
-			char name[16];
-            sprintf( name, "Robot%d", mCount++ );
-			Ogre::Entity *ent = mSceneMgr->createEntity(name, "robot.mesh");
-            mCurrentObject = mSceneMgr->getRootSceneNode()->createChildSceneNode(std::string(name) + "Node", itr->worldFragment->singleIntersection);
-            mCurrentObject->attachObject(ent);
-            mCurrentObject->setScale(0.1f, 0.1f, 0.1f);
-        }
- 
-        mLMouseDown = true;
-    } 
-	else if (id == OIS::MB_Right) // The right mouse button toggles freeroam or pause
-	{
-		freeRoam = !freeRoam;
-
-		if (freeRoam)
-			CEGUI::MouseCursor::getSingleton().setVisible(false);
-		else
+ 		mShapes.push_back(sceneBoxShape);
+		switch(objSpawnType)
 		{
-			CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(400, 300));
-			CEGUI::MouseCursor::getSingleton().setVisible(true);
+			case 1: defaultBody->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(defaultBody); break;
+			case 2: defaultBody->getBulletRigidBody()->setFriction(0.92f); levelCoconuts.push_back(defaultBody); break;
+			case 3: defaultBody->getBulletRigidBody()->setFriction(0.93f); levelTargets.push_back(defaultBody); break;
+			default: levelBodies.push_back(defaultBody);
 		}
 	}
-
-	// This is for the pause menu interface
-    CEGUI::System::getSingleton().injectMouseButtonDown(convertButton(id));
-    return true;
 }
-
-bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
-{
-	// Left mouse button up
-    if (id == OIS::MB_Left)
-    {
-        mLMouseDown = false;
-    }
-
-	// This is for the pause menu interface
-	CEGUI::System::getSingleton().injectMouseButtonUp(convertButton(id));
-	return true;
-}*/
 
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
 {
@@ -1055,6 +980,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			currentBody->getSceneNode()->detachAllObjects();
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
 			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+			++targetCount;
 			std::cout << "Target: " << currentBody->getName() << " hit!" << std::endl;
 		}
 		++itLevelTargets;

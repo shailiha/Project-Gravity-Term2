@@ -195,7 +195,7 @@ public:
     bool mouseMoved( const OIS::MouseEvent& evt );
     bool mousePressed( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
     bool mouseReleased( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
-	void placeNewObject(Vector3 location);
+	void placeNewObject(void);
 
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void updateStats(void);
