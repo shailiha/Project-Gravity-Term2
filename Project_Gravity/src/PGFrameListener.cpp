@@ -798,9 +798,9 @@ void PGFrameListener::placeNewObject() {
  		mShapes.push_back(sceneBoxShape);
 		switch(objSpawnType)
 		{
-			case 1: defaultBody->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(defaultBody); break;
-			case 2: defaultBody->getBulletRigidBody()->setFriction(0.92f); levelCoconuts.push_back(defaultBody); break;
-			case 3: defaultBody->getBulletRigidBody()->setFriction(0.93f); levelTargets.push_back(defaultBody); break;
+			case 1: levelBodies.push_back(defaultBody); break;
+			case 2: levelCoconuts.push_back(defaultBody); break;
+			case 3: levelTargets.push_back(defaultBody); break;
 			default: levelBodies.push_back(defaultBody);
 		}
 	}
