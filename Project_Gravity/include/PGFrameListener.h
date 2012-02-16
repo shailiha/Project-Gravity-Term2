@@ -195,7 +195,12 @@ public:
     bool mouseMoved( const OIS::MouseEvent& evt );
     bool mousePressed( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
     bool mouseReleased( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
+	
+	//Save and load objects
 	void placeNewObject(void);
+	void loadObjectFile(void);
+	void loadNewObject(std::string object[12]);
+	void saveLevel(void);
 
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void updateStats(void);
@@ -219,8 +224,7 @@ public:
 	void createTargets(void);
 	void moveFish(void);
 	void spawnFish(void);
-	//The following will be moved into Level manager class eventually
-	void saveLevel(void);
+	
 };
 
 #endif

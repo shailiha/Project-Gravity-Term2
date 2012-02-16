@@ -764,7 +764,7 @@ void PGFrameListener::placeNewObject() {
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
- 		entity->setMaterialName("Examples/BumpyMetal");
+ 		//entity->setMaterialName("Examples/BumpyMetal");
  		
 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
  		node->attachObject(entity);
@@ -803,6 +803,80 @@ void PGFrameListener::placeNewObject() {
 			case 3: levelTargets.push_back(defaultBody); break;
 			default: levelBodies.push_back(defaultBody);
 		}
+	}
+}
+
+void PGFrameListener::loadObjectFile() {
+	std::string object[12];
+
+	std::ifstream objects("../../res/Levels/Level1Objects.txt");
+	std::string line;
+	int i=0;
+	while(std::getline(objects, line)) {
+		std::stringstream lineStream(line);
+		std::string cell;
+		
+		while(std::getline(lineStream, cell, ',')) {
+			object[i] = cell;
+			i++;
+		}
+		i = 0;
+		for(int i=0; i<=12; i++) {
+			std::cout << object[i] << std::endl;
+		}
+		//loadNewObject(object);
+	}
+}
+
+void PGFrameListener::loadNewObject(std::string object[12]) {
+	Vector3 size = Vector3::ZERO;
+
+	float posX = atof(object[2].c_str());
+	float posY = atof(object[3].c_str());
+	float posZ = atof(object[4].c_str());
+	float orX = atof(object[5].c_str());
+	float orY = atof(object[6].c_str());
+	float orZ = atof(object[7].c_str());
+	float orW = atof(object[8].c_str());
+	float scaleX = atof(object[9].c_str());
+	float scaleY = atof(object[10].c_str());
+	float scaleZ = atof(object[11].c_str());
+	float friction = atof(object[12].c_str());
+
+	Entity* entity = mSceneMgr->createEntity(object[0], object[1]);
+
+ 	entity->setCastShadows(true);
+ 	AxisAlignedBox boundingB = entity->getBoundingBox();
+ 	size = boundingB.getSize(); 
+	size /= 2.0f; // only the half needed
+	size *= 0.98f;
+	size *= (scaleX, scaleY, scaleZ); // set to same scale as preview object
+ 	//entity->setMaterialName("Examples/BumpyMetal");
+ 		
+	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 	node->attachObject(entity);
+	node->setScale(scaleX, scaleY, scaleZ);
+ 		
+	OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 			"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
+ 			mWorld);
+ 	defaultBody->setShape(node,
+ 				sceneBoxShape,
+ 				0.1f,			// dynamic body restitution
+ 				friction,			// dynamic body friction
+ 				0.0f, 			// dynamic bodymass - 0 makes it static
+ 				Vector3(posX, posY, posZ),		// starting position of the box
+				Quaternion(orW, orX, orY, orZ));	// orientation of the box			
+	defaultBody->setCastShadows(true);
+
+ 	mShapes.push_back(sceneBoxShape);
+	switch(objSpawnType)
+	{
+		case 1: levelBodies.push_back(defaultBody); break;
+		case 2: levelCoconuts.push_back(defaultBody); break;
+		case 3: levelTargets.push_back(defaultBody); break;
+		default: levelBodies.push_back(defaultBody);
 	}
 }
 
