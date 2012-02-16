@@ -8,7 +8,6 @@ using namespace std;
 static bool CustomCallback(btManifoldPoint& cp,	const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
 {
 	//We check for collisions between Targets and Projectiles - we know which is which from their Friction value
-	//if ((obj0->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT) && (obj1->getCollisionFlags() | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK));
 	if (((obj0->getFriction()==0.93f) && (obj1->getFriction()==0.61f))
 		||((obj0->getFriction()==0.61f) && (obj1->getFriction()==0.93f)))
 	{
@@ -16,7 +15,7 @@ static bool CustomCallback(btManifoldPoint& cp,	const btCollisionObject* obj0,in
 		{
 			btCollisionShape* projectile = (btCollisionShape*)obj1->getCollisionShape();
 			btRigidBody* target = (btRigidBody*)obj0;
-			std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
+			//std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
 			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			target->setFriction(0.94f);
 		}
@@ -24,7 +23,7 @@ static bool CustomCallback(btManifoldPoint& cp,	const btCollisionObject* obj0,in
 		{
 			btRigidBody* target = (btRigidBody*)obj1;
 			btCollisionShape* projectile = (btCollisionShape*)obj0->getCollisionShape();
-			std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
+			//std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
 			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			target->setFriction(0.94f);
 		}
@@ -92,6 +91,8 @@ PGFrameListener::PGFrameListener (
     mCurrentObject = NULL;
     mRMouseDown = false;
 	spawnDistance = 500;
+	currentLevel = 1;
+	levelComplete = false;
 
 	// Start Bullet
 	mNumEntitiesInstanced = 0; // how many shapes are created
@@ -135,7 +136,7 @@ PGFrameListener::PGFrameListener (
 	playerBody->setShape(	mSceneMgr->getSceneNode("PlayerNode"),
  				playerBoxShape,
  				0.6f,			// dynamic body restitution
- 				0.0f,			// dynamic body friction
+ 				1.0f,			// dynamic body friction
  				30.0f, 			// dynamic bodymass
 				(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 10),	// starting position
 				Quaternion(1,0,0,0));// orientation
@@ -307,7 +308,7 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		{
 			// add a point to point constraint for picking
 			CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
-			cout << mousePos.d_x << " " << mousePos.d_y << endl;
+			//cout << mousePos.d_x << " " << mousePos.d_y << endl;
 			Ogre::Ray rayTo = mCamera->getCameraToViewportRay (mousePos.d_x/mWindow->getWidth(), mousePos.d_y/mWindow->getHeight());
 			
 			//move the constraint pivot
@@ -602,7 +603,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 {
 	if(editMode) {
 		if(id == (OIS::MB_Left)) 
-			placeNewObject();
+			placeNewObject(objSpawnType);
 	}
 	else {
 		if (id == OIS::MB_Right && !mRMouseDown)
@@ -650,7 +651,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 			if (body != NULL)
 			{  
 				if(editMode) {
-					placeNewObject();
+					placeNewObject(objSpawnType);
 				}
 				else if (!(body->isStaticObject()))
 				{
@@ -734,82 +735,69 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 	return true;
 }
 
-void PGFrameListener::placeNewObject() {
+void PGFrameListener::placeNewObject(int objectType) {
 	Vector3 size = Vector3::ZERO;	// size of the box
  	// starting position of the box
  	Vector3 position = (mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100);
 	Quaternion orientation = mSpawnObject->getOrientation();
 	Vector3 scale = mSpawnObject->getScale();
+	
 
 	if(editMode) {
 		position = mSpawnLocation;
 		//Entity will have to change depending on what type of object is selected
-		Entity *entity;
-		String name;
-		String mesh;
-		float friction;
-
+		Entity *entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
 		mNumEntitiesInstanced++;
-		switch(objSpawnType)
+		switch(objectType)
 		{
-			case 1: name = "Box" + StringConverter::toString(mNumEntitiesInstanced); mesh = "cube.mesh"; friction=0.91; break;
-			case 2: name = "Coconut" + StringConverter::toString(mNumEntitiesInstanced); mesh = "Coco.mesh"; friction=0.92; break;
-			case 3: name = "Target" + StringConverter::toString(mNumEntitiesInstanced); mesh = "robot.mesh"; friction=0.93; break;
-			default: name = "Box" + StringConverter::toString(mNumEntitiesInstanced); mesh = "cube.mesh"; friction=0.91;
+			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
+			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
+			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
+			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
 		}
- 		entity = mSceneMgr->createEntity(name, mesh);
-
+ 		
  		entity->setCastShadows(true);
  		AxisAlignedBox boundingB = entity->getBoundingBox();
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
+
  		//entity->setMaterialName("Examples/BumpyMetal");
- 		
-		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+ 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+
  		node->attachObject(entity);
 		node->setScale(scale);
- 		
-		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
  				mWorld);
- 		defaultBody->setShape(node,
+ 		defaultBody->setShape(	node,
  					sceneBoxShape,
  					0.1f,			// dynamic body restitution
- 					friction,			// dynamic body friction
+ 					1.0f,			// dynamic body friction
  					0.0f, 			// dynamic bodymass - 0 makes it static
  					position,		// starting position of the box
- 					orientation);	// orientation of the box			
+ 					orientation);	// orientation of the box
+ 			mNumEntitiesInstanced++;				
 		defaultBody->setCastShadows(true);
 
-		String objectDetails = name+","+mesh+","+
-			StringConverter::toString(position.x)+","+StringConverter::toString(position.y)+","+StringConverter::toString(position.z)+","+
-			StringConverter::toString(orientation.x)+","+StringConverter::toString(orientation.y)+","+StringConverter::toString(orientation.z)+","+StringConverter::toString(orientation.w)+","+
-			StringConverter::toString(scale.x)+","+StringConverter::toString(scale.y)+","+StringConverter::toString(scale.z)+","+
-			StringConverter::toString(friction)+
-			"\n";
-		std::cout << objectDetails << std::endl;
-		ofstream outputToFile;
-		outputToFile.open("../../res/Levels/Level1Objects.txt", ios::app);
-		outputToFile << objectDetails;
-		outputToFile.close();
-
  		mShapes.push_back(sceneBoxShape);
-		switch(objSpawnType)
+		//We want our collision callback function to work with all level objects
+		defaultBody->getBulletRigidBody()->setCollisionFlags(playerBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+		switch(objectType)
 		{
-			case 1: levelBodies.push_back(defaultBody); break;
-			case 2: levelCoconuts.push_back(defaultBody); break;
-			case 3: levelTargets.push_back(defaultBody); break;
+			case 1: defaultBody->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(defaultBody); break;
+			case 2: defaultBody->getBulletRigidBody()->setFriction(0.92f); levelCoconuts.push_back(defaultBody); break;
+			case 3: defaultBody->getBulletRigidBody()->setFriction(0.93f); levelTargets.push_back(defaultBody); break;
 			default: levelBodies.push_back(defaultBody);
 		}
 	}
 }
 
-void PGFrameListener::loadObjectFile() {
+void PGFrameListener::loadObjectFile(int levelNo) {
 	std::string object[12];
 
-	std::ifstream objects("../../res/Levels/Level1Objects.txt");
+	std::ifstream objects("../../res/Levels/Level"+levelNo+"Objects.txt");
 	std::string line;
 	int i=0;
 	while(std::getline(objects, line)) {
@@ -824,11 +812,11 @@ void PGFrameListener::loadObjectFile() {
 		for(int i=0; i<=12; i++) {
 			std::cout << object[i] << std::endl;
 		}
-		//loadNewObject(object);
+		loadLevelObjects(object);
 	}
 }
 
-void PGFrameListener::loadNewObject(std::string object[12]) {
+void PGFrameListener::loadLevelObjects(std::string object[12]) {
 	Vector3 size = Vector3::ZERO;
 
 	float posX = atof(object[2].c_str());
@@ -1061,12 +1049,12 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 		if(currentBody->getBulletRigidBody()->getFriction()==0.94f)
 		{
 			currentBody->getBulletRigidBody()->setFriction(0.941f);
-			//currentBody->getBulletRigidBody()->setMassProps(0.0f, btVector3(0.0f,0.0f,0.0f));
+			// animation could be started here.
 			currentBody->getSceneNode()->detachAllObjects();
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
 			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			++targetCount;
-			std::cout << "Target: " << currentBody->getName() << " hit!" << std::endl;
+			std::cout << "Target killed!\tTotal: " << targetCount << std::endl;
 		}
 		++itLevelTargets;
  	}
@@ -1078,15 +1066,17 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 		if(currentBody->getBulletRigidBody()->getFriction()==0.94f)
 		{
 			currentBody->getBulletRigidBody()->setFriction(0.941f);
-			//currentBody->getBulletRigidBody()->setMassProps(0.0f, btVector3(0.0f,0.0f,0.0f));
-			currentBody->getSceneNode()->detachAllObjects();
-			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
+			// animation could be started here.
+			currentBody->getSceneNode()->detachAllObjects(); //removes the visible coconut
+			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody()); // Removes the physics box
 			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			++coconutCount;
 			std::cout << "Coconut get!:\tTotal: " << coconutCount << std::endl;
 		}
 		++itLevelCoconuts;
  	}
+
+	doLevelSpecificStuff();
     return true;
 }
 
@@ -1158,15 +1148,9 @@ void PGFrameListener::windowClosed(Ogre::RenderWindow* rw)
 
 void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 {
-	if(!mFastMove) {
-		linVelX = 0.5 * playerBody->getLinearVelocity().x;
-		linVelY = playerBody->getLinearVelocity().y;
-		linVelZ = 0.5 * playerBody->getLinearVelocity().z;
-	} else if(mFastMove) {
-		linVelX = 0.8 * playerBody->getLinearVelocity().x;
-		linVelY = playerBody->getLinearVelocity().y;
-		linVelZ = 0.8 * playerBody->getLinearVelocity().z;
-	}
+	linVelX = 0.5 * playerBody->getLinearVelocity().x;
+	linVelY = playerBody->getLinearVelocity().y;
+	linVelZ = 0.5 * playerBody->getLinearVelocity().z;
 
 	if (mGoingForward)
 	{
@@ -1335,7 +1319,7 @@ void PGFrameListener::spawnBox(void)
  		defaultBody->setShape(	node,
  					sceneBoxShape,
  					0.6f,			// dynamic body restitution
- 					0.6f,			// dynamic body friction
+ 					0.61f,			// dynamic body friction
  					5.0f, 			// dynamic bodymass
  					position,		// starting position of the box
  					Quaternion(0,0,0,1));// orientation of the box
@@ -1612,11 +1596,23 @@ void PGFrameListener::createCaelumSystem(void)
 
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
 {
+	String objectDetails = "";
+	ofstream outputToFile;
+	outputToFile.open("../../res/Levels/Level"+StringConverter::toString(currentLevel)+"Objects.txt"/*, ios::app*/); // Overwrites old level file when you save
+
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
  	while (levelBodies.end() != itLevelBodies)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelBodies;
-		std::cout << "Box, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		objectDetails += "Box," + StringConverter::toString(currentBody->getWorldPosition().x)+","+
+								StringConverter::toString(currentBody->getWorldPosition().y)+","+
+								StringConverter::toString(currentBody->getWorldPosition().z)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().x)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().y)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().z)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z)+	"\n";
 		++itLevelBodies;
  	}
 
@@ -1625,6 +1621,15 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelCoconuts;
 		std::cout << "Coconut, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		objectDetails += "Coconut," + StringConverter::toString(currentBody->getWorldPosition().x)+","+
+								StringConverter::toString(currentBody->getWorldPosition().y)+","+
+								StringConverter::toString(currentBody->getWorldPosition().z)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().x)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().y)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().z)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z)+	"\n";
 		++itLevelCoconuts;
  	}
 
@@ -1633,8 +1638,78 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
 		std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		objectDetails += "Target," + StringConverter::toString(currentBody->getWorldPosition().x)+","+
+								StringConverter::toString(currentBody->getWorldPosition().y)+","+
+								StringConverter::toString(currentBody->getWorldPosition().z)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().x)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().y)+","+
+								StringConverter::toString(currentBody->getWorldOrientation().z)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y)+","+
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z)+	"\n";
 		++itLevelTargets;
  	}
+	std::cout << objectDetails << std::endl;
+	outputToFile << objectDetails;
+	outputToFile.close();
+}
+
+void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!
+{
+	//First remove all current level objects by going through the lists and removing ALL THE THINGS o/
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
+ 	while (levelBodies.end() != itLevelBodies)
+ 	{   
+		delete *itLevelBodies;
+		++itLevelBodies;
+ 	}
+	levelBodies.clear();
+	// repeat for coconuts and targets etc
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelCoconuts = levelCoconuts.begin();
+ 	while (levelCoconuts.end() != itLevelCoconuts)
+ 	{   
+		delete *itLevelCoconuts;
+		++itLevelCoconuts;
+ 	}
+	levelCoconuts.clear();
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
+ 	while (levelTargets.end() != itLevelTargets)
+ 	{   
+		delete *itLevelTargets;
+		++itLevelTargets;
+ 	}
+	levelTargets.clear();
+
+	//Then go through the level's file and call placeNewObject() for each line
+	levelComplete = false;
+	loadObjectFile(levelNo);
+
+}
+
+void PGFrameListener::doLevelSpecificStuff() //Here we check if levels are complete and whatnot
+{
+	if ((currentLevel ==1) && (levelComplete ==false))
+	{
+		//level one ends either when the fishies get hit or when you kill all the targets
+		bool winning = true;
+ 		std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
+ 		while (levelTargets.end() != itLevelTargets)
+ 		{   
+			OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
+			std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
+			if (currentBody->getBulletRigidBody()->getFriction()==0.93f)
+			{
+				winning = false;
+				break;
+			}
+			++itLevelTargets;
+ 		}
+		if (winning)
+		{
+			std::cout << "You're Winner!" << std::endl;
+			levelComplete = true;
+		}
+	}
 }
 
 void PGFrameListener::gunController()

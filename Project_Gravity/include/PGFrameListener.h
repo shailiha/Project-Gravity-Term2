@@ -18,8 +18,11 @@ private:
 	OgreBulletCollisions::DebugDrawer *debugDrawer;
 	int mNumEntitiesInstanced;
 	int mNumObjectsPlaced;
-
-    //OIS Input devices
+	
+	//Is level complete?
+	bool levelComplete;
+    
+	//OIS Input devices
     OIS::InputManager* mInputManager;
     OIS::Mouse*    mMouse;
     OIS::Keyboard* mKeyboard;
@@ -154,6 +157,7 @@ private:
 	SceneNode *actualTarget;
 	double spinTime;
 
+	int currentLevel;
 	//For level editing
 	bool editMode;
 	bool mScrollUp;
@@ -196,12 +200,6 @@ public:
     bool mousePressed( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
     bool mouseReleased( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
 	
-	//Save and load objects
-	void placeNewObject(void);
-	void loadObjectFile(void);
-	void loadNewObject(std::string object[12]);
-	void saveLevel(void);
-
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void updateStats(void);
 	void windowResized(Ogre::RenderWindow* rw);
@@ -224,7 +222,16 @@ public:
 	void createTargets(void);
 	void moveFish(void);
 	void spawnFish(void);
-	
+
+	//The following will be moved into Level manager class eventually
+	//Save and load objects
+	void placeNewObject(int objectType);
+	void saveLevel(void);
+	void loadLevel(int levelNo);
+	void loadObjectFile(int levelNo);
+	void loadLevelObjects(std::string object[12]);
+	void doLevelSpecificStuff(void);
+
 };
 
 #endif
