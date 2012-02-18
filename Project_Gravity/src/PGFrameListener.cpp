@@ -4,8 +4,21 @@
 
 using namespace std;
 
+// Shadow config struct
+struct ShadowConfig
+{
+	bool Enable;
+	int  Size;
+
+	ShadowConfig(const bool& Enable_, const int& Size_)
+		: Enable(Enable_)
+		, Size(Size_)
+	{
+	}
+};
+
 //Custom Callback function
-static bool CustomCallback(btManifoldPoint& cp,	const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
+bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
 {
 	//We check for collisions between Targets and Projectiles - we know which is which from their Friction value
 	if (((obj0->getFriction()==0.93f) && (obj1->getFriction()==0.61f))
@@ -15,17 +28,30 @@ static bool CustomCallback(btManifoldPoint& cp,	const btCollisionObject* obj0,in
 		{
 			btCollisionShape* projectile = (btCollisionShape*)obj1->getCollisionShape();
 			btRigidBody* target = (btRigidBody*)obj0;
+			btRigidBody* rbProjectile = (btRigidBody*)obj1;
+			double xDiff = target->getCenterOfMassPosition().x() - rbProjectile->getCenterOfMassPosition().x();
+			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
+			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
+						
 			//std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
 			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			target->setFriction(0.94f);
+			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
 		else
 		{
 			btRigidBody* target = (btRigidBody*)obj1;
 			btCollisionShape* projectile = (btCollisionShape*)obj0->getCollisionShape();
+			btRigidBody* rbProjectile = (btRigidBody*)obj1;
+			double xDiff = target->getCenterOfMassPosition().x() - rbProjectile->getCenterOfMassPosition().x();
+			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
+			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
+			//targetScore = (int) 101 - sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff);
+
 			//std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
 			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			target->setFriction(0.94f);
+			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
 	}
 
@@ -68,7 +94,8 @@ PGFrameListener::PGFrameListener (
 			mInputManager(0), mMouse(0), mKeyboard(0), mShutDown(false), mTopSpeed(150), 
 			mVelocity(Ogre::Vector3::ZERO), mGoingForward(false), mGoingBack(false), mGoingLeft(false), 
 			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false), 
-			freeRoam(true), mPaused(true), gunActive(false), shotGun(false)
+			freeRoam(true), mPaused(true), gunActive(false), shotGun(false), 
+			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length())
 {
 	// Initialize Ogre and OIS (OIS used for mouse and keyboard input)
 	Ogre::LogManager::getSingletonPtr()->logMessage("*** Initializing OIS ***");
@@ -137,7 +164,7 @@ PGFrameListener::PGFrameListener (
 	playerBody->setShape(	mSceneMgr->getSceneNode("PlayerNode"),
  				playerBoxShape,
  				0.6f,			// dynamic body restitution
- 				0.0f,			// dynamic body friction
+ 				1.0f,			// dynamic body friction
  				30.0f, 			// dynamic bodymass
 				(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 10),	// starting position
 				Quaternion(1,0,0,0));// orientation
@@ -160,6 +187,7 @@ PGFrameListener::PGFrameListener (
 	gravityGun->pitch(Degree(272));
 	gravityGun->roll(Degree(4));
 	gravityGun->setScale(3.0, 3.0, 3.0);
+	gravityGunEnt->setCastShadows(false);
 	gravityGun->attachObject(gravityGunEnt);
 	fovy = mCamera->getFOVy();
 	camAsp = mCamera->getAspectRatio();
@@ -242,6 +270,37 @@ PGFrameListener::PGFrameListener (
 	targetCount = 0;
 }
 
+
+/** Update shadow far distance
+	*/
+void PGFrameListener::updateShadowFarDistance()
+{
+	Ogre::Light* Light1 = mCaelumSystem->getSun()->getMainLight();
+	float currentLength = (Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length();
+
+	//Ogre::Vector3 sunPosition = camera->getDerivedPosition();
+    //sunPosition -= mCaelumSystem->getSun()->getLightDirection() * 80000;
+
+	if (currentLength < 1000)
+	{
+		mLastPositionLength = currentLength;
+		return;
+	}
+		
+	if (currentLength - mLastPositionLength > 100)
+	{
+		mLastPositionLength += 100;
+
+		Light1->setShadowFarDistance(Light1->getShadowFarDistance() + 100);
+	}
+	else if (currentLength - mLastPositionLength < -100)
+	{
+		mLastPositionLength -= 100;
+
+		Light1->setShadowFarDistance(Light1->getShadowFarDistance() - 100);
+	}
+}
+
 PGFrameListener::~PGFrameListener()
 {
 	// We created the query, and we are also responsible for deleting it.
@@ -289,6 +348,9 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		mCaelumSystem->getSun()->getBodyColour().b));
 	//CAN ALSO CHANGE THE COLOUR OF THE WATER
 	
+	// Update shadow far distance
+	updateShadowFarDistance();
+
 	// Update Hydrax
     mHydrax->update(evt.timeSinceLastFrame);
 	
@@ -628,7 +690,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 				body = static_cast <OgreBulletDynamics::RigidBody *> 
 					(mCollisionClosestRayResultCallback->getCollidedObject());
 		
-				pickPos = mCollisionClosestRayResultCallback->getCollisionPoint ();
+				pickPos = body->getCenterOfMassPosition();//mCollisionClosestRayResultCallback->getCollisionPoint ();
 				std::cout << body->getName() << std::endl;
 			} else {
 				 std::cout << "No collisions found" << std::endl;
@@ -786,7 +848,7 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 
 	std::stringstream ss;//create a stringstream
     ss << levelNo;//add number to the stream
-	string levelNoString = ss.str();;
+	string levelNoString = ss.str();
 
 	std::ifstream objects("../../res/Levels/Level"+levelNoString+"Objects.txt");
 	std::string line;
@@ -1010,6 +1072,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 
 	// So that the caelum system is updated for both cameras
 	mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("PlayerCam"));
+    mCaelumSystem->updateSubcomponents (evt.timeSinceLastFrame);
 	//mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("RTTCam"));
 
 	Ogre::Vector3 camPosition = mCamera->getPosition();
@@ -1325,6 +1388,7 @@ void PGFrameListener::spawnBox(void)
  		defaultBody->setLinearVelocity(
  					mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
 		defaultBody->getBulletRigidBody()->setCollisionFlags(defaultBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+
  		// push the created objects to the dequese
  		mShapes.push_back(sceneBoxShape);
  		mBodies.push_back(defaultBody);
@@ -1368,8 +1432,10 @@ void PGFrameListener::spawnBox(void)
 
 void PGFrameListener::createTargets(void)
 {
+
 	for (int i = 0; i < 6; i++)
 	{
+
 		Vector3 size = Vector3::ZERO;	// size of the box
  		// starting position of the box
 		Vector3 position;
@@ -1410,6 +1476,23 @@ void PGFrameListener::createTargets(void)
  		// push the created objects to the dequese
  		mShapes.push_back(ccs);
  		mBodies.push_back(targetBody[i]);
+
+		// Create the target scores
+		//billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
+		//billboardSet[i] = mSceneMgr->createBillboardSet("billboardSet" + i);
+		//billboards[i] = billboardSet[i]->createBillboard(Vector3(position.x, position.y + 100, position.z));
+		//billNodes[i]->attachObject(billboardSet[i]);
+
+		targetText[i] = new MovableText("targetText" + i, "100", "000_@KaiTi_33", 17.0f);
+		targetText[i]->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
+		//msg->setAdditionalHeight( 100.0f ); //msg->setAdditionalHeight( ei.getRadius() )
+		
+		billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
+		billNodes[i]->attachObject(targetText[i]);
+		billNodes[i]->setPosition(position.x, position.y + 50, position.z);
+		billNodes[i]->setVisible(false);
+		targetTextAnim[i] = 0;
+		targetTextBool[i] = false;
 	}
 }
 
@@ -1442,11 +1525,39 @@ void PGFrameListener::moveTargets(double evtTime)
 
 		if (targetBody[i]->getBulletRigidBody()->getFriction() == 0.94f)
 		{
+			billNodes[i]->setVisible(false);
+
 			if (targetEnt[i]->getAnimationState("my_animation")->getTimePosition() + evtTime/2 < 0.54)
 			{
 				targetEnt[i]->getAnimationState("my_animation")->addTime(evtTime/2);
 				targetEnt[i]->getAnimationState("my_animation")->setLoop(false);
 				targetEnt[i]->getAnimationState("my_animation")->setEnabled(true);
+
+				targetTextAnim[i] += evtTime;
+				cout << targetBody[i]->getBulletRigidBody()->getRestitution() << endl;
+
+				billNodes[i]->setVisible(true);
+
+				if (targetTextBool[i] == false)
+				{
+					targetTextPos[i] = targetBody[i]->getCenterOfMassPosition();
+					targetTextBool[i] = true;
+					
+					targetScore = (int) (targetBody[i]->getBulletRigidBody()->getRestitution() * 1000);
+					std::stringstream ss;//create a stringstream
+					ss << targetScore;//add number to the stream
+					string targetString = ss.str();;
+					targetText[i]->setCaption(targetString);
+				}
+
+				billNodes[i]->setPosition(targetTextPos[i].x,
+										  targetTextPos[i].y + 30 + (40 * targetTextAnim[i]),
+										  targetTextPos[i].z);
+
+				if (targetTextAnim[i] < 1.0)
+					targetText[i]->setColor(Ogre::ColourValue(targetText[i]->getColor().r, 
+															  targetText[i]->getColor().g, 
+															  targetText[i]->getColor().b, 255 - (targetTextAnim[i])));
 			}
 			else
 			{
@@ -1670,9 +1781,10 @@ void PGFrameListener::createCaelumSystem(void)
 	((Caelum::SpriteSun*) mCaelumSystem->getSun())->setSunTextureAngularSize(Ogre::Degree(6.0f));
 
     // Set time acceleration.
-	mCaelumSystem->setSceneFogDensityMultiplier(0.0008f); // or some other small value.
+	mCaelumSystem->setSceneFogDensityMultiplier(0.0008f); // or some other smal6l value.
 	mCaelumSystem->setManageSceneFog(false);
 	mCaelumSystem->getUniversalClock()->setTimeScale (64); // This sets the timescale for the day/night system
+	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(1750);
 
     // Register caelum as a listener.
     mWindow->addListener(mCaelumSystem);

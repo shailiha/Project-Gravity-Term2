@@ -29,7 +29,7 @@ Components=Sun|Foam|Depth|Smooth|Caustics|Underwater|UnderwaterReflections|Under
 <float>FoamTransparency=2.5
 
 #Depth parameters
-<float>DepthLimit=60
+<float>DepthLimit=90
 
 #Smooth transitions parameters
 <float>SmoothPower=5
@@ -59,7 +59,7 @@ Module=ProjectedGridVertex
 
 <float>PG_ChoopyStrength=3.75
 <bool>PG_ChoppyWaves=true
-<int>PG_Complexity=264
+<int>PG_Complexity=180
 <float>PG_Elevation=50
 <bool>PG_ForceRecalculateGeometry=false
 <bool>PG_Smooth=false

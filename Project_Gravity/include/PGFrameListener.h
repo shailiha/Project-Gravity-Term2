@@ -2,6 +2,7 @@
 #define __PGFRAMELISTENER_h_
 
 #include "stdafx.h"
+#include "MovableText.h"
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -170,7 +171,13 @@ private:
 	Ogre::Entity *boxEntity;
 	Ogre::Entity *coconutEntity;
 	Ogre::Entity *targetEntity;
-
+	SceneNode* billNodes[6];
+	MovableText* targetText[6];
+	double targetTextAnim[6];
+	bool targetTextBool[6];
+	Vector3 targetTextPos[6];
+	int targetScore;
+	Real mLastPositionLength;
 
 public:
     PGFrameListener(
@@ -225,6 +232,7 @@ public:
 	void loadObjectFile(int levelNo);
 	void loadLevelObjects(std::string object[12]);
 	void doLevelSpecificStuff(void);
+	void updateShadowFarDistance();
 };
 
 #endif

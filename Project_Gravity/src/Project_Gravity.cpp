@@ -64,7 +64,6 @@ void Project_Gravity::createScene(void)
  
 	// Set ambiant lighting
     mSceneMgr->setAmbientLight(Ogre::ColourValue(1, 1, 1));
-	//mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE );
 
 	// Create Hydrax ocean
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
@@ -103,7 +102,7 @@ void Project_Gravity::createScene(void)
 	Ogre::Entity* palmEntity = mSceneMgr->createEntity("palm", "Palm2.mesh");
 	palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode");
 	palmNode->attachObject(palmEntity);
-	palmNode->setPosition(Ogre::Vector3(517, 410, 1955));
+	palmNode->setPosition(Ogre::Vector3(867, 410, 2207));
 	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
 	palmNode->roll(Ogre::Radian(Degree(270)));
 	palmNode->setScale(15.0, 15.0, 15.0);
@@ -111,7 +110,7 @@ void Project_Gravity::createScene(void)
 	Ogre::Entity* palmEntity2 = mSceneMgr->createEntity("palm2", "Palm2.mesh");
 	palmNode2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode2");
 	palmNode2->attachObject(palmEntity2);
-	palmNode2->setPosition(Ogre::Vector3(1056, 480, 757));
+	palmNode2->setPosition(Ogre::Vector3(887, 480, 1270));
 	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
 	palmNode2->roll(Ogre::Radian(Degree(270)));
 	palmNode2->pitch(Ogre::Radian(Degree(150)));
@@ -167,7 +166,7 @@ void Project_Gravity::createScene(void)
 	palmNode70->setPosition(Ogre::Vector3(269, 120, 1319));
 	palmNode70->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
 	palmNode70->setScale(3.0, 3.0, 3.0);
-
+	
 	// Produce the island from the config file
 	mSceneMgr->setWorldGeometry("Island.cfg");
 
@@ -175,6 +174,17 @@ void Project_Gravity::createScene(void)
 	mHydrax->getMaterialManager()->addDepthTechnique(
 		static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"))
 		->createTechnique());
+	
+	// Shadows
+	mSceneMgr->setShadowCameraSetup(Ogre::ShadowCameraSetupPtr(new Ogre::FocusedShadowCameraSetup()));
+	mSceneMgr->setShadowTextureCasterMaterial("ShadowCaster");
+									
+	Ogre::MaterialPtr IslandMat = static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"));
+
+	mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE_INTEGRATED);
+	mSceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_X8R8G8B8);
+	IslandMat->getTechnique(0)->setSchemeName("Default");
+	IslandMat->getTechnique(1)->setSchemeName("NoDefault");
 }
  
 void Project_Gravity::createFrameListener(void)

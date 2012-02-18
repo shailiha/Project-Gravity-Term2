@@ -5,7 +5,6 @@
 #include "OgreBulletDynamicsRigidBody.h"				 // for OgreBullet
 #include "OgreBulletListener.h"							 //For ray casting...
 #include "OgreBulletDynamics.h"							
-//#include "OgreBulletDynamicsPreRequisites.h"			
 #include "OgreBulletCollisions.h"
 #include "OgreBulletCollisionsRay.h"
 #include "Constraints/OgreBulletDynamicsPoint2pointConstraint.h"
@@ -16,6 +15,8 @@
 #include "Shapes/OgreBulletCollisionsTrimeshShape.h"
 #include "Utils\OgreBulletCollisionsMeshToShapeConverter.h"
 #include "Shapes\OgreBulletCollisionsCylinderShape.h"
+#include "OgreSceneManager.h"
+#include "OgreFontManager.h"
 
 #include <OgreCamera.h>
 #include <OgreEntity.h>

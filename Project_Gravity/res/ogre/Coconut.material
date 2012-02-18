@@ -1,6 +1,6 @@
 
 // blender material: Coconut
-material Coconut 
+material Coconut
 {
     receive_shadows on
     technique b2ogre_1327710599.692

@@ -1,6 +1,6 @@
 
 // blender material: Material
-material Palm 
+material Palm
 {
     receive_shadows on
     technique b2ogre_1322842113.022

@@ -1,5 +1,5 @@
-// Island CG vertex and fragment program - For Hydrax demo application
-// Xavier Verguín González
+// Island CG vertex and fragment program - For Hydrax-SkyX demo application
+// Xavier Verguín González - Xavyiy
 
 void main_vp( // In
              float4 iPosition         : POSITION,
@@ -13,13 +13,20 @@ void main_vp( // In
              out float3 oEyeDir       : TEXCOORD2, 
              out float3 oHalfAngle    : TEXCOORD3,
              out float  oYPos         : TEXCOORD4,
+#ifdef SHADOWS
+             out float4 oShadowUV     : TEXCOORD5,
+#endif
              // Uniform
              uniform float4   uLightPosition, 
              uniform float3   uEyePosition,
              uniform float4x4 uWorldViewProj,
-             uniform float    uTexturesScale)
+             uniform float    uTexturesScale
+#ifdef SHADOWS
+            ,uniform float4x4 uShadowTextProj
+#endif
+											 )
 {
-   // Just a little hack, TerrainSceneManager doesn't build tangent vectors
+   // Just a little hack, TerrainSceneManager doesn't builds tangent vectors
    iTangent = 1;
    
    oPosition = mul(uWorldViewProj, iPosition);
@@ -38,7 +45,10 @@ void main_vp( // In
    oEyeDir    = eyeDir;
    oHalfAngle = normalize(eyeDir + lightDir);
 
-   oYPos = iPosition.y/190; //[0,1] range - higher number = less green
+   oYPos = iPosition.y/180; //[0,1] range
+#ifdef SHADOWS
+   oShadowUV = mul(uShadowTextProj, iPosition);
+#endif
 }
 
 float3 expand(float3 v)
@@ -72,7 +82,7 @@ float3 calculate_colour(sampler2D uNormalHeightMap,
 	
 	if (_GreenFade>0.6)
 	{
-	    float d = (_GreenFade-0.6)/2; //lower denominator = more green 
+	    float d = (_GreenFade-0.6)/3;
 	    diffuse += float3(-d,d,-d);
 	}
 
@@ -93,6 +103,9 @@ void main_fp( // In
 	         float3 iEyeDir    : TEXCOORD2,
 	         float3 iHalfAngle : TEXCOORD3,
              float  iYPos      : TEXCOORD4,
+#ifdef SHADOWS
+             float4 iShadowUV  : TEXCOORD5,
+#endif
              // Out
              out float4 oColor : COLOR,
              // Uniform
@@ -102,8 +115,29 @@ void main_fp( // In
 	         uniform sampler2D uNormalHeightMap1,
 	         uniform sampler2D uDiffuseMap1,
              uniform sampler2D uNormalHeightMap2,
-	         uniform sampler2D uDiffuseMap2)
+	         uniform sampler2D uDiffuseMap2
+#ifdef SHADOWS
+	        ,uniform sampler2D uShadowMap,
+	         uniform sampler2D uNoise
+#endif
+									 )
 {
+#ifdef SHADOWS
+	// Shadows
+	float shadow = tex2D(uShadowMap, iShadowUV.xy / iShadowUV.w + (1-2*tex2D(uNoise, iUv*10).xy)*0.002).r;
+	
+	if (iShadowUV.z / iShadowUV.w > shadow)
+		shadow = 0; // Shadow
+	else
+		shadow = 1; // No shadow
+		
+	float shadow_opacity = uLightDiffuse.r*0.3;
+	float minus_shadow_opacity = 1-shadow_opacity;
+	
+	// Attenuate specular lighting on shadowed areas
+	uLightSpecular *= 0.25+0.75*shadow;
+#endif
+
 	float3 col1 = calculate_colour(uNormalHeightMap1, 
 	                               uDiffuseMap1,
 	                               iUv,
@@ -126,7 +160,11 @@ void main_fp( // In
                                    uScaleBias,
                                    iYPos);
 	
-	oColor = float4(lerp(col1,col2,iYPos), 1);
+	oColor = float4(saturate(lerp(col1,col2,iYPos)), 1);
+
+#ifdef SHADOWS
+	oColor.xyz *= minus_shadow_opacity+shadow_opacity*shadow;
+#endif
 }
 
 
