@@ -260,6 +260,9 @@ PGFrameListener::PGFrameListener (
 	targetEntity = mSceneMgr->createEntity(
 			"TargetBox",
 			"robot.mesh");
+	blockEntity = mSceneMgr->createEntity(
+			"DynBlock",
+			"cube.mesh");
  	boxEntity->setCastShadows(true);
  	boxEntity->setMaterialName("Examples/BumpyMetal");
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
@@ -268,6 +271,7 @@ PGFrameListener::PGFrameListener (
 	//Initialise number of coconuts collected and targets killed
 	coconutCount = 0;
 	targetCount = 0;
+	gridsize = 26;
 }
 
 
@@ -371,7 +375,7 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		{
 			// add a point to point constraint for picking
 			CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
-			cout << mousePos.d_x << " " << mousePos.d_y << endl;
+			//cout << mousePos.d_x << " " << mousePos.d_y << endl;
 			Ogre::Ray rayTo = mCamera->getCameraToViewportRay (mousePos.d_x/mWindow->getWidth(), mousePos.d_y/mWindow->getHeight());
 			
 			//move the constraint pivot
@@ -535,6 +539,13 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			mSpawnObject->detachAllObjects();
 			mSpawnObject->attachObject(targetEntity);
 		}
+		else if (evt.key == OIS::KC_4)
+		{
+			objSpawnType = 4;
+			mSpawnObject->detachAllObjects();
+			mSpawnObject->attachObject(blockEntity);
+			mSpawnObject->setScale(1,0.25,0.25);
+		}
 		else if (evt.key ==  (OIS::KC_8))
 		{
 			mSceneMgr->getSceneNode("palmNode")->setPosition(mSceneMgr->getSceneNode("palmNode")->getPosition() + 1);
@@ -626,12 +637,19 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 			mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
 			if (snap)
 			{
-				mSpawnLocation.x = floor(mSpawnLocation.x/100) * 100;
-				mSpawnLocation.y = floor(mSpawnLocation.y/100) * 100;
-				mSpawnLocation.z = floor(mSpawnLocation.z/100) * 100;
+				mSpawnLocation.x = floor(mSpawnLocation.x/gridsize) * gridsize + (gridsize/2);
+				mSpawnLocation.y = floor(mSpawnLocation.y/gridsize) * gridsize + (gridsize/2);
+				mSpawnLocation.z = floor(mSpawnLocation.z/gridsize) * gridsize + (gridsize/2);
 			}
 			//std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
 			mSpawnObject->setPosition(mSpawnLocation);
+		}
+		else
+		{
+			if (mPickedBody)
+			{
+				mPickedBody->getBulletRigidBody()->applyTorqueImpulse(btVector3(0,(10*evt.state.Z.rel),0));
+			}
 		}
 	}
 	else // if it is false then the pause menu is activated, the cursor is shown and the camera stops
@@ -710,9 +728,12 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 					OgreBulletDynamics::PointToPointConstraint *p2pConstraint  = new OgreBulletDynamics::PointToPointConstraint(body, localPivot);
 
 					if ((body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) > 30) &&
-						(body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) < 200))
+						(body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) < 500))
 						mWorld->addConstraint(p2pConstraint);					    
 
+					//centre camera on object for moving blocks
+					if (body->getBulletRigidBody()->getFriction()==0.80f)
+						mCamera->lookAt(body->getCenterOfMassPosition());
 					//save mouse position for dragging
 					mOldPickingPos = pickPos;
 					const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
@@ -790,7 +811,12 @@ void PGFrameListener::placeNewObject(int objectType) {
  	Vector3 position = (mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100);
 	Quaternion orientation = mSpawnObject->getOrientation();
 	Vector3 scale = mSpawnObject->getScale();
-	
+	float mass = 0.0f;
+	//To make blocks dynamic
+	if (objectType ==4)
+	{
+		mass = 50.0f;
+	}
 
 	if(editMode) {
 		position = mSpawnLocation;
@@ -802,6 +828,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
 			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
 			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
+			case 4: entity = mSceneMgr->createEntity("DynBlock" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
 			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
 		}
  		
@@ -810,7 +837,7 @@ void PGFrameListener::placeNewObject(int objectType) {
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
-
+	
  		//entity->setMaterialName("Examples/BumpyMetal");
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 
@@ -824,7 +851,7 @@ void PGFrameListener::placeNewObject(int objectType) {
  					sceneBoxShape,
  					0.1f,			// dynamic body restitution
  					1.0f,			// dynamic body friction
- 					0.0f, 			// dynamic bodymass - 0 makes it static
+ 					mass, 			// dynamic bodymass - 0 makes it static
  					position,		// starting position of the box
  					orientation);	// orientation of the box
  			mNumEntitiesInstanced++;				
@@ -838,6 +865,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 			case 1: defaultBody->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(defaultBody); break;
 			case 2: defaultBody->getBulletRigidBody()->setFriction(0.92f); levelCoconuts.push_back(defaultBody); break;
 			case 3: defaultBody->getBulletRigidBody()->setFriction(0.93f); levelTargets.push_back(defaultBody); break;
+			case 4: defaultBody->getBulletRigidBody()->setFriction(0.80f); levelBlocks.push_back(defaultBody); break;
 			default: levelBodies.push_back(defaultBody);
 		}
 	}
@@ -1093,7 +1121,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	mCamera->setOrientation(camOr);
 
 	//mCamera->lookAt(target->getPosition());
-	cout << mCamera->getDerivedPosition() << endl;
+	//cout << mCamera->getDerivedPosition() << endl;
 	
 	//Here we check the status of targets, and remove if necessary
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
@@ -1534,7 +1562,7 @@ void PGFrameListener::moveTargets(double evtTime)
 				targetEnt[i]->getAnimationState("my_animation")->setEnabled(true);
 
 				targetTextAnim[i] += evtTime;
-				cout << targetBody[i]->getBulletRigidBody()->getRestitution() << endl;
+				//cout << targetBody[i]->getBulletRigidBody()->getRestitution() << endl;
 
 				billNodes[i]->setVisible(true);
 
@@ -1930,7 +1958,7 @@ void PGFrameListener::gunController()
 		if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > 0 &&
 			(gunOrBuffer4.getPitch(false).valueRadians()) <= 0)
 		{
-			cout << "1" << endl;
+			//cout << "1" << endl;
 			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians()  + Math::PI)
 				- (gunOrBuffer4.getPitch(false).valueRadians() + (3 * Math::PI))) / 3));
 		}
@@ -1938,7 +1966,7 @@ void PGFrameListener::gunController()
 		{
 			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() + (3 * Math::PI))
 				- (gunOrBuffer4.getPitch(false).valueRadians()  + Math::PI)) / 3));
-			cout << "2" << endl;
+			//cout << "2" << endl;
 		}
 	}
 	else if (abs((mCamera->getDerivedOrientation().getPitch(false).valueRadians() + Math::PI) -
@@ -1947,48 +1975,48 @@ void PGFrameListener::gunController()
 		if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > 0 &&
 		(gunOrBuffer4.getPitch(false).valueRadians()) > Math::PI/2)
 		{
-			cout << "3" << endl;
+			//cout << "3" << endl;
 				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
 					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
 		}
 		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) < 0 &&
 			(gunOrBuffer4.getPitch(false).valueRadians()) < -Math::PI/2)
 		{
-			cout << "4" << endl;
+			//cout << "4" << endl;
 				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
 					- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) / 3));
 		}
 		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > Math::PI/2 &&
 		(gunOrBuffer4.getPitch(false).valueRadians()) > 0)
 		{
-			cout << "5" << endl;
+			//cout << "5" << endl;
 				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
 					- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) / 3));
 		}
 		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) < -Math::PI/2 &&
 			(gunOrBuffer4.getPitch(false).valueRadians()) < 0)
 		{
-			cout << "6" << endl;
+			//cout << "6" << endl;
 				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
 					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
 		}
 		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) < 0 &&
 			(gunOrBuffer4.getPitch(false).valueRadians()) < 0)
 		{
-			cout << "7" << endl;
+			//cout << "7" << endl;
 				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() - Math::PI)
 					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
 		}
 		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > 0 &&
 			(gunOrBuffer4.getPitch(false).valueRadians()) <= 0)
 		{
-			cout << "8" << endl;
+			//cout << "8" << endl;
 			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() - Math::PI)
 				- (gunOrBuffer4.getPitch(false).valueRadians())) / 3));
 		}
 		else
 		{
-			cout << "9" << endl;
+			//cout << "9" << endl;
 			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
 				- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
 		}

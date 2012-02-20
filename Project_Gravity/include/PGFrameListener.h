@@ -157,6 +157,7 @@ private:
 	bool mScrollUp;
 	bool mScrollDown;
 	bool snap; //snap to grid
+	int gridsize;
 	Ogre::Vector3 mSpawnLocation;
 	int spawnDistance;
 	int objSpawnType;
@@ -167,10 +168,12 @@ private:
 	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
+	std::deque<OgreBulletDynamics::RigidBody *>         levelBlocks;
 	//preview objects
 	Ogre::Entity *boxEntity;
 	Ogre::Entity *coconutEntity;
 	Ogre::Entity *targetEntity;
+	Ogre::Entity *blockEntity;
 	SceneNode* billNodes[6];
 	MovableText* targetText[6];
 	double targetTextAnim[6];
