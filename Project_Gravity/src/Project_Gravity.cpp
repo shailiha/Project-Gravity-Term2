@@ -23,7 +23,7 @@ void Project_Gravity::createCamera(void)
 	// Create the camera
 	mCamera = mSceneMgr->createCamera("PlayerCam");
 	mCamera->setNearClipDistance(5);
-    mCamera->setFarClipDistance(99999*6);
+    mCamera->setFarClipDistance(99999*2);
 	mCamera->setAspectRatio(1);
 	mCamera->yaw(Degree(-44));
 
@@ -57,17 +57,27 @@ bool Project_Gravity::configure(void)
  
 void Project_Gravity::createScene(void)
 {		
-	//mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE);
+	/*Ogre::CompositorManager& compMgr = Ogre::CompositorManager::getSingleton();
+	compMgr.registerCompositorLogic("HDR", new HDRLogic);
+	try 
+	{
+		Ogre::CompositorManager::getSingleton().addCompositor(mWindow->getViewport(0), "HDR", 0);
+		Ogre::CompositorManager::getSingleton().setCompositorEnabled(mWindow->getViewport(0), "HDR", false);
+	} catch (...) {
+	}*/
+
+	//Ogre::CompositorManager::getSingleton().addCompositor(mWindow->getViewport(0), "Bloom");
+    //Ogre::CompositorManager::getSingleton().setCompositorEnabled(mWindow->getViewport(0), "Bloom", true);
+	
 
 	Ogre::MaterialManager::getSingleton().setDefaultTextureFiltering(Ogre::TFO_ANISOTROPIC);
     Ogre::MaterialManager::getSingleton().setDefaultAnisotropy(7);
- 
+
 	// Set ambiant lighting
     mSceneMgr->setAmbientLight(Ogre::ColourValue(1, 1, 1));
 
 	// Create Hydrax ocean
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
-
 
 	Hydrax::Module::ProjectedGrid *mModule 
       = new Hydrax::Module::ProjectedGrid(// Hydrax parent pointer
@@ -182,7 +192,9 @@ void Project_Gravity::createScene(void)
 	Ogre::MaterialPtr IslandMat = static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"));
 
 	mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE_INTEGRATED);
-	mSceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_X8R8G8B8);
+	mSceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_FLOAT32_R);
+	//mSceneMgr->setShadowTextureSelfShadow(false);
+	//mSceneMgr->setShadowCasterRenderBackFaces(true);
 	IslandMat->getTechnique(0)->setSchemeName("Default");
 	IslandMat->getTechnique(1)->setSchemeName("NoDefault");
 }

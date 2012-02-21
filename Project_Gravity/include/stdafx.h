@@ -17,6 +17,9 @@
 #include "Shapes\OgreBulletCollisionsCylinderShape.h"
 #include "OgreSceneManager.h"
 #include "OgreFontManager.h"
+#include "OgrePrerequisites.h"
+#include "OgreCompositorLogic.h"
+#include "OgreCompositorInstance.h"
 
 #include <OgreCamera.h>
 #include <OgreEntity.h>

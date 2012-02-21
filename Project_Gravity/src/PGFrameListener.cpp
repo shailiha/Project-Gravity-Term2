@@ -32,9 +32,6 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			double xDiff = target->getCenterOfMassPosition().x() - rbProjectile->getCenterOfMassPosition().x();
 			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
 			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
-						
-			//std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
-			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			target->setFriction(0.94f);
 			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
@@ -46,10 +43,6 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			double xDiff = target->getCenterOfMassPosition().x() - rbProjectile->getCenterOfMassPosition().x();
 			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
 			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
-			//targetScore = (int) 101 - sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff);
-
-			//std::cout << "hit!" << "\tObject " << target->getFriction() << "\tand Object " << projectile->getName() << std::endl;
-			//target->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			target->setFriction(0.94f);
 			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
@@ -63,7 +56,6 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 		{
 			btCollisionShape* player = (btCollisionShape*)obj1->getCollisionShape();
 			btRigidBody* coconut = (btRigidBody*)obj0;
-			//std::cout << "hit!" << "\tCoconut " << coconut->getFriction() << "\tand player " << std::endl;
 			coconut->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			coconut->setFriction(0.94f);
 		}
@@ -71,7 +63,6 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 		{
 			btRigidBody* coconut = (btRigidBody*)obj1;
 			btCollisionShape* player = (btCollisionShape*)obj0->getCollisionShape();
-			//std::cout << "hit!" << "\tCoconut " << coconut->getFriction() << "\tand Player " << std::endl;
 			coconut->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			coconut->setFriction(0.94f);
 		}
@@ -261,7 +252,7 @@ PGFrameListener::PGFrameListener (
 			"TargetBox",
 			"robot.mesh");
  	boxEntity->setCastShadows(true);
- 	boxEntity->setMaterialName("Examples/BumpyMetal");
+ 	boxEntity->setMaterialName("Jenga");
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
     mSpawnObject->attachObject(boxEntity);
 	mSpawnLocation = Ogre::Vector3(0.f,0.f,0.f);
@@ -277,9 +268,6 @@ void PGFrameListener::updateShadowFarDistance()
 {
 	Ogre::Light* Light1 = mCaelumSystem->getSun()->getMainLight();
 	float currentLength = (Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length();
-
-	//Ogre::Vector3 sunPosition = camera->getDerivedPosition();
-    //sunPosition -= mCaelumSystem->getSun()->getLightDirection() * 80000;
 
 	if (currentLength < 1000)
 	{
@@ -400,14 +388,10 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 
 bool PGFrameListener::frameEnded(const FrameEvent& evt)
 {
-	//cout << "camerae " << mCamera->getDerivedPosition() << endl;
 	// This was used to update the FPS of the ogre interface but that has been replaced
 	// by the cegui library and so this function should be changed to output the
 	// same numbers on the console
  	updateStats();
-
- 	//mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
- 	//mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	   
 
  	return true;
 }
@@ -426,11 +410,6 @@ void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 	else if (evt.source == mTargets[2]) mCamera->pitch(Degree(90));
 	else if (evt.source == mTargets[3]) mCamera->pitch(Degree(-90));
 	else if (evt.source == mTargets[5]) mCamera->yaw(Degree(180));
-	else if (evt.source == mTargets2[0]) mCamera->yaw(Degree(-90));
-	else if (evt.source == mTargets2[1]) mCamera->yaw(Degree(90));
-	else if (evt.source == mTargets2[2]) mCamera->pitch(Degree(90));
-	else if (evt.source == mTargets2[3]) mCamera->pitch(Degree(-90));
-	else if (evt.source == mTargets2[5]) mCamera->yaw(Degree(180));
 }
 
 void PGFrameListener::postRenderTargetUpdate(const RenderTargetEvent& evt)
@@ -446,8 +425,6 @@ void PGFrameListener::createCubeMap()
 	// create our dynamic cube map texture
 	TexturePtr tex = TextureManager::getSingleton().createManual("dyncubemap",
 		ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, TEX_TYPE_CUBE_MAP, 512, 512, 0, PF_R8G8B8, TU_RENDERTARGET);
-	TexturePtr tex2 = TextureManager::getSingleton().createManual("dyncubemap2",
-		ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, TEX_TYPE_CUBE_MAP, 512, 512, 0, PF_R8G8B8, TU_RENDERTARGET);
 
 	// assign our camera to all 6 render targets of the texture (1 for each direction)
 	for (unsigned int i = 0; i < 6; i++)
@@ -458,13 +435,6 @@ void PGFrameListener::createCubeMap()
 		mTargets[i]->getViewport(0)->setBackgroundColour(Ogre::ColourValue::Blue);
 		mTargets[i]->setAutoUpdated(false);
 		mTargets[i]->addListener(this);
-
-		mTargets2[i] = tex2->getBuffer(i)->getRenderTarget();
-		mTargets2[i]->addViewport(mCamera)->setOverlaysEnabled(false);
-		mTargets2[i]->getViewport(0)->setClearEveryFrame(true);
-		mTargets2[i]->getViewport(0)->setBackgroundColour(Ogre::ColourValue::Blue);
-		mTargets2[i]->setAutoUpdated(false);
-		mTargets2[i]->addListener(this);
 	}
 }
 
@@ -806,6 +776,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 		}
  		
  		entity->setCastShadows(true);
+		entity->setMaterialName("Jenga");
  		AxisAlignedBox boundingB = entity->getBoundingBox();
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
@@ -1084,7 +1055,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	for (unsigned int i = 0; i < 6; i++)
 	{
 		mTargets[i]->update();
-		mTargets2[i]->update();
+		//mTargets2[i]->update();
 	}
 
 	mCamera->setFOVy(Degree(45));
@@ -1324,7 +1295,7 @@ void PGFrameListener::spawnBox(void)
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
- 		entity->setMaterialName("Examples/BumpyMetal");
+ 		entity->setMaterialName("Jenga");
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
  		node->attachObject(entity);
 		node->setScale(scale);
@@ -1356,7 +1327,7 @@ void PGFrameListener::spawnBox(void)
   		// create an ordinary, Ogre mesh with texture
  		Entity *entity = mSceneMgr->createEntity(
  				"Box" + StringConverter::toString(mNumEntitiesInstanced),
- 				"Coco.mesh");			    
+ 				"coco.mesh");			    
  		entity->setCastShadows(true);
 	
  		// we need the bounding box of the box to be able to set the size of the Bullet-box
@@ -1364,11 +1335,11 @@ void PGFrameListener::spawnBox(void)
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
  		size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
  								// (Bullet 2.76 Physics SDK Manual page 18)
-		//size *= 3;
+		//size *= 30;
  	
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+		entity->setMaterialName("Jenga");
  		node->attachObject(entity);
-		//node->setScale(3, 3, 3);
  
  		// after that create the Bullet shape with the calculated size
  		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);

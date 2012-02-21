@@ -1,0 +1,63 @@
+vertex_program Jenga_Shadows/VP hlsl
+{
+   source Jenga.hlsl
+   entry_point main_vp
+   target vs_1_1
+
+	default_params
+	{
+		param_named_auto uLightPosition 		light_position_object_space 0
+		param_named_auto uEyePosition 			camera_position_object_space
+		param_named_auto uWorldViewProj 		worldviewproj_matrix
+		param_named_auto uTexWorldViewProj	texture_worldviewproj_matrix 0
+	}
+}
+
+fragment_program Jenga_Shadows/FP hlsl
+{
+   source Jenga.hlsl
+   entry_point main_fp
+   target ps_2_0
+
+	default_params
+	{
+		param_named_auto lightDiffuse		derived_light_diffuse_colour 0
+		param_named_auto lightSpecular		derived_light_specular_colour 0
+		param_named_auto ambient			derived_ambient_light_colour 
+		param_named_auto invShadowMapSize0	inverse_texture_size 0
+	}
+}
+
+material Jenga
+{
+   technique
+   {	  
+      pass
+      {
+		ambient 1 1 1 1
+		diffuse 1 1 1 1
+
+         // Vertex program reference
+         vertex_program_ref Jenga_Shadows/VP
+         {
+         }
+
+         // Fragment program
+         fragment_program_ref Jenga_Shadows/FP
+         {		 
+         }
+
+		texture_unit shadow_tex0
+		{
+			content_type shadow
+			tex_address_mode clamp
+		}
+
+         texture_unit diffuse_tex
+         {
+            texture Jenga.jpg
+         }
+      }
+   }
+}
+
