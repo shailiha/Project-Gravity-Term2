@@ -51,7 +51,8 @@ private:
     bool mShutDown;
 	bool mInGameMenu;
 	bool mLevelMenuCreated;
-	
+	bool mInLevelMenu;
+
 	//Camera controls
 	Ogre::Real mTopSpeed;
 	Ogre::Vector3 mVelocity;
@@ -251,6 +252,7 @@ public:
 	bool inGameLoadPressed(const CEGUI::EventArgs& e);
 	bool inGameExitPressed(const CEGUI::EventArgs& e);
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
+	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 
 };
 

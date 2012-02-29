@@ -85,7 +85,8 @@ PGFrameListener::PGFrameListener (
 			mInputManager(0), mMouse(0), mKeyboard(0), mShutDown(false), mTopSpeed(150), 
 			mVelocity(Ogre::Vector3::ZERO), mGoingForward(false), mGoingBack(false), mGoingLeft(false), 
 			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false), 
-			freeRoam(true), mPaused(true), gunActive(false), shotGun(false), mInGameMenu(false), mInGameMenuCreated(false), mLevelMenuCreated(false),
+			freeRoam(true), mPaused(true), gunActive(false), shotGun(false), 
+			mInGameMenu(false), mInGameMenuCreated(false), mInLevelMenu(false), mLevelMenuCreated(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length())
 {
 	// Initialize Ogre and OIS (OIS used for mouse and keyboard input)
@@ -505,7 +506,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			CEGUI::MouseCursor::getSingleton().setVisible(false);
 		}
 		else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
-			//loadPauseGameMenu();
+			loadPauseGameMenu();
 			myRoot->setVisible(true);
 			CEGUI::MouseCursor::getSingleton().setVisible(true);
 		}
@@ -1088,7 +1089,10 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 
 	//Rather than exiting the game, load the in-game menu
     if(mInGameMenu) {
-        loadPauseGameMenu();
+		if(mInLevelMenu)
+			loadLevelSelectorMenu();
+		else
+			loadPauseGameMenu();
 	}
 	
     //Need to capture/update each device
@@ -2162,7 +2166,7 @@ void PGFrameListener::loadPauseGameMenu() {
 		mInGameMenuCreated=true;
 	}
 	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
-	//CEGUI::System::getSingleton().setGUISheet(myRoot);
+	CEGUI::System::getSingleton().setGUISheet(myRoot);
 	
 }
 
@@ -2172,7 +2176,8 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
 		//Create root window
 		myLevelRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_LevelRoot" );
-		CEGUI::System::getSingleton().setGUISheet(myRoot);
+		CEGUI::System::getSingleton().setGUISheet(myLevelRoot);
+		
 		//Create new, inner window, set position, size and attach to root.
 		levelWindow = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","LevelWindow" );
 		levelWindow->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0),CEGUI::UDim(0.25, 0)));
@@ -2202,15 +2207,15 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		//Register events
 		//loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 1));
 		//exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 2));
-		resumeGameBtn2->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
-		mInGameMenuCreated=true;
+		resumeGameBtn2->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLevelsResumePressed, this));
+		mLevelMenuCreated=true;
 	}
-	//CEGUI::System::getSingleton().setGUISheet(levelWindow);
-	myLevelRoot->setVisible(true);
+	CEGUI::System::getSingleton().setGUISheet(myLevelRoot);
 }
 
 bool PGFrameListener::inGameLoadPressed(const CEGUI::EventArgs& e) {
 	std::cout << "load" << std::endl;
+	mInLevelMenu = true;
 	loadLevelSelectorMenu();
 	return 1;
 }
@@ -2223,10 +2228,16 @@ bool PGFrameListener::inGameExitPressed(const CEGUI::EventArgs& e) {
 }
 bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
 	mInGameMenu = false;
+	mInLevelMenu = false;
 	freeRoam = true;
 	myRoot->setVisible(false);
-	myLevelRoot->setVisible(false);
 	CEGUI::MouseCursor::getSingleton().setVisible(false);
+	return 1;
+}
+//Needs to be separate from the inGameResumePressed incase myLevelRoot isn't assigned a value yet
+bool PGFrameListener::inGameLevelsResumePressed(const CEGUI::EventArgs& e) {
+	myLevelRoot->setVisible(false);
+	inGameResumePressed(e);
 	return 1;
 }
 /*
