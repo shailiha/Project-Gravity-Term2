@@ -49,6 +49,8 @@ private:
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
     bool mShutDown;
+	bool mInGameMenu;
+	bool mLevelMenuCreated;
 	
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -182,6 +184,12 @@ private:
 	int targetScore;
 	Real mLastPositionLength;
 
+	bool mInGameMenuCreated;
+	CEGUI::Window* myRoot;
+	CEGUI::Window* myLevelRoot;
+	CEGUI::Window* inGameMenu;
+	CEGUI::Window* levelWindow;
+
 public:
     PGFrameListener(
   		SceneManager *sceneMgr, 
@@ -236,6 +244,14 @@ public:
 	void loadLevelObjects(std::string object[12]);
 	void doLevelSpecificStuff(void);
 	void updateShadowFarDistance();
+
+	//Menu-related
+	void loadPauseGameMenu(void);
+	void loadLevelSelectorMenu(void); 
+	bool inGameLoadPressed(const CEGUI::EventArgs& e);
+	bool inGameExitPressed(const CEGUI::EventArgs& e);
+	bool inGameResumePressed(const CEGUI::EventArgs& e);
+
 };
 
 #endif
