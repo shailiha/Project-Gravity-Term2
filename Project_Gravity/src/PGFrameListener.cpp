@@ -503,6 +503,9 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		freeRoam = !freeRoam;
 		if(!mInGameMenu) {//If not 'shut down' then close menu
 			myRoot->setVisible(false);
+			if(mLevelMenuCreated) {
+				myLevelRoot->setVisible(false);
+			}
 			CEGUI::MouseCursor::getSingleton().setVisible(false);
 		}
 		else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
