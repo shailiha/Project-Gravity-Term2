@@ -49,9 +49,20 @@ private:
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
     bool mShutDown;
+
+	//Menu flags
+	bool mMainMenu;
 	bool mInGameMenu;
 	bool mLevelMenuCreated;
 	bool mInLevelMenu;
+	bool mInGameMenuCreated;
+	//Menu windows
+	CEGUI::Window* mainRoot;
+	CEGUI::Window* inGameRoot;
+	CEGUI::Window* myLevelRoot;
+	CEGUI::Window* mainMenu;
+	CEGUI::Window* inGameMenu;
+	CEGUI::Window* levelWindow;
 
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -185,12 +196,6 @@ private:
 	int targetScore;
 	Real mLastPositionLength;
 
-	bool mInGameMenuCreated;
-	CEGUI::Window* myRoot;
-	CEGUI::Window* myLevelRoot;
-	CEGUI::Window* inGameMenu;
-	CEGUI::Window* levelWindow;
-
 public:
     PGFrameListener(
   		SceneManager *sceneMgr, 
@@ -213,6 +218,9 @@ public:
     bool mouseReleased( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
 
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
+	void worldUpdates(const Ogre::FrameEvent& evt);
+	void checkObjectsForRemoval();
+
 	void updateStats(void);
 	void windowResized(Ogre::RenderWindow* rw);
 	void windowClosed(Ogre::RenderWindow* rw);
@@ -243,10 +251,11 @@ public:
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo);
 	void loadLevelObjects(std::string object[12]);
-	void doLevelSpecificStuff(void);
+	void checkLevelEndCondition(void);
 	void updateShadowFarDistance();
 
 	//Menu-related
+	void loadMainMenu(void);
 	void loadPauseGameMenu(void);
 	void loadLevelSelectorMenu(void); 
 	bool inGameLoadPressed(const CEGUI::EventArgs& e);
