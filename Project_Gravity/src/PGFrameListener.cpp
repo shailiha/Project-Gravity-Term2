@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "PGFrameListener.h"
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -244,7 +245,7 @@ PGFrameListener::PGFrameListener (
 	oceanFade->attachObject(mOceanFadeEnt);
 	oceanFade->setPosition(1700, 121, 1100);
 
-	createTargets();
+	//createTargets(); - moved to levelLoad
 	spinTime = 0;
 	
 	/*We set up variables for edit mode.
@@ -257,18 +258,11 @@ PGFrameListener::PGFrameListener (
 	snap = true;
 	objSpawnType = 1;
 	//Create the box to show where spawned object will be placed
- 	boxEntity = mSceneMgr->createEntity(
- 			"SpawnBox",
- 			"cube.mesh");
-	coconutEntity = mSceneMgr->createEntity(
-			"CoconutBox",
-			"Coco.mesh");
-	targetEntity = mSceneMgr->createEntity(
-			"TargetBox",
-			"robot.mesh");
-	blockEntity = mSceneMgr->createEntity(
-			"DynBlock",
-			"cube.mesh");
+ 	boxEntity = mSceneMgr->createEntity("SpawnBox", "cube.mesh");
+	coconutEntity = mSceneMgr->createEntity("CoconutBox", "Coco.mesh");
+	targetEntity = mSceneMgr->createEntity("TargetBox",	"robot.mesh");
+	blockEntity = mSceneMgr->createEntity("DynBlock", "cube.mesh");
+
  	boxEntity->setCastShadows(true);
  	boxEntity->setMaterialName("Jenga");
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
@@ -516,7 +510,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			}
 			else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
 				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
-				loadPauseGameMenu();
+				loadInGameMenu();
 				inGameMenuRoot->setVisible(true);
 			}
 		}
@@ -877,7 +871,8 @@ void PGFrameListener::placeNewObject(int objectType) {
 }
 
 void PGFrameListener::loadObjectFile(int levelNo) {
-	std::string object[12];
+	std::cout << "load object file" << std::endl;
+	std::string object[15];
 
 	std::stringstream ss;//create a stringstream
     ss << levelNo;//add number to the stream
@@ -886,6 +881,7 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 	std::ifstream objects("../../res/Levels/Level"+levelNoString+"Objects.txt");
 	std::string line;
 	int i=0;
+	std::cout << "start loading objects" << std::endl;
 	while(std::getline(objects, line)) {
 		std::stringstream lineStream(line);
 		std::string cell;
@@ -895,14 +891,16 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 			i++;
 		}
 		i = 0;
-		for(int i=0; i<=12; i++) {
+		for(int i=0; i<15; i++) {
 			std::cout << object[i] << std::endl;
 		}
 		loadLevelObjects(object);
 	}
+	std::cout << "objects loaded" << std::endl;
 }
 
-void PGFrameListener::loadLevelObjects(std::string object[12]) {
+void PGFrameListener::loadLevelObjects(std::string object[15]) {
+	std::cout << "loading object" << std::endl;
 	Vector3 size = Vector3::ZERO;
 
 	float posX = atof(object[2].c_str());
@@ -915,43 +913,49 @@ void PGFrameListener::loadLevelObjects(std::string object[12]) {
 	float scaleX = atof(object[9].c_str());
 	float scaleY = atof(object[10].c_str());
 	float scaleZ = atof(object[11].c_str());
-	float friction = atof(object[12].c_str());
+	float restitution = atof(object[12].c_str());
+	float friction = atof(object[13].c_str());
+	float bodymass = atof(object[14].c_str());
 
-	Entity* entity = mSceneMgr->createEntity(object[0], object[1]);
+	Entity* entity = mSceneMgr->createEntity(object[0] + StringConverter::toString(mNumEntitiesInstanced), object[1]);
 
- 	entity->setCastShadows(true);
- 	AxisAlignedBox boundingB = entity->getBoundingBox();
+	entity->setCastShadows(true);
+ 	
+	AxisAlignedBox boundingB = entity->getBoundingBox();
  	size = boundingB.getSize(); 
 	size /= 2.0f; // only the half needed
 	size *= 0.98f;
 	size *= (scaleX, scaleY, scaleZ); // set to same scale as preview object
- 	//entity->setMaterialName("Examples/BumpyMetal");
- 		
+
 	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
  	node->attachObject(entity);
 	node->setScale(scaleX, scaleY, scaleZ);
- 		
+
+	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 		"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
+
 	OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
- 	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 			"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
- 			mWorld);
- 	defaultBody->setShape(node,
- 				sceneBoxShape,
- 				0.1f,			// dynamic body restitution
- 				friction,			// dynamic body friction
- 				0.0f, 			// dynamic bodymass - 0 makes it static
- 				Vector3(posX, posY, posZ),		// starting position of the box
-				Quaternion(orW, orX, orY, orZ));	// orientation of the box			
+	defaultBody->setShape(node,
+ 			sceneBoxShape,
+ 			restitution,			// dynamic body restitution
+ 			friction,			// dynamic body friction
+ 			bodymass, 			// dynamic bodymass - 0 makes it static
+ 			Vector3(posX, posY, posZ),		// starting position of the box
+			Quaternion(orW, orX, orY, orZ));	// orientation of the box
+
 	defaultBody->setCastShadows(true);
 
- 	mShapes.push_back(sceneBoxShape);
-	switch(objSpawnType)
+	/*switch(objSpawnType)
 	{
 		case 1: levelBodies.push_back(defaultBody); break;
 		case 2: levelCoconuts.push_back(defaultBody); break;
 		case 3: levelTargets.push_back(defaultBody); break;
 		default: levelBodies.push_back(defaultBody);
-	}
+	}*/
+	mNumEntitiesInstanced++;
+	mShapes.push_back(sceneBoxShape);
+	mBodies.push_back(defaultBody);
+				
 }
 
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
@@ -991,7 +995,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			if(mInLevelMenu)
 				loadLevelSelectorMenu();
 			else
-				loadPauseGameMenu();
+				loadInGameMenu();
 		}
 		//Else, update the world
 		else {
@@ -1139,10 +1143,11 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 	mCamera->setFOVy(Degree(90));
 	mCamera->setAspectRatio(1);
 
-	for (unsigned int i = 0; i < 6; i++)
-	{
-		mTargets[i]->update();
-		//mTargets2[i]->update();
+	if(currentLevel == 1) {
+		for (unsigned int i = 0; i < 6; i++)
+		{
+			mTargets[i]->update();
+		}
 	}
 
 	mCamera->setFOVy(Degree(45));
@@ -1150,8 +1155,6 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 	mCamera->setPosition(camPosition);
 	mCamera->setOrientation(camOr);
 
-	//mCamera->lookAt(target->getPosition());
-	//cout << mCamera->getDerivedPosition() << endl;
 }
 
 void PGFrameListener::checkObjectsForRemoval() {
@@ -2052,10 +2055,12 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 		if (winning)
 		{
 			std::cout << "You're Winner!" << std::endl;
-			levelComplete = true;
+			//levelComplete = true;
 		}
 	}
 }
+
+
 
 void PGFrameListener::loadMainMenu() {
 	CEGUI::Window *mainMenu;
@@ -2093,8 +2098,8 @@ void PGFrameListener::loadMainMenu() {
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
 
 		//Register events
-		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::startGame, this));
-		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadPressed, this));
+		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::newGame, this));
+		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadLevelPressed, this));
 		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameExitPressed, this));
 		mMainMenuCreated=true;
 	}
@@ -2103,7 +2108,7 @@ void PGFrameListener::loadMainMenu() {
 	
 }
 
-void PGFrameListener::loadPauseGameMenu() {
+void PGFrameListener::loadInGameMenu() {
 	CEGUI::Window *inGameMenu;
 	if(!mInGameMenuCreated) {
 		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
@@ -2140,7 +2145,7 @@ void PGFrameListener::loadPauseGameMenu() {
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn);
 
 		//Register events
-		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadPressed, this));
+		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadLevelPressed, this));
 		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameExitPressed, this));
 		resumeGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
 		mInGameMenuCreated=true;
@@ -2179,33 +2184,34 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		loadLevel2Btn->setText("Level 2");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
 
-		CEGUI::Window *resumeGameBtn2 = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
-		resumeGameBtn2->setPosition(CEGUI::UVector2(CEGUI::UDim(0.55,0),CEGUI::UDim(0.80,0)));
-		resumeGameBtn2->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
-		resumeGameBtn2->setText("Resume");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn2);
+		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.55,0),CEGUI::UDim(0.80,0)));
+		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
+		backBtn->setText("Back");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
 
 		//Register events
-		//loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 1));
-		//exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 2));
-		resumeGameBtn2->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
+		loadLevel1Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel1, this));
+		//loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 2));
+		//backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::mainBackPressed, this));
 		mLevelMenuCreated=true;
 	}
 	CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
 }
 
-bool PGFrameListener::startGame(const CEGUI::EventArgs& e) {
-	mMainMenu=false;
+bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
+	/*mMainMenu=false;
 	freeRoam = true;
 	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
 	mainMenuRoot->setVisible(false);
-	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
-	
+	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));*/
+	loadLevel1(e);
 	return 1;
 }
-
-bool PGFrameListener::inGameLoadPressed(const CEGUI::EventArgs& e) {
+bool PGFrameListener::inGameLoadLevelPressed(const CEGUI::EventArgs& e) {
 	std::cout << "load" << std::endl;
+	mMainMenu=false;
+	mInGameMenu = true;
 	mInLevelMenu = true;
 	loadLevelSelectorMenu();
 	return 1;
@@ -2218,12 +2224,31 @@ bool PGFrameListener::inGameExitPressed(const CEGUI::EventArgs& e) {
 	return 1;
 }
 bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
+	mMainMenu=false;
 	mInGameMenu = false;
 	mInLevelMenu = false;
 	freeRoam = true;
 	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
+	
 	inGameMenuRoot->setVisible(false);
+	if(mLevelMenuCreated) {
+		levelMenuRoot->setVisible(false);
+	}
 
+	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+	return 1;
+}
+bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
+	std::cout << "loadlevel1" << std::endl;
+	loadLevel(1);
+	mInGameMenu = false;
+	mInLevelMenu = false;
+	freeRoam = true;
+	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
+	mainMenuRoot->setVisible(false);
+	if(mInGameMenuCreated) {
+		inGameMenuRoot->setVisible(false);
+	}
 	if(mLevelMenuCreated) {
 		levelMenuRoot->setVisible(false);
 	}
@@ -2233,7 +2258,8 @@ bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
 
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
 {
-	String objectDetails = "";
+	std::stringstream objectDetails;
+	String mesh;
 	ofstream outputToFile;
 	outputToFile.open("../../res/Levels/Level"+StringConverter::toString(currentLevel)+"Objects.txt"/*, ios::app*/); // Overwrites old level file when you save
 
@@ -2241,15 +2267,17 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
  	while (levelBodies.end() != itLevelBodies)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelBodies;
-		objectDetails += "Box," + StringConverter::toString(currentBody->getWorldPosition().x)+","+
-								StringConverter::toString(currentBody->getWorldPosition().y)+","+
-								StringConverter::toString(currentBody->getWorldPosition().z)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().x)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().y)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().z)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().x)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().y)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().z)+	"\n";
+		mesh = "cube.mesh,";
+		objectDetails << "Box," << mesh <<
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "\n";
 		++itLevelBodies;
  	}
 
@@ -2257,16 +2285,18 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
  	while (levelCoconuts.end() != itLevelCoconuts)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelCoconuts;
+		mesh = "Coco.mesh,";
 		std::cout << "Coconut, " << currentBody->getWorldPosition() << "\n" << std::endl;
-		objectDetails += "Coconut," + StringConverter::toString(currentBody->getWorldPosition().x)+","+
-								StringConverter::toString(currentBody->getWorldPosition().y)+","+
-								StringConverter::toString(currentBody->getWorldPosition().z)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().x)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().y)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().z)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().x)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().y)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().z)+	"\n";
+		objectDetails << "Coconut," << mesh <<
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," << 
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," << 
+								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," << 
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," << 
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," << 
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," << 
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," << 
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "\n";
 		++itLevelCoconuts;
  	}
 
@@ -2274,25 +2304,30 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
  	while (levelTargets.end() != itLevelTargets)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
+		mesh = "Target.mesh,";
 		std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
-		objectDetails += "Target," + StringConverter::toString(currentBody->getWorldPosition().x)+","+
-								StringConverter::toString(currentBody->getWorldPosition().y)+","+
-								StringConverter::toString(currentBody->getWorldPosition().z)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().x)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().y)+","+
-								StringConverter::toString(currentBody->getWorldOrientation().z)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().x)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().y)+","+
-								StringConverter::toString(currentBody->getSceneNode()->getScale().z)+	"\n";
+		objectDetails << "Target," << mesh << 
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," << 
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," << 
+								StringConverter::toString(currentBody->getWorldPosition().z) << "," << 
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," << 
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," << 
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," << 
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," << 
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," << 
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "\n";
 		++itLevelTargets;
  	}
-	std::cout << objectDetails << std::endl;
-	outputToFile << objectDetails;
+
+	std::string objects = objectDetails.str();
+	std::cout << objects << std::endl;
+	outputToFile << objects;
 	outputToFile.close();
 }
 
 void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!
 {
+	std::cout << "remove things" << std::endl;
 	//First remove all current level objects by going through the lists and removing ALL THE THINGS o/
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
  	while (levelBodies.end() != itLevelBodies)
@@ -2318,8 +2353,12 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 	levelTargets.clear();
 
 	//Then go through the level's file and call placeNewObject() for each line
+	currentLevel = levelNo;
 	levelComplete = false;
 	loadObjectFile(levelNo);
+	if(levelNo == 1) {
+		createTargets();
+	}
 
 }
 

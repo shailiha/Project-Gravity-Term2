@@ -59,7 +59,6 @@ private:
 	bool mLevelMenuCreated;
 
 	//Menu windows
-	CEGUI::Window* inGameRoot;
 	CEGUI::Window* mainMenuRoot;
 	CEGUI::Window* inGameMenuRoot;
 	CEGUI::Window* levelMenuRoot;
@@ -115,7 +114,7 @@ private:
 	std::deque<OgreBulletDynamics::RigidBody *>         mFish;
 	OgreBulletCollisions::HeightmapCollisionShape *mTerrainShape;
 
-	//JESS
+	//Gravity gun object selection
 	OgreBulletDynamics::RigidBody *mPickedBody;
 	Ogre::Vector3 mOldPickingPos;
     Ogre::Vector3 mOldPickingDist;
@@ -260,14 +259,14 @@ public:
 
 	//Menu-related
 	void loadMainMenu(void);
-	void loadPauseGameMenu(void);
+	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
-	bool startGame(const CEGUI::EventArgs& e); //temp
-	bool inGameLoadPressed(const CEGUI::EventArgs& e);
+	bool newGame(const CEGUI::EventArgs& e); //temp
+	bool inGameLoadLevelPressed(const CEGUI::EventArgs& e);
 	bool inGameExitPressed(const CEGUI::EventArgs& e);
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
-
+	bool loadLevel1(const CEGUI::EventArgs& e);
 };
 
 #endif
