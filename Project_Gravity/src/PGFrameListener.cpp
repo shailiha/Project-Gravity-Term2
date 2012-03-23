@@ -902,6 +902,8 @@ void PGFrameListener::loadLevelObjects(std::string object[15]) {
 	std::cout << "loading object" << std::endl;
 	Vector3 size = Vector3::ZERO;
 
+	std::string name = object[0];
+	std::string mesh = object[1];
 	float posX = atof(object[2].c_str());
 	float posY = atof(object[3].c_str());
 	float posZ = atof(object[4].c_str());
@@ -916,7 +918,7 @@ void PGFrameListener::loadLevelObjects(std::string object[15]) {
 	float friction = atof(object[13].c_str());
 	float bodymass = atof(object[14].c_str());
 
-	Entity* entity = mSceneMgr->createEntity(object[0] + StringConverter::toString(mNumEntitiesInstanced), object[1]);
+	Entity* entity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
 
 	entity->setCastShadows(true);
  	
@@ -926,7 +928,14 @@ void PGFrameListener::loadLevelObjects(std::string object[15]) {
 	size *= 0.98f;
 	size *= (scaleX, scaleY, scaleZ); // set to same scale as preview object
 
-	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	SceneNode *node;
+	if(mSceneMgr->hasSceneNode("levelObjects")) {
+		node = mSceneMgr->getSceneNode("levelObjects");
+	} 
+	else {
+		node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	}
+
  	node->attachObject(entity);
 	node->setScale(scaleX, scaleY, scaleZ);
 
@@ -944,16 +953,26 @@ void PGFrameListener::loadLevelObjects(std::string object[15]) {
 
 	defaultBody->setCastShadows(true);
 
-	/*switch(objSpawnType)
-	{
-		case 1: levelBodies.push_back(defaultBody); break;
-		case 2: levelCoconuts.push_back(defaultBody); break;
-		case 3: levelTargets.push_back(defaultBody); break;
+	if (name == "Box") {
+		levelBodies.push_back(defaultBody);
+		std::cout << "Box loaded" << std::endl;
+	}
+	else if (name == "Coconut") {
+		levelCoconuts.push_back(defaultBody);
+	}
+	else if (name == "Target")
+		levelTargets.push_back(defaultBody);
+	else
+		levelBodies.push_back(defaultBody);
+	/*{
+		case "Box": levelBodies.push_back(defaultBody); break;
+		case "Coconut": levelCoconuts.push_back(defaultBody); break;
+		case "Target": levelTargets.push_back(defaultBody); break;
 		default: levelBodies.push_back(defaultBody);
 	}*/
 	mNumEntitiesInstanced++;
-	mShapes.push_back(sceneBoxShape);
-	mBodies.push_back(defaultBody);
+	//mShapes.push_back(sceneBoxShape);
+	//mBodies.push_back(defaultBody);
 				
 }
 
@@ -2053,7 +2072,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
  		}
 		if (winning)
 		{
-			std::cout << "You're Winner!" << std::endl;
+			//std::cout << "You're Winner!" << std::endl;
 			//levelComplete = true;
 		}
 	}
@@ -2344,11 +2363,14 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!
 {
 	std::cout << "remove things" << std::endl;
-	//First remove all current level objects by going through the lists and removing ALL THE THINGS o/
+	//First remove all current level objects by going through the lists and removing ALL THE THINGS
+
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
  	while (levelBodies.end() != itLevelBodies)
  	{   
-		delete *itLevelBodies;
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelBodies;
+		currentBody->getSceneNode()->detachAllObjects();
+		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
 		++itLevelBodies;
  	}
 	levelBodies.clear();
@@ -2356,19 +2378,23 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelCoconuts = levelCoconuts.begin();
  	while (levelCoconuts.end() != itLevelCoconuts)
  	{   
-		delete *itLevelCoconuts;
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelCoconuts;
+		currentBody->getSceneNode()->detachAllObjects();
+		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
 		++itLevelCoconuts;
  	}
 	levelCoconuts.clear();
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
  	while (levelTargets.end() != itLevelTargets)
  	{   
-		delete *itLevelTargets;
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
+		currentBody->getSceneNode()->detachAllObjects();
+		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
 		++itLevelTargets;
  	}
 	levelTargets.clear();
 
-	//Then go through the level's file and call placeNewObject() for each line
+	//Then go through the new level's file and call placeNewObject() for each line
 	currentLevel = levelNo;
 	levelComplete = false;
 	loadObjectFile(levelNo);
