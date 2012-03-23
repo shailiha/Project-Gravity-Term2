@@ -267,6 +267,8 @@ public:
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
+	bool loadLevel2(const CEGUI::EventArgs& e);
+	void closeMenus(void);
 };
 
 #endif

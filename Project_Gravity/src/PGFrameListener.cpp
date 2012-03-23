@@ -275,8 +275,7 @@ PGFrameListener::PGFrameListener (
 }
 
 
-/** Update shadow far distance
-	*/
+/** Update shadow far distance */
 void PGFrameListener::updateShadowFarDistance()
 {
 	Ogre::Light* Light1 = mCaelumSystem->getSun()->getMainLight();
@@ -2192,7 +2191,7 @@ void PGFrameListener::loadLevelSelectorMenu() {
 
 		//Register events
 		loadLevel1Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel1, this));
-		//loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 2));
+		loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel2, this));
 		//backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::mainBackPressed, this));
 		mLevelMenuCreated=true;
 	}
@@ -2213,7 +2212,12 @@ bool PGFrameListener::inGameLoadLevelPressed(const CEGUI::EventArgs& e) {
 	mMainMenu=false;
 	mInGameMenu = true;
 	mInLevelMenu = true;
-	loadLevelSelectorMenu();
+	
+	if(mLevelMenuCreated) {
+		levelMenuRoot->setVisible(true);
+	} else {
+		loadLevelSelectorMenu();
+	}
 	return 1;
 }
 bool PGFrameListener::inGameExitPressed(const CEGUI::EventArgs& e) {
@@ -2241,7 +2245,18 @@ bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
 bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
 	std::cout << "loadlevel1" << std::endl;
 	loadLevel(1);
-	mInGameMenu = false;
+	closeMenus();
+	return 1;
+}
+bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
+	std::cout << "loadlevel2" << std::endl;
+	loadLevel(2);
+	closeMenus();
+	return 1;
+}
+void PGFrameListener::closeMenus(void) {
+	std::cout << "close menus" <<std::endl;
+ 	mInGameMenu = false;
 	mInLevelMenu = false;
 	freeRoam = true;
 	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
@@ -2253,8 +2268,9 @@ bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
 		levelMenuRoot->setVisible(false);
 	}
 	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
-	return 1;
-}
+	std::cout << "menus closed" <<std::endl;
+ }
+
 
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
 {
