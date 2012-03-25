@@ -2365,36 +2365,10 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!
 {
 	std::cout << "remove things" << std::endl;
-	//First remove all current level objects by going through the lists and removing ALL THE THINGS
-
- 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
- 	while (levelBodies.end() != itLevelBodies)
- 	{   
-		OgreBulletDynamics::RigidBody *currentBody = *itLevelBodies;
-		currentBody->getSceneNode()->detachAllObjects();
-		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
-		++itLevelBodies;
- 	}
-	levelBodies.clear();
-	// repeat for coconuts and targets etc
- 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelCoconuts = levelCoconuts.begin();
- 	while (levelCoconuts.end() != itLevelCoconuts)
- 	{   
-		OgreBulletDynamics::RigidBody *currentBody = *itLevelCoconuts;
-		currentBody->getSceneNode()->detachAllObjects();
-		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
-		++itLevelCoconuts;
- 	}
-	levelCoconuts.clear();
- 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
- 	while (levelTargets.end() != itLevelTargets)
- 	{   
-		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
-		currentBody->getSceneNode()->detachAllObjects();
-		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
-		++itLevelTargets;
- 	}
-	levelTargets.clear();
+	//Remove current level objects (bodies, coconuts, targets) by going through the lists and removing each
+	clearQueue(levelBodies);
+	clearQueue(levelCoconuts);
+	clearQueue(levelTargets);
 
 	//Then go through the new level's file and call placeNewObject() for each line
 	currentLevel = levelNo;
@@ -2406,6 +2380,17 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 
 }
 
+void PGFrameListener::clearQueue(std::deque<OgreBulletDynamics::RigidBody *> queue) {
+	std::deque<OgreBulletDynamics::RigidBody *>::iterator iterator = queue.begin();
+ 	while (queue.end() != iterator)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *iterator;
+		currentBody->getSceneNode()->detachAllObjects();
+		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
+		++iterator;
+ 	}
+	queue.clear();
+}
 /*
 void PGFrameListener::loadMaterialControlsFile(MaterialControlsContainer& controlsContainer, const Ogre::String& filename)
 {
