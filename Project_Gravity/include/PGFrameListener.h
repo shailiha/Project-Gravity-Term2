@@ -259,8 +259,8 @@ public:
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo);
 	void loadLevelObjects(std::string object[12]);
-	void clearQueue(std::deque<OgreBulletDynamics::RigidBody *> queue);
-	void clearTargets(std::deque<Target *> queue);
+	void clearQueue(std::deque<OgreBulletDynamics::RigidBody *> &queue);
+	void clearTargets(std::deque<Target *> &queue);
 	void checkLevelEndCondition(void);
 	
 	void updateShadowFarDistance();
