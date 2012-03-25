@@ -345,10 +345,10 @@ void Project_Gravity::go(void)
 		}
 
 		// Render a frame
-		mRoot->renderOneFrame();
+		if (!mRoot->renderOneFrame()) {
+			return;
+		}
 	}
-
-    //mRoot->startRendering();
 
     // clean up
     destroyScene();

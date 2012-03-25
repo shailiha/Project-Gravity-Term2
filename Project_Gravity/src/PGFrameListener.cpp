@@ -1005,7 +1005,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	if(mWindow->isClosed())
         return false;
 
-	if(mShutDown)
+	if (mShutDown)
 		return false;
 	
 	if(mMainMenu) {
@@ -2208,9 +2208,7 @@ bool PGFrameListener::inGameLoadLevelPressed(const CEGUI::EventArgs& e) {
 }
 bool PGFrameListener::inGameExitPressed(const CEGUI::EventArgs& e) {
 	std::cout << "exit" << std::endl;
-	//mInGameMenu = false;
-	//windowClosed(mWindow);
-	//mShutDown = true;
+	mShutDown = true;
 	return 1;
 }
 bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
