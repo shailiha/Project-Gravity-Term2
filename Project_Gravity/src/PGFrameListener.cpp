@@ -1509,7 +1509,7 @@ void PGFrameListener::spawnBox(void)
 
 void PGFrameListener::createTargets(void)
 {
-
+	spinTime = 0;
 	for (int i = 0; i < 6; i++)
 	{
 
@@ -1529,7 +1529,7 @@ void PGFrameListener::createTargets(void)
 		}
 		
 		targetEnt[i] = mSceneMgr->createEntity(
- 				"Target" + i,
+			"Target" + StringConverter::toString(mNumEntitiesInstanced),
  				"Target.mesh");	
 	
 		AxisAlignedBox boundingB = targetEnt[i]->getBoundingBox();
@@ -1545,14 +1545,15 @@ void PGFrameListener::createTargets(void)
 		OgreBulletCollisions::CylinderCollisionShape* ccs = 
 			new OgreBulletCollisions::CylinderCollisionShape(size, Ogre::Vector3(0,0,1));
 
-		targetBody[i] = new OgreBulletDynamics::RigidBody("Target" + i, mWorld);
+		targetBody[i] = new OgreBulletDynamics::RigidBody("Target" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
 		targetBody[i]->setShape(actualTarget, ccs, 0.6f, 0.93f, 1.0f, position, quaternion);
 		targetBody[i]->setDebugDisplayEnabled(true);
 		targetBody[i]->getBulletRigidBody()->setCollisionFlags(targetBody[i]->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
  		// push the created objects to the dequese
- 		mShapes.push_back(ccs);
- 		mBodies.push_back(targetBody[i]);
+ 		//mShapes.push_back(ccs);
+ 		//mBodies.push_back(targetBody[i]);
+		levelTargets.push_back(targetBody[i]);
 
 		// Create the target scores
 		//billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
@@ -1570,6 +1571,7 @@ void PGFrameListener::createTargets(void)
 		billNodes[i]->setVisible(false);
 		targetTextAnim[i] = 0;
 		targetTextBool[i] = false;
+		mNumEntitiesInstanced++;
 	}
 }
 
