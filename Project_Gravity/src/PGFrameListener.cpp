@@ -1176,24 +1176,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 }
 
 void PGFrameListener::checkObjectsForRemoval() {
-	//Here we check the status of targets, and remove if necessary
- 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
- 	while (levelTargets.end() != itLevelTargets)
- 	{   
-		OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
-		if(currentBody->getBulletRigidBody()->getFriction()==0.94f)
-		{
-			currentBody->getBulletRigidBody()->setFriction(0.941f);
-			// animation could be started here.
-			currentBody->getSceneNode()->detachAllObjects();
-			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
-			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-			++targetCount;
-			std::cout << "Target killed!\tTotal: " << targetCount << std::endl;
-		}
-		++itLevelTargets;
- 	}
-		//Here we check the status of collectable coconuts, and remove if necessary and update coconutCount
+	//Here we check the status of collectable coconuts, and remove if necessary and update coconutCount
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelCoconuts = levelCoconuts.begin();
  	while (levelCoconuts.end() != itLevelCoconuts)
  	{   
@@ -2074,8 +2057,8 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
  		}
 		if (winning)
 		{
-			//std::cout << "You're Winner!" << std::endl;
-			//levelComplete = true;
+			std::cout << "You're Winner!" << std::endl;
+			levelComplete = true;
 		}
 	}
 }
