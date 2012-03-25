@@ -3,6 +3,9 @@
 
 #include "stdafx.h"
 #include "MovableText.h"
+#include "Target.h"
+
+class Target;
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -14,10 +17,7 @@ class PGFrameListener :
 	public Ogre::RenderTargetListener
 {
 private:
-	SceneManager* mSceneMgr; 
-	OgreBulletDynamics::DynamicsWorld *mWorld;	// OgreBullet World
 	OgreBulletCollisions::DebugDrawer *debugDrawer;
-	unsigned int mNumEntitiesInstanced;
 	int mNumObjectsPlaced;
 	
 	//Is level complete?
@@ -184,7 +184,7 @@ private:
 	int targetCount;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
+	std::deque<Target *>         levelTargets;
 	std::deque<OgreBulletDynamics::RigidBody *>         levelBlocks;
 	//preview objects
 	Ogre::Entity *boxEntity;
@@ -208,6 +208,11 @@ public:
  		AxisAlignedBox &bounds,
 		Hydrax::Hydrax *mHyd);
 	~PGFrameListener();
+
+	//Required public for Target class
+	SceneManager* mSceneMgr; 
+	unsigned int mNumEntitiesInstanced;
+	OgreBulletDynamics::DynamicsWorld *mWorld;	// OgreBullet World
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -255,6 +260,7 @@ public:
 	void loadObjectFile(int levelNo);
 	void loadLevelObjects(std::string object[12]);
 	void clearQueue(std::deque<OgreBulletDynamics::RigidBody *> queue);
+	void clearTargets(std::deque<Target *> queue);
 	void checkLevelEndCondition(void);
 	
 	void updateShadowFarDistance();
