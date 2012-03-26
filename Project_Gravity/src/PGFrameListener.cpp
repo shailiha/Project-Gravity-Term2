@@ -872,7 +872,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 
 void PGFrameListener::loadObjectFile(int levelNo) {
 	std::cout << "load object file" << std::endl;
-	std::string object[15];
+	std::string object[24];
 
 	std::stringstream ss;//create a stringstream
     ss << levelNo;//add number to the stream
@@ -891,7 +891,7 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 			i++;
 		}
 		i = 0;
-		for(int i=0; i<15; i++) {
+		for(int i=0; i<24; i++) {
 			std::cout << object[i] << std::endl;
 		}
 		loadLevelObjects(object);
@@ -899,12 +899,13 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 	std::cout << "objects loaded" << std::endl;
 }
 
-void PGFrameListener::loadLevelObjects(std::string object[15]) {
+void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	std::cout << "loading object" << std::endl;
-	Vector3 size = Vector3::ZERO;
+	//Vector3 size = Vector3::ZERO;
 
 	std::string name = object[0];
-	std::string mesh = object[1];
+	Target* newObject = new Target(this, object);
+	/*std::string mesh = object[1];
 	float posX = atof(object[2].c_str());
 	float posY = atof(object[3].c_str());
 	float posZ = atof(object[4].c_str());
@@ -952,31 +953,23 @@ void PGFrameListener::loadLevelObjects(std::string object[15]) {
  			Vector3(posX, posY, posZ),		// starting position of the box
 			Quaternion(orW, orX, orY, orZ));	// orientation of the box
 
-	defaultBody->setCastShadows(true);
+	defaultBody->setCastShadows(true);*/
 
 	if (name == "Box") {
-		levelBodies.push_back(defaultBody);
+		levelBodies.push_back(newObject->mBody);
 		std::cout << "Box loaded" << std::endl;
 	}
 	else if (name == "Coconut") {
-		levelCoconuts.push_back(defaultBody);
+		levelCoconuts.push_back(newObject->mBody);
 	}
 	else if (name == "Target") {
-		//levelTargets.push_back(defaultBody);
+		levelTargets.push_back(newObject);
 	}
 	else {
-		levelBodies.push_back(defaultBody);
+		levelBodies.push_back(newObject->mBody);
 	}
-	/*{
-		case "Box": levelBodies.push_back(defaultBody); break;
-		case "Coconut": levelCoconuts.push_back(defaultBody); break;
-		case "Target": levelTargets.push_back(defaultBody); break;
-		default: levelBodies.push_back(defaultBody);
-	}*/
-	mNumEntitiesInstanced++;
-	//mShapes.push_back(sceneBoxShape);
-	//mBodies.push_back(defaultBody);
-				
+
+	mNumEntitiesInstanced++;				
 }
 
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
@@ -1493,7 +1486,7 @@ void PGFrameListener::spawnBox(void)
  	mNumEntitiesInstanced++;				*/
 }
 
-void PGFrameListener::createTargets(void)
+/*void PGFrameListener::createTargets(void)
 {
 	spinTime = 0;
 	for (int i = 0; i < 6; i++)
@@ -1537,58 +1530,17 @@ void PGFrameListener::createTargets(void)
 		targetTextBool[i] = false;
 		mNumEntitiesInstanced++;
 	}
-}
+}*/
 
 void PGFrameListener::moveTargets(double evtTime)
 {
 	spinTime += evtTime;
 
 	auto targetIt = levelTargets.begin();
-	for (int i = 0; i < 6; i++)
-	{
+	while(targetIt != levelTargets.end()) {
 		Target *target = *targetIt;
-		target->move(spinTime);
+		target->move(spinTime, evtTime);
 		targetIt++;
-		if (targetBody[i]->getBulletRigidBody()->getFriction() == 0.94f)
-		{
-			billNodes[i]->setVisible(false);
-
-			if (targetEnt[i]->getAnimationState("my_animation")->getTimePosition() + evtTime/2 < 0.54)
-			{
-				targetEnt[i]->getAnimationState("my_animation")->addTime(evtTime/2);
-				targetEnt[i]->getAnimationState("my_animation")->setLoop(false);
-				targetEnt[i]->getAnimationState("my_animation")->setEnabled(true);
-
-				targetTextAnim[i] += evtTime;
-
-				billNodes[i]->setVisible(true);
-
-				if (targetTextBool[i] == false)
-				{
-					targetTextPos[i] = targetBody[i]->getCenterOfMassPosition();
-					targetTextBool[i] = true;
-					
-					targetScore = (int) (targetBody[i]->getBulletRigidBody()->getRestitution() * 1000);
-					std::stringstream ss;//create a stringstream
-					ss << targetScore;//add number to the stream
-					string targetString = ss.str();;
-					targetText[i]->setCaption(targetString);
-				}
-
-				billNodes[i]->setPosition(targetTextPos[i].x,
-										  targetTextPos[i].y + 30 + (40 * targetTextAnim[i]),
-										  targetTextPos[i].z);
-
-				if (targetTextAnim[i] < 1.0)
-					targetText[i]->setColor(Ogre::ColourValue(targetText[i]->getColor().r, 
-															  targetText[i]->getColor().g, 
-															  targetText[i]->getColor().b, 255 - (targetTextAnim[i])));
-			}
-			else
-			{
-				targetEnt[i]->getParentSceneNode()->setVisible(false);
-			}
-		}
 	}
 }
 
@@ -2238,6 +2190,10 @@ void PGFrameListener::closeMenus(void) {
 
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
 {
+	// Ordering of levelObjects.txt files:
+	// Name, mesh, posX, posY, posZ, orX, orY, orZ, orW, scalex, scaley, scalez, rest, friction, mass, 
+	//	 animated, xMove, yMove, zMove, speed, rotX, rotY, rotZ, billboard
+
 	std::stringstream objectDetails;
 	String mesh;
 	ofstream outputToFile;
@@ -2319,7 +2275,8 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 	levelComplete = false;
 	loadObjectFile(levelNo);
 	if(levelNo == 1) {
-		createTargets();
+		//createTargets();
+		spinTime = 0;
 	}
 
 }
