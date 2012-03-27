@@ -1,2 +1,7 @@
+# Name, mesh, posX, posY, posZ, orientationX, orientationY, orientationZ, orientationW,
+# scaleX, scaleY, scaleZ, restitution, friction, mass,
+# animate, xMovement, yMovement, zMovement, speed, rotationX, rotationY, rotationZ, billboard
+# Note: Do not leave spaces between commas and values
+#		animate and billboard are boolean values (0, 1)
 Box,cube.mesh,1550,300,850,0,0,0,1,2,2,2,0.6,0.93,1.0,0,50,50,0,0,0,0,0,1
 Box,cube.mesh,1640,220,2175,1,0,0,0,3,3,3,0.6,0.93,1.0,0,0,50,0,0,0,0,0,1

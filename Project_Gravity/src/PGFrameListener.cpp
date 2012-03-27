@@ -870,29 +870,26 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 	std::cout << "load object file" << std::endl;
 	std::string object[24];
 
-	std::stringstream ss;//create a stringstream
-    ss << levelNo;//add number to the stream
-	string levelNoString = ss.str();
-
-	std::ifstream objects("../../res/Levels/Level"+levelNoString+"Objects.txt");
+	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Objects.txt");
 	std::string line;
 	int i=0;
-	std::cout << "start loading objects" << std::endl;
+
 	while(std::getline(objects, line)) {
-		std::stringstream lineStream(line);
-		std::string cell;
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			std::stringstream lineStream(line);
+			std::string cell;
 		
-		while(std::getline(lineStream, cell, ',')) {
-			object[i] = cell;
-			i++;
+			while(std::getline(lineStream, cell, ',')) {
+				object[i] = cell;
+				i++;
+			}
+			i = 0;
+			for(int i=0; i<24; i++) {
+				std::cout << object[i] << std::endl;
+			}
+			loadLevelObjects(object);
 		}
-		i = 0;
-		for(int i=0; i<24; i++) {
-			std::cout << object[i] << std::endl;
-		}
-		loadLevelObjects(object);
 	}
-	std::cout << "objects loaded" << std::endl;
 }
 
 void PGFrameListener::loadLevelObjects(std::string object[24]) {
@@ -922,29 +919,25 @@ void PGFrameListener::loadPalmFile(int levelNo) {
 	std::cout << "load palm file" << std::endl;
 	std::string object[10];
 
-	std::stringstream ss;//create a stringstream
-    ss << levelNo;//add number to the stream
-	string levelNoString = ss.str();
-
-	std::ifstream objects("../../res/Levels/Level"+levelNoString+"Palms.txt");
+	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Palms.txt");
 	std::string line;
+	
 	int i=0;
-	std::cout << "start loading palms" << std::endl;
 	while(std::getline(objects, line)) {
-		std::stringstream lineStream(line);
-		std::string cell;
-		
-		while(std::getline(lineStream, cell, ',')) {
-			object[i] = cell;
-			i++;
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			std::stringstream lineStream(line);
+			std::string cell;
+			while(std::getline(lineStream, cell, ',')) {
+				object[i] = cell;
+				i++;
+			}
+			i = 0;
+			for(int i=0; i<10; i++) {
+				std::cout << object[i] << std::endl;
+			}
+			loadLevelPalms(object);
 		}
-		i = 0;
-		for(int i=0; i<10; i++) {
-			std::cout << object[i] << std::endl;
-		}
-		loadLevelPalms(object);
 	}
-	std::cout << "palms loaded" << std::endl;
 }
 
 void PGFrameListener::loadLevelPalms(std::string object[10]) {

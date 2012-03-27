@@ -1,3 +1,9 @@
+# File format:
+# Name, mesh, posX, posY, posZ, orientationX, orientationY, orientationZ, orientationW,
+# scaleX, scaleY, scaleZ, restitution, friction, mass,
+# animate, xMovement, yMovement, zMovement, speed, rotationX, rotationY, rotationZ, billboard
+# Note: Do not leave spaces between commas and values
+#		animate and billboard are boolean values (0, 1)
 Target,Target.mesh,1550,300,850,0,0,0,1,30,30,30,0.6,0.93,1.0,1,50,50,0,1,0,0,0,1
 Target,Target.mesh,1640,220,2175,1,0,0,0,30,30,30,0.6,0.93,1.0,1,0,50,0,1,0,0,0,1
 Target,Target.mesh,1490,140,1500,0,1,0,0,30,30,30,0.6,0.93,1.0,1,0,0,0,1,0,1,0,1
