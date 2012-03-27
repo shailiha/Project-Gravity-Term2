@@ -78,7 +78,7 @@ void Target::move(float spinTime, double evtTime) {
 	mBody->getBulletRigidBody()->setActivationState(DISABLE_DEACTIVATION);
 	btTransform transform = mBody->getCenterOfMassTransform();
 
-	transform.setOrigin(btVector3(mPosition.x + (mXMovement * sin(spinTime/mSpeed)), mPosition.y + (mYMovement * cos(spinTime/mSpeed)), mPosition.z));
+	transform.setOrigin(btVector3(mPosition.x + (mXMovement * sin(spinTime/mSpeed)), mPosition.y + (mYMovement * cos(spinTime/mSpeed)), mPosition.z + (mZMovement * sin(spinTime/mSpeed))));
 	if (mBody->getBulletRigidBody()->getFriction() != 0.94f) {
 		mBody->getBulletRigidBody()->setAngularVelocity(btVector3(mRotationX, mRotationY, mRotationZ));
 	}

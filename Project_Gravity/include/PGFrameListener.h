@@ -168,7 +168,13 @@ private:
 	double spinTime;
 	Entity *targetEnt[6];
 	
+	//Palm tree nodes
+	Ogre::SceneNode *palmNode;
+	Ogre::SceneNode *palmNode2;
+	Ogre::SceneNode *palmNode3;
+
 	int currentLevel;
+	
 	//For level editing
 	bool editMode;
 	bool mScrollUp;

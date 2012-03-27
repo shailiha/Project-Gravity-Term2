@@ -113,14 +113,9 @@ PGFrameListener::PGFrameListener (
 	//Set CEGUI default font
 	CEGUI::System::getSingleton().setDefaultFont( "DejaVuSans-10" );
 	
-	//Create root window - may be removable once main menu is finished
-	//inGameRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_inGameRoot" );
-	//CEGUI::System::getSingleton().setGUISheet(inGameRoot);
-	//Set up cursor look, size and visibility
+	//Setup mouse cursor
 	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
 	CEGUI::MouseCursor::getSingleton().setExplicitRenderSize(CEGUI::Size(20, 20));
-	//CEGUI::MouseCursor::getSingleton().setVisible(true);
-	//CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
 
     mCount = 0;	// Setup default variables for the pause menu
     mCurrentObject = NULL;
@@ -245,8 +240,38 @@ PGFrameListener::PGFrameListener (
 	oceanFade->attachObject(mOceanFadeEnt);
 	oceanFade->setPosition(1700, 121, 1100);
 
+	//Initialise variable for target movement
 	spinTime = 0;
+
+	//Initialise some palm trees (used for main menu background)
+	//Create palm trees
+	Ogre::Entity* palmEntity = mSceneMgr->createEntity("palm", "Palm2.mesh");
+	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode");
+	palmNode->attachObject(palmEntity);
+	palmNode->setPosition(Ogre::Vector3(867, 410, 2207));
+	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
+	palmNode->roll(Ogre::Radian(Degree(270)));
+	palmNode->setScale(15.0, 15.0, 15.0);
 	
+	Ogre::Entity* palmEntity2 = mSceneMgr->createEntity("palm2", "Palm2.mesh");
+	Ogre::SceneNode* palmNode2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode2");
+	palmNode2->attachObject(palmEntity2);
+	palmNode2->setPosition(Ogre::Vector3(887, 480, 1270));
+	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
+	palmNode2->roll(Ogre::Radian(Degree(270)));
+	palmNode2->pitch(Ogre::Radian(Degree(150)));
+	palmNode2->setScale(15.0, 15.0, 15.0);
+	
+	Ogre::Entity* palmEntity3 = mSceneMgr->createEntity("palm3", "Palm2.mesh");
+	Ogre::SceneNode* palmNode3 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode3");
+	palmNode3->attachObject(palmEntity3);
+	palmNode3->setPosition(Ogre::Vector3(1954, 410, 1186));
+	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
+	palmNode3->roll(Ogre::Radian(Degree(270)));
+	palmNode3->pitch(Ogre::Radian(Degree(210)));
+	palmNode3->setScale(15.0, 15.0, 15.0);
+
+
 	/*We set up variables for edit mode.
 	* objSpawnType indicates the type of object to be placed:
 	* 1		Box
@@ -1095,6 +1120,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
     anim->setLoop(true);
     anim->setEnabled(true);
 	anim->addTime(evt.timeSinceLastFrame);
+	//Fish animations
 	anim = mSceneMgr->getEntity("palm20")->getAnimationState("Act: ArmatureAction.001");
     anim->setLoop(true);
     anim->setEnabled(true);
@@ -1118,6 +1144,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 	anim = mSceneMgr->getEntity("palm70")->getAnimationState("Act: ArmatureAction.001");
     anim->setLoop(true);
     anim->setEnabled(true);
+
 	anim->addTime(evt.timeSinceLastFrame);
 
 	//Move the fish

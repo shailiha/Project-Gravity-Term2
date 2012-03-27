@@ -108,8 +108,8 @@ void Project_Gravity::createScene(void)
 	// Initializes the second camera window in the top right
 	this->createWindows();
 
-		// Create LOOK AT SHADOWS!
-	Ogre::Entity* palmEntity = mSceneMgr->createEntity("palm", "Palm2.mesh");
+	//Create palm trees
+	/*Ogre::Entity* palmEntity = mSceneMgr->createEntity("palm", "Palm2.mesh");
 	palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode");
 	palmNode->attachObject(palmEntity);
 	palmNode->setPosition(Ogre::Vector3(867, 410, 2207));
@@ -134,7 +134,9 @@ void Project_Gravity::createScene(void)
 	palmNode3->roll(Ogre::Radian(Degree(270)));
 	palmNode3->pitch(Ogre::Radian(Degree(210)));
 	palmNode3->setScale(15.0, 15.0, 15.0);
-	
+	*/
+
+	//Create fish
 	Ogre::Entity* palmEntity20 = mSceneMgr->createEntity("palm20", "angelFish.mesh");
 	palmNode20 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode20");
 	palmNode20->attachObject(palmEntity20);
