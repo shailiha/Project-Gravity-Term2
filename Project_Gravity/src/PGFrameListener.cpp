@@ -2163,9 +2163,11 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 								StringConverter::toString(currentBody->getWorldOrientation().x) << "," <<
 								StringConverter::toString(currentBody->getWorldOrientation().y) << "," <<
 								StringConverter::toString(currentBody->getWorldOrientation().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().w) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
-								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "\n";
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
+								"0.6" << "0.93" << "1" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "\n";
 		++itLevelBodies;
  	}
 
@@ -2176,15 +2178,17 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 		mesh = "Coco.mesh,";
 		std::cout << "Coconut, " << currentBody->getWorldPosition() << "\n" << std::endl;
 		objectDetails << "Coconut," << mesh <<
-								StringConverter::toString(currentBody->getWorldPosition().x) << "," << 
-								StringConverter::toString(currentBody->getWorldPosition().y) << "," << 
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," <<
 								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
-								StringConverter::toString(currentBody->getWorldOrientation().x) << "," << 
-								StringConverter::toString(currentBody->getWorldOrientation().y) << "," << 
-								StringConverter::toString(currentBody->getWorldOrientation().z) << "," << 
-								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," << 
-								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," << 
-								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "\n";
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().w) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
+								"0.6" << "0.93" << "1" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "\n";
 		++itLevelCoconuts;
  	}
 
@@ -2195,15 +2199,17 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 		mesh = "Target.mesh,";
 		std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
 		objectDetails << "Target," << mesh << 
-								StringConverter::toString(currentBody->getWorldPosition().x) << "," << 
-								StringConverter::toString(currentBody->getWorldPosition().y) << "," << 
-								StringConverter::toString(currentBody->getWorldPosition().z) << "," << 
-								StringConverter::toString(currentBody->getWorldOrientation().x) << "," << 
-								StringConverter::toString(currentBody->getWorldOrientation().y) << "," << 
-								StringConverter::toString(currentBody->getWorldOrientation().z) << "," << 
-								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," << 
-								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," << 
-								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "\n";
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().w) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
+								"0.6" << "0.93" << "1" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "\n";
 		++itLevelTargets;
  	}
 
