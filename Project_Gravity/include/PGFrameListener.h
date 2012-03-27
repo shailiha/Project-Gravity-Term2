@@ -263,7 +263,6 @@ public:
 	void spawnFish(void);
 	void moveTargets(double evtTime);
 
-	//The following will be moved into Level manager class eventually
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
@@ -284,9 +283,9 @@ public:
 	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
 	bool newGame(const CEGUI::EventArgs& e); //temp
-	bool inGameLoadLevelPressed(const CEGUI::EventArgs& e);
+	bool loadLevelPressed(const CEGUI::EventArgs& e);
 	bool levelBackPressed(const CEGUI::EventArgs& e);
-	bool inGameExitPressed(const CEGUI::EventArgs& e);
+	bool exitGamePressed(const CEGUI::EventArgs& e);
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
 	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);

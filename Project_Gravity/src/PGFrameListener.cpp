@@ -866,105 +866,6 @@ void PGFrameListener::placeNewObject(int objectType) {
 	}
 }
 
-void PGFrameListener::loadObjectFile(int levelNo) {
-	std::cout << "load object file" << std::endl;
-	std::string object[24];
-
-	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Objects.txt");
-	std::string line;
-	int i=0;
-
-	while(std::getline(objects, line)) {
-		if(line.substr(0, 1) != "#") { //Ignore comments in file
-			std::stringstream lineStream(line);
-			std::string cell;
-		
-			while(std::getline(lineStream, cell, ',')) {
-				object[i] = cell;
-				i++;
-			}
-			i = 0;
-			for(int i=0; i<24; i++) {
-				std::cout << object[i] << std::endl;
-			}
-			loadLevelObjects(object);
-		}
-	}
-}
-
-void PGFrameListener::loadLevelObjects(std::string object[24]) {
-	std::cout << "loading object" << std::endl;
-
-	std::string name = object[0];
-	Target* newObject = new Target(this, object);
-
-	if (name == "Box") {
-		levelBodies.push_back(newObject->mBody);
-		std::cout << "Box loaded" << std::endl;
-	}
-	else if (name == "Coconut") {
-		levelCoconuts.push_back(newObject->mBody);
-	}
-	else if (name == "Target") {
-		levelTargets.push_back(newObject);
-	}
-	else {
-		levelBodies.push_back(newObject->mBody);
-	}
-
-	mNumEntitiesInstanced++;				
-}
-
-void PGFrameListener::loadPalmFile(int levelNo) {
-	std::cout << "load palm file" << std::endl;
-	std::string object[10];
-
-	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Palms.txt");
-	std::string line;
-	
-	int i=0;
-	while(std::getline(objects, line)) {
-		if(line.substr(0, 1) != "#") { //Ignore comments in file
-			std::stringstream lineStream(line);
-			std::string cell;
-			while(std::getline(lineStream, cell, ',')) {
-				object[i] = cell;
-				i++;
-			}
-			i = 0;
-			for(int i=0; i<10; i++) {
-				std::cout << object[i] << std::endl;
-			}
-			loadLevelPalms(object);
-		}
-	}
-}
-
-void PGFrameListener::loadLevelPalms(std::string object[10]) {
-	std::string name = object[0];
-	std::string mesh = object[1];
-	float posX = atof(object[2].c_str());
-	float posY = atof(object[3].c_str());
-	float posZ = atof(object[4].c_str());
-	float roll = atof(object[5].c_str());
-	float pitch = atof(object[6].c_str());
-	float scaleX = atof(object[7].c_str());
-	float scaleY = atof(object[8].c_str());
-	float scaleZ = atof(object[9].c_str());
-
-	Ogre::Entity* palmEntity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
-	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-	palmNode->attachObject(palmEntity);
-	palmNode->setPosition(Ogre::Vector3(posX, posY, posZ));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode->roll(Ogre::Radian(Degree(roll)));
-	palmNode->pitch(Ogre::Radian(Degree(pitch)));
-	palmNode->setScale(scaleX, scaleY, scaleZ);
-
-	mNumEntitiesInstanced++;
-	levelPalms.push_back(palmNode);
-}
-
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
 {
 	// This function converts the button id from the OIS listener to the cegui id
@@ -1968,8 +1869,8 @@ void PGFrameListener::loadMainMenu() {
 
 		//Register events
 		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::newGame, this));
-		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadLevelPressed, this));
-		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameExitPressed, this));
+		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevelPressed, this));
+		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::exitGamePressed, this));
 		mMainMenuCreated=true;
 	}
 	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
@@ -2021,8 +1922,8 @@ void PGFrameListener::loadInGameMenu() {
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenuBtn);
 
 		//Register events
-		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadLevelPressed, this));
-		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameExitPressed, this));
+		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevelPressed, this));
+		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::exitGamePressed, this));
 		resumeGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
 		mainMenuBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameMainMenuPressed, this));
 		mInGameMenuCreated=true;
@@ -2078,15 +1979,10 @@ void PGFrameListener::loadLevelSelectorMenu() {
 }
 
 bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
-	/*mMainMenu=false;
-	freeRoam = true;
-	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
-	mainMenuRoot->setVisible(false);
-	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));*/
 	loadLevel1(e);
 	return 1;
 }
-bool PGFrameListener::inGameLoadLevelPressed(const CEGUI::EventArgs& e) {
+bool PGFrameListener::loadLevelPressed(const CEGUI::EventArgs& e) {
 	std::cout << "load" << std::endl;
 	mMainMenu=false;
 	mInGameMenu = true;
@@ -2123,7 +2019,7 @@ bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
 	}
 	return 1;
 }
-bool PGFrameListener::inGameExitPressed(const CEGUI::EventArgs& e) {
+bool PGFrameListener::exitGamePressed(const CEGUI::EventArgs& e) {
 	std::cout << "exit" << std::endl;
 	mShutDown = true;
 	return 1;
@@ -2288,7 +2184,6 @@ void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &
  	}
 	queue.clear();
 }
-
 void PGFrameListener::clearTargets(std::deque<Target *> &queue) {
 	std::deque<Target *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
@@ -2301,7 +2196,6 @@ void PGFrameListener::clearTargets(std::deque<Target *> &queue) {
  	}
 	queue.clear();
 }
-
 void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
 	std::deque<Ogre::SceneNode *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
@@ -2313,65 +2207,100 @@ void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
  	}
 	queue.clear();
 }
-/*
-void PGFrameListener::loadMaterialControlsFile(MaterialControlsContainer& controlsContainer, const Ogre::String& filename)
-{
-    // Load material controls from config file
-    Ogre::ConfigFile cf;
 
-    try
-    {
+void PGFrameListener::loadObjectFile(int levelNo) {
+	std::cout << "load object file" << std::endl;
+	std::string object[24];
 
-        cf.load(filename, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, "\t;=", true);
+	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Objects.txt");
+	std::string line;
+	int i=0;
 
-        // Go through all sections & controls in the file
-        Ogre::ConfigFile::SectionIterator seci = cf.getSectionIterator();
-
-        Ogre::String secName, typeName, materialName, dataString;
-
-        while (seci.hasMoreElements())
-        {
-            secName = seci.peekNextKey();
-            Ogre::ConfigFile::SettingsMultiMap* settings = seci.getNext();
-            if (!secName.empty() && settings)
-            {
-                materialName = cf.getSetting("material", secName);
-
-                MaterialControls newMaaterialControls(secName, materialName);
-                controlsContainer.push_back(newMaaterialControls);
-
-                size_t idx = controlsContainer.size() - 1;
-
-                Ogre::ConfigFile::SettingsMultiMap::iterator i;
-
-                for (i = settings->begin(); i != settings->end(); ++i)
-                {
-                    typeName = i->first;
-                    dataString = i->second;
-                    if (typeName == "control")
-                        controlsContainer[idx].addControl(dataString);
-                }
-            }
-        }
-
-	    Ogre::LogManager::getSingleton().logMessage( "Material Controls setup" );
-    }
-    catch (Ogre::Exception e)
-    {
-        // Guess the file didn't exist
-    }
-}
-
-
-void PGFrameListener::loadAllMaterialControlFiles(MaterialControlsContainer& controlsContainer)
-{
-    Ogre::StringVectorPtr fileStringVector = Ogre::ResourceGroupManager::getSingleton().findResourceNames( "Popular", "*.controls");
-	Ogre::StringVector::iterator controlsFileNameIterator = fileStringVector->begin();
-
-    while ( controlsFileNameIterator != fileStringVector->end() )
-	{
-        loadMaterialControlsFile(controlsContainer, *controlsFileNameIterator);
-        ++controlsFileNameIterator;
+	while(std::getline(objects, line)) {
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			std::stringstream lineStream(line);
+			std::string cell;
+		
+			while(std::getline(lineStream, cell, ',')) {
+				object[i] = cell;
+				i++;
+			}
+			i = 0;
+			for(int i=0; i<24; i++) {
+				std::cout << object[i] << std::endl;
+			}
+			loadLevelObjects(object);
+		}
 	}
 }
-*/
+void PGFrameListener::loadLevelObjects(std::string object[24]) {
+	std::cout << "loading object" << std::endl;
+
+	std::string name = object[0];
+	Target* newObject = new Target(this, object);
+
+	if (name == "Box") {
+		levelBodies.push_back(newObject->mBody);
+		std::cout << "Box loaded" << std::endl;
+	}
+	else if (name == "Coconut") {
+		levelCoconuts.push_back(newObject->mBody);
+	}
+	else if (name == "Target") {
+		levelTargets.push_back(newObject);
+	}
+	else {
+		levelBodies.push_back(newObject->mBody);
+	}
+
+	mNumEntitiesInstanced++;				
+}
+
+void PGFrameListener::loadPalmFile(int levelNo) {
+	std::cout << "load palm file" << std::endl;
+	std::string object[10];
+
+	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Palms.txt");
+	std::string line;
+	
+	int i=0;
+	while(std::getline(objects, line)) {
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			std::stringstream lineStream(line);
+			std::string cell;
+			while(std::getline(lineStream, cell, ',')) {
+				object[i] = cell;
+				i++;
+			}
+			i = 0;
+			for(int i=0; i<10; i++) {
+				std::cout << object[i] << std::endl;
+			}
+			loadLevelPalms(object);
+		}
+	}
+}
+void PGFrameListener::loadLevelPalms(std::string object[10]) {
+	std::string name = object[0];
+	std::string mesh = object[1];
+	float posX = atof(object[2].c_str());
+	float posY = atof(object[3].c_str());
+	float posZ = atof(object[4].c_str());
+	float roll = atof(object[5].c_str());
+	float pitch = atof(object[6].c_str());
+	float scaleX = atof(object[7].c_str());
+	float scaleY = atof(object[8].c_str());
+	float scaleZ = atof(object[9].c_str());
+
+	Ogre::Entity* palmEntity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
+	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	palmNode->attachObject(palmEntity);
+	palmNode->setPosition(Ogre::Vector3(posX, posY, posZ));
+	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
+	palmNode->roll(Ogre::Radian(Degree(roll)));
+	palmNode->pitch(Ogre::Radian(Degree(pitch)));
+	palmNode->setScale(scaleX, scaleY, scaleZ);
+
+	mNumEntitiesInstanced++;
+	levelPalms.push_back(palmNode);
+}
