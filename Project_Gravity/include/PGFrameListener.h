@@ -185,13 +185,16 @@ private:
 	int spawnDistance;
 	int objSpawnType;
 	Ogre::SceneNode *mSpawnObject;
+	
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
-	std::deque<Target *>         levelTargets;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelBlocks;
+	std::deque<OgreBulletDynamics::RigidBody *> levelBodies;
+	std::deque<OgreBulletDynamics::RigidBody *> levelCoconuts;
+	std::deque<Target *> levelTargets;
+	std::deque<OgreBulletDynamics::RigidBody *> levelBlocks;
+	std::deque<Ogre::SceneNode *> levelPalms;
+	
 	//preview objects
 	Ogre::Entity *boxEntity;
 	Ogre::Entity *coconutEntity;
@@ -233,6 +236,7 @@ public:
 
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void worldUpdates(const Ogre::FrameEvent& evt);
+	void animatePalms(const Ogre::FrameEvent& evt);
 	void checkObjectsForRemoval();
 
 	void updateStats(void);
@@ -264,9 +268,12 @@ public:
 	void saveLevel(void);
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo);
-	void loadLevelObjects(std::string object[12]);
-	void clearQueue(std::deque<OgreBulletDynamics::RigidBody *> &queue);
+	void loadPalmFile(int levelNo);
+	void loadLevelObjects(std::string object[24]);
+	void loadLevelPalms(std::string object[10]);
+	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
 	void clearTargets(std::deque<Target *> &queue);
+	void clearPalms(std::deque<SceneNode *> &queue);
 	void checkLevelEndCondition(void);
 	
 	void updateShadowFarDistance();

@@ -243,35 +243,6 @@ PGFrameListener::PGFrameListener (
 	//Initialise variable for target movement
 	spinTime = 0;
 
-	//Initialise some palm trees (used for main menu background)
-	//Create palm trees
-	Ogre::Entity* palmEntity = mSceneMgr->createEntity("palm", "Palm2.mesh");
-	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode");
-	palmNode->attachObject(palmEntity);
-	palmNode->setPosition(Ogre::Vector3(867, 410, 2207));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode->roll(Ogre::Radian(Degree(270)));
-	palmNode->setScale(15.0, 15.0, 15.0);
-	
-	Ogre::Entity* palmEntity2 = mSceneMgr->createEntity("palm2", "Palm2.mesh");
-	Ogre::SceneNode* palmNode2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode2");
-	palmNode2->attachObject(palmEntity2);
-	palmNode2->setPosition(Ogre::Vector3(887, 480, 1270));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode2->roll(Ogre::Radian(Degree(270)));
-	palmNode2->pitch(Ogre::Radian(Degree(150)));
-	palmNode2->setScale(15.0, 15.0, 15.0);
-	
-	Ogre::Entity* palmEntity3 = mSceneMgr->createEntity("palm3", "Palm2.mesh");
-	Ogre::SceneNode* palmNode3 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode3");
-	palmNode3->attachObject(palmEntity3);
-	palmNode3->setPosition(Ogre::Vector3(1954, 410, 1186));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode3->roll(Ogre::Radian(Degree(270)));
-	palmNode3->pitch(Ogre::Radian(Degree(210)));
-	palmNode3->setScale(15.0, 15.0, 15.0);
-
-
 	/*We set up variables for edit mode.
 	* objSpawnType indicates the type of object to be placed:
 	* 1		Box
@@ -926,59 +897,9 @@ void PGFrameListener::loadObjectFile(int levelNo) {
 
 void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	std::cout << "loading object" << std::endl;
-	//Vector3 size = Vector3::ZERO;
 
 	std::string name = object[0];
 	Target* newObject = new Target(this, object);
-	/*std::string mesh = object[1];
-	float posX = atof(object[2].c_str());
-	float posY = atof(object[3].c_str());
-	float posZ = atof(object[4].c_str());
-	float orX = atof(object[5].c_str());
-	float orY = atof(object[6].c_str());
-	float orZ = atof(object[7].c_str());
-	float orW = atof(object[8].c_str());
-	float scaleX = atof(object[9].c_str());
-	float scaleY = atof(object[10].c_str());
-	float scaleZ = atof(object[11].c_str());
-	float restitution = atof(object[12].c_str());
-	float friction = atof(object[13].c_str());
-	float bodymass = atof(object[14].c_str());
-
-	Entity* entity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
-
-	entity->setCastShadows(true);
- 	
-	AxisAlignedBox boundingB = entity->getBoundingBox();
- 	size = boundingB.getSize(); 
-	size /= 2.0f; // only the half needed
-	size *= 0.98f;
-	size *= (scaleX, scaleY, scaleZ); // set to same scale as preview object
-
-	SceneNode *node;
-	if(mSceneMgr->hasSceneNode("levelObjects")) {
-		node = mSceneMgr->getSceneNode("levelObjects");
-	} 
-	else {
-		node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-	}
-
- 	node->attachObject(entity);
-	node->setScale(scaleX, scaleY, scaleZ);
-
-	OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 		"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
-
-	OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
-	defaultBody->setShape(node,
- 			sceneBoxShape,
- 			restitution,			// dynamic body restitution
- 			friction,			// dynamic body friction
- 			bodymass, 			// dynamic bodymass - 0 makes it static
- 			Vector3(posX, posY, posZ),		// starting position of the box
-			Quaternion(orW, orX, orY, orZ));	// orientation of the box
-
-	defaultBody->setCastShadows(true);*/
 
 	if (name == "Box") {
 		levelBodies.push_back(newObject->mBody);
@@ -995,6 +916,60 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	}
 
 	mNumEntitiesInstanced++;				
+}
+
+void PGFrameListener::loadPalmFile(int levelNo) {
+	std::cout << "load palm file" << std::endl;
+	std::string object[10];
+
+	std::stringstream ss;//create a stringstream
+    ss << levelNo;//add number to the stream
+	string levelNoString = ss.str();
+
+	std::ifstream objects("../../res/Levels/Level"+levelNoString+"Palms.txt");
+	std::string line;
+	int i=0;
+	std::cout << "start loading palms" << std::endl;
+	while(std::getline(objects, line)) {
+		std::stringstream lineStream(line);
+		std::string cell;
+		
+		while(std::getline(lineStream, cell, ',')) {
+			object[i] = cell;
+			i++;
+		}
+		i = 0;
+		for(int i=0; i<10; i++) {
+			std::cout << object[i] << std::endl;
+		}
+		loadLevelPalms(object);
+	}
+	std::cout << "palms loaded" << std::endl;
+}
+
+void PGFrameListener::loadLevelPalms(std::string object[10]) {
+	std::string name = object[0];
+	std::string mesh = object[1];
+	float posX = atof(object[2].c_str());
+	float posY = atof(object[3].c_str());
+	float posZ = atof(object[4].c_str());
+	float roll = atof(object[5].c_str());
+	float pitch = atof(object[6].c_str());
+	float scaleX = atof(object[7].c_str());
+	float scaleY = atof(object[8].c_str());
+	float scaleZ = atof(object[9].c_str());
+
+	Ogre::Entity* palmEntity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
+	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+	palmNode->attachObject(palmEntity);
+	palmNode->setPosition(Ogre::Vector3(posX, posY, posZ));
+	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
+	palmNode->roll(Ogre::Radian(Degree(roll)));
+	palmNode->pitch(Ogre::Radian(Degree(pitch)));
+	palmNode->setScale(scaleX, scaleY, scaleZ);
+
+	mNumEntitiesInstanced++;
+	levelPalms.push_back(palmNode);
 }
 
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
@@ -1108,18 +1083,8 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
     } 
 	
 	//Palm animations
-	anim = mSceneMgr->getEntity("palm")->getAnimationState("my_animation");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm2")->getAnimationState("my_animation");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm3")->getAnimationState("my_animation");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
+	animatePalms(evt);
+	
 	//Fish animations
 	anim = mSceneMgr->getEntity("palm20")->getAnimationState("Act: ArmatureAction.001");
     anim->setLoop(true);
@@ -1196,6 +1161,19 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 	mCamera->setPosition(camPosition);
 	mCamera->setOrientation(camOr);
 
+}
+
+void PGFrameListener::animatePalms(const Ogre::FrameEvent& evt) {
+	auto palmIt = levelPalms.begin();
+	while(palmIt != levelPalms.end()) {
+		SceneNode* node = *palmIt;
+		Ogre::Entity* ent = (Entity*) mSceneMgr->getSceneNode(node->getName())->getAttachedObject(0);
+		anim = ent->getAnimationState("my_animation");
+		anim->setLoop(true);
+		anim->setEnabled(true);
+		anim->addTime(evt.timeSinceLastFrame);
+		palmIt++;
+	}
 }
 
 void PGFrameListener::checkObjectsForRemoval() {
@@ -1513,57 +1491,10 @@ void PGFrameListener::spawnBox(void)
  	mNumEntitiesInstanced++;				*/
 }
 
-/*void PGFrameListener::createTargets(void)
-{
-	spinTime = 0;
-	for (int i = 0; i < 6; i++)
-	{
-
-		Vector3 size = Vector3::ZERO;	// size of the box
- 		// starting position of the box
-		Vector3 position;
-		Quaternion quaternion;
-
-		switch (i)
-		{
-			case (0) : position = Vector3(1550, 300, 850); quaternion = Quaternion(0,0,0,1); break;
-			case (1) : position = Vector3(1640, 220, 2175); quaternion = Quaternion(1,0,0,0); break;
-			case (2) : position = Vector3(1490, 140, 1500); quaternion = Quaternion(0,1,0,0); break;
-			case (3) : position = Vector3(622, 200, 1466); quaternion = Quaternion(1,0,1,0); break;
-			case (4) : position = Vector3(2392, 200, 1530); quaternion = Quaternion(1,0,1,0); break;
-			case (5) : position = Vector3(223, 200, 2758); quaternion = Quaternion(0,1,0,0); break;
-		}
-
-		Target *target = new Target(this, position, quaternion, i, 0, 0, 0, 0, 0);
-		targetEnt[i] = (Entity*) target->mBody->getRootNode()->getAttachedObject(0);
-		targetBody[i] = target->mBody;
-		levelTargets.push_back(target);
-
-		// Create the target scores
-		//billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
-		//billboardSet[i] = mSceneMgr->createBillboardSet("billboardSet" + i);
-		//billboards[i] = billboardSet[i]->createBillboard(Vector3(position.x, position.y + 100, position.z));
-		//billNodes[i]->attachObject(billboardSet[i]);
-
-		targetText[i] = new MovableText("targetText" + i, "100", "000_@KaiTi_33", 17.0f);
-		targetText[i]->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
-		//msg->setAdditionalHeight( 100.0f ); //msg->setAdditionalHeight( ei.getRadius() )
-		
-		billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
-		billNodes[i]->attachObject(targetText[i]);
-		billNodes[i]->setPosition(position.x, position.y + 50, position.z);
-		billNodes[i]->setVisible(false);
-		targetTextAnim[i] = 0;
-		targetTextBool[i] = false;
-		mNumEntitiesInstanced++;
-	}
-}*/
-
-void PGFrameListener::moveTargets(double evtTime)
-{
+void PGFrameListener::moveTargets(double evtTime){
 	spinTime += evtTime;
-
 	auto targetIt = levelTargets.begin();
+
 	while(targetIt != levelTargets.end()) {
 		Target *target = *targetIt;
 		target->move(spinTime, evtTime);
@@ -2009,6 +1940,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 void PGFrameListener::loadMainMenu() {
 	CEGUI::Window *mainMenu;
 	if(!mMainMenuCreated) {
+		loadPalmFile(1);
 		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
 		//Create root window
@@ -2293,22 +2225,26 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 	std::cout << "remove things" << std::endl;
 	
 	//Remove current level objects (bodies, coconuts, targets) by going through the lists and removing each
-	clearQueue(levelBodies);
-	clearQueue(levelCoconuts);
+	clearObjects(levelBodies);
+	std::cout << "remove coconuts" << std::endl;
+	clearObjects(levelCoconuts);
+	std::cout << "remove targets" << std::endl;
 	clearTargets(levelTargets);
+	std::cout << "remove palms" << std::endl;
+	clearPalms(levelPalms);
 
 	//Then go through the new level's file and call placeNewObject() for each line
 	currentLevel = levelNo;
 	levelComplete = false;
 	loadObjectFile(levelNo);
+	loadPalmFile(levelNo);
 	if(levelNo == 1) {
-		//createTargets();
 		spinTime = 0;
 	}
 
 }
 
-void PGFrameListener::clearQueue(std::deque<OgreBulletDynamics::RigidBody *> &queue) {
+void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue) {
 	std::deque<OgreBulletDynamics::RigidBody *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
  	{   
@@ -2333,7 +2269,17 @@ void PGFrameListener::clearTargets(std::deque<Target *> &queue) {
 	queue.clear();
 }
 
-
+void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
+	std::deque<Ogre::SceneNode *>::iterator iterator = queue.begin();
+ 	while (queue.end() != iterator)
+ 	{   
+		Ogre::SceneNode *node = *iterator;
+		node->detachAllObjects();
+		mSceneMgr->destroySceneNode(node->getName());
+		++iterator;
+ 	}
+	queue.clear();
+}
 /*
 void PGFrameListener::loadMaterialControlsFile(MaterialControlsContainer& controlsContainer, const Ogre::String& filename)
 {
