@@ -57,6 +57,7 @@ private:
 	bool mInGameMenuCreated;
 	bool mInLevelMenu;
 	bool mLevelMenuCreated;
+	bool backPressedFromMainMenu;
 
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
@@ -284,8 +285,10 @@ public:
 	void loadLevelSelectorMenu(void); 
 	bool newGame(const CEGUI::EventArgs& e); //temp
 	bool inGameLoadLevelPressed(const CEGUI::EventArgs& e);
+	bool levelBackPressed(const CEGUI::EventArgs& e);
 	bool inGameExitPressed(const CEGUI::EventArgs& e);
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
+	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
