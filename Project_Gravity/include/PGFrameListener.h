@@ -56,17 +56,21 @@ private:
 	bool mInGameMenu;
 	bool mInGameMenuCreated;
 	bool mInLevelMenu;
+	bool mInUserLevelMenu;
 	bool mLevelMenuCreated;
+	bool mUserLevelMenuCreated;
 	bool backPressedFromMainMenu;
 
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
 	CEGUI::Window* inGameMenuRoot;
 	CEGUI::Window* levelMenuRoot;
+	CEGUI::Window* userLevelMenuRoot;
 	CEGUI::Window* inGame;
 	CEGUI::Window* mainMenu;
 	CEGUI::Window* inGameMenu;
 	CEGUI::Window* levelMenu;
+	CEGUI::Window* userLevelMenu;
 
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -283,8 +287,10 @@ public:
 	void loadMainMenu(void);
 	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
+	void loadUserLevelSelectorMenu(void);
 	bool newGame(const CEGUI::EventArgs& e); //temp
 	bool loadLevelPressed(const CEGUI::EventArgs& e);
+	bool loadUserLevelPressed(const CEGUI::EventArgs& e);
 	bool levelBackPressed(const CEGUI::EventArgs& e);
 	bool exitGamePressed(const CEGUI::EventArgs& e);
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
