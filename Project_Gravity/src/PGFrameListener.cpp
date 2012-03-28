@@ -2075,11 +2075,18 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	// Ordering of levelObjects.txt files:
 	// Name, mesh, posX, posY, posZ, orX, orY, orZ, orW, scalex, scaley, scalez, rest, friction, mass, 
 	//	 animated, xMove, yMove, zMove, speed, rotX, rotY, rotZ, billboard
+	// Note: Must have a speed of at least 1 if it is going to be animated
 
 	std::stringstream objectDetails;
 	String mesh;
 	ofstream outputToFile;
-	outputToFile.open("../../res/Levels/UserLevel"+StringConverter::toString(currentLevel)+"Objects.txt"); // Overwrites old level file when you save
+	
+	int number = findUniqueName();
+	outputToFile.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(number)+"Objects.txt"); // Overwrites old level file when you save
+
+	ofstream outputToLevelTrackingFile;
+	outputToLevelTrackingFile.open("../../res/Levels/Custom/UserGeneratedLevels.txt");
+	outputToLevelTrackingFile << StringConverter::toString(number) << "\n";
 
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBodies = levelBodies.begin();
  	while (levelBodies.end() != itLevelBodies)
@@ -2097,7 +2104,8 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
-								"0.6" << "0.93" << "1" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "\n";
+								"0.6" << "," << "0.93" << "," << "1" << "," << "0" << "," << "0" << "," 
+								<< "0" << "," << "0" << "," << "1" << "," << "0" << "," << "0" << "," << "0" << "," << "0" << "\n";
 		++itLevelBodies;
  	}
 
@@ -2118,7 +2126,8 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
-								"0.6" << "0.93" << "1" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "\n";
+								"0.6" << "," << "0.93" << "," << "1" << "," << "0" << "," << "0" << "," 
+								<< "0" << "," << "0" << "," << "1" << "," << "0" << "," << "0" << "," << "0" << "," << "0" << "\n";
 		++itLevelCoconuts;
  	}
 
@@ -2139,7 +2148,8 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
 								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
-								"0.6" << "0.93" << "1" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "0" << "\n";
+								"0.6" << "," << "0.93" << "," << "1" << "," << "0" << "," << "0" << "," 
+								<< "0" << "," << "0" << "," << "1" << "," << "0" << "," << "0" << "," << "0" << "," << "0" << "\n";
 		++itLevelTargets;
  	}
 
@@ -2147,6 +2157,24 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	std::cout << objects << std::endl;
 	outputToFile << objects;
 	outputToFile.close();
+}
+int PGFrameListener::findUniqueName(void) {
+	std::cout << "find unique file name" << std::endl;
+	std::string number;
+
+	std::ifstream objects("../../res/Levels/Custom/UserGeneratedLevels.txt");
+	std::string line;
+	int i=0;
+
+	while(std::getline(objects, line)) {
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			std::stringstream lineStream(line);
+			number = line;
+			std::cout << number << std::endl;
+		}
+	}
+	int uniqueNumber = atoi(number.c_str()) + 1;
+	return uniqueNumber;
 }
 
 void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!

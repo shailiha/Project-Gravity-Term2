@@ -266,6 +266,7 @@ public:
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
+	int findUniqueName(void);
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo);
 	void loadPalmFile(int levelNo);
