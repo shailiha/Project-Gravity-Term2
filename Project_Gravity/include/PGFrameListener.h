@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "MovableText.h"
 #include "Target.h"
+#include "LevelLoad.h"
 
 class Target;
 
@@ -272,7 +273,7 @@ public:
 	void saveLevel(void);
 	int findUniqueName(void);
 	void loadLevel(int levelNo);
-	void loadObjectFile(int levelNo);
+	void loadObjectFile(int levelNo, bool userLevel);
 	void loadPalmFile(int levelNo);
 	void loadLevelObjects(std::string object[24]);
 	void loadLevelPalms(std::string object[10]);
