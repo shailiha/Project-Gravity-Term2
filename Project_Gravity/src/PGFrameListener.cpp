@@ -268,6 +268,10 @@ PGFrameListener::PGFrameListener (
 	coconutCount = 0;
 	targetCount = 0;
 	gridsize = 26;
+
+	//How many custom levels have been generated so far
+	mNumberOfCustomLevels = findUniqueName()-1;
+	mNewLevelsMade = 0;
 }
 
 
@@ -493,17 +497,11 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     }
     else if (evt.key == OIS::KC_ESCAPE)
     {
-        if(!mMainMenu) {
+        if(!mMainMenu && !mBackPressedFromMainMenu) {
 			mInGameMenu = !mInGameMenu; //Toggle menu
 			freeRoam = !freeRoam;
-			if(!mInGameMenu) {//If no longer in in-game menu then close menu
-				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
-				inGameMenuRoot->setVisible(false);
-				if(mLevelMenuCreated) {
-					levelMenuRoot->setVisible(false);
-				}
-				//Reset mouse position to centre of screen
-				CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+			if(!mInGameMenu) {//If no longer in in-game menu then close menus
+				closeMenus();
 			}
 			else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
 				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
@@ -1888,7 +1886,7 @@ void PGFrameListener::loadMainMenu() {
 		mMainMenuCreated=true;
 	}
 	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
-	backPressedFromMainMenu = true;
+	mBackPressedFromMainMenu = true;
 	CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
 	
 }
@@ -1951,7 +1949,7 @@ void PGFrameListener::loadInGameMenu() {
 		mInGameMenuCreated=true;
 	}
 	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
-	backPressedFromMainMenu = false;
+	mBackPressedFromMainMenu = false;
 	CEGUI::System::getSingleton().setGUISheet(inGameMenuRoot);
 	
 }
@@ -2033,19 +2031,18 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 		CEGUI::System::getSingleton().setGUISheet(userLevelMenu); //Change GUI sheet to the 'visible' Taharez window
 		
 		/* ScrollablePane */		
-		CEGUI::Window* scroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "userLevelScroll");
-		scroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.2, 0)));
-		scroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.5, 0)));
-		((CEGUI::ScrollablePane*)scroll)->setContentPaneAutoSized(true);
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scroll);
+		mScroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "userLevelScroll");
+		mScroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.2, 0)));
+		mScroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.5, 0)));
+		((CEGUI::ScrollablePane*)mScroll)->setContentPaneAutoSized(true);
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mScroll);
 		
 		//Put buttons inside the scroll-able area
-		CEGUI::System::getSingleton().setGUISheet(scroll);
+		CEGUI::System::getSingleton().setGUISheet(mScroll);
 
-		int numberOfLevels = findUniqueName()-1;
 		CEGUI::Window *loadLevelBtn;
 		int i;
-		for(i=1; i <= numberOfLevels; i++) {
+		for(i=1; i <= mNumberOfCustomLevels; i++) {
 			std::string buttonName = "userLoadLevel"+StringConverter::toString(i)+"Btn";
 
 			loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
@@ -2070,11 +2067,37 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 		//Register events
 		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::levelBackPressed, this));
 		mUserLevelMenuCreated=true;
+	} else {
+		//Do we need to update the number of level loading buttons?
+		if(mNewLevelsMade > 0) {
+			std::cout << "need to add more buttons " << mNewLevelsMade << std::endl;
+			//Put buttons inside the scroll-able area
+			CEGUI::System::getSingleton().setGUISheet(mScroll);
+
+			CEGUI::Window *loadLevelBtn;
+			int i;
+			int newNumberOfLevels = mNumberOfCustomLevels + mNewLevelsMade;
+			for(i=1; i <= mNewLevelsMade; i++) {
+				std::string buttonName = "userLoadLevel"+StringConverter::toString((i+mNumberOfCustomLevels)+"Btn");
+
+				loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
+				loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0), CEGUI::UDim((0.3*((i-1)+mNumberOfCustomLevels)),0)));
+				loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+				loadLevelBtn->setText("Custom Level "+StringConverter::toString((i+mNumberOfCustomLevels)));
+				CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
+
+				LevelLoad *level = new LevelLoad(this, StringConverter::toString((i+mNumberOfCustomLevels)));
+				loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::load, level));
+			}
+			mNewLevelsMade = 0;
+			mNumberOfCustomLevels = newNumberOfLevels;
+		}
 	}
 	CEGUI::System::getSingleton().setGUISheet(userLevelMenuRoot);
 }
 
 bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
+	mBackPressedFromMainMenu = false;
 	loadLevel1(e);
 	return 1;
 }
@@ -2083,7 +2106,7 @@ bool PGFrameListener::loadLevelPressed(const CEGUI::EventArgs& e) {
 	mMainMenu=false;
 	mInGameMenu = true;
 	mInLevelMenu = true;
-	
+
 	if(mLevelMenuCreated) {
 		levelMenuRoot->setVisible(true);
 	} else {
@@ -2097,7 +2120,7 @@ bool PGFrameListener::loadUserLevelPressed(const CEGUI::EventArgs& e) {
 	mInGameMenu = true;
 	mInLevelMenu = false;
 	mInUserLevelMenu = true;
-	
+
 	if(mUserLevelMenuCreated) {
 		userLevelMenuRoot->setVisible(true);
 	} else {
@@ -2107,7 +2130,7 @@ bool PGFrameListener::loadUserLevelPressed(const CEGUI::EventArgs& e) {
 }
 bool PGFrameListener::inGameMainMenuPressed(const CEGUI::EventArgs& e) {
 	std::cout << "main menu" << std::endl;
-	mMainMenu=true;
+	mMainMenu = true;
 	mInGameMenu = false;
 	mInLevelMenu = false;
 	
@@ -2124,7 +2147,7 @@ bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
 	}
 	mInLevelMenu = false;
 	mInUserLevelMenu = false;
-	if(backPressedFromMainMenu) {
+	if(mBackPressedFromMainMenu) {
 		std::cout << "main back" << std::endl;
 		mMainMenu = true;		
 		mainMenuRoot->setVisible(true);
@@ -2163,6 +2186,7 @@ void PGFrameListener::closeMenus(void) {
 	mInLevelMenu = false;
 	mInUserLevelMenu = false;
 	freeRoam = true;
+	mBackPressedFromMainMenu = false;
 
 	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
 
@@ -2268,6 +2292,7 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	std::cout << objects << std::endl;
 	outputToFile << objects;
 	outputToFile.close();
+	mNewLevelsMade++;
 }
 int PGFrameListener::findUniqueName(void) {
 	std::cout << "find unique file name" << std::endl;

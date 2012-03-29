@@ -60,7 +60,11 @@ private:
 	bool mInUserLevelMenu;
 	bool mLevelMenuCreated;
 	bool mUserLevelMenuCreated;
-	bool backPressedFromMainMenu;
+	bool mBackPressedFromMainMenu;
+	//For updating Custom Level loader menu when new levels made
+	CEGUI::Window* mScroll;
+	int mNumberOfCustomLevels;
+	int mNewLevelsMade;
 
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
