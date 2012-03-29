@@ -1974,17 +1974,30 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		//Menu Buttons
 		CEGUI::System::getSingleton().setGUISheet(levelMenu); //Change GUI sheet to the 'visible' Taharez window
 
+		/* ScrollablePane */		
+		CEGUI::Window* scroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "levelScroll");
+		scroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.2, 0)));
+		scroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.5, 0)));
+		((CEGUI::ScrollablePane*)scroll)->setContentPaneAutoSized(true);
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scroll);
+		
+		//Put buttons inside the scroll-able area
+		CEGUI::System::getSingleton().setGUISheet(scroll);
+
 		CEGUI::Window *loadLevel1Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel1Btn");  // Create Window
-		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.2,0)));
+		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,0)));
 		loadLevel1Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadLevel1Btn->setText("Level 1");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel1Btn);  //Buttons are now added to the window so they will move with it.
 
 		CEGUI::Window *loadLevel2Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel2Btn");  // Create Window
-		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.35,0)));
+		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.3,0)));
 		loadLevel2Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadLevel2Btn->setText("Level 2");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
+
+		//Set buttons outside of scroll-able area
+		CEGUI::System::getSingleton().setGUISheet(levelMenu);
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
 		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.05,0),CEGUI::UDim(0.80,0)));
@@ -2018,6 +2031,16 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 		
 		//Menu Buttons
 		CEGUI::System::getSingleton().setGUISheet(userLevelMenu); //Change GUI sheet to the 'visible' Taharez window
+		
+		/* ScrollablePane */		
+		CEGUI::Window* scroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "userLevelScroll");
+		scroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.2, 0)));
+		scroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.5, 0)));
+		((CEGUI::ScrollablePane*)scroll)->setContentPaneAutoSized(true);
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scroll);
+		
+		//Put buttons inside the scroll-able area
+		CEGUI::System::getSingleton().setGUISheet(scroll);
 
 		int numberOfLevels = findUniqueName()-1;
 		CEGUI::Window *loadLevelBtn;
@@ -2026,7 +2049,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 			std::string buttonName = "userLoadLevel"+StringConverter::toString(i)+"Btn";
 
 			loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
-			loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0), CEGUI::UDim(0.2+(0.15*(i-1)),0)));
+			loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0), CEGUI::UDim((0.3*(i-1)),0)));
 			loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 			loadLevelBtn->setText("Custom Level "+StringConverter::toString(i));
 			CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
@@ -2035,6 +2058,8 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 			loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::load, level));
 		}
 
+		//Set buttons outside of scroll-able area
+		CEGUI::System::getSingleton().setGUISheet(userLevelMenu);
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","userLoadLvlResumeGameBtn");  // Create Window
 		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.05,0),CEGUI::UDim(0.80,0)));
@@ -2116,18 +2141,6 @@ bool PGFrameListener::exitGamePressed(const CEGUI::EventArgs& e) {
 	return 1;
 }
 bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
-	/*mMainMenu=false;
-	mInGameMenu = false;
-	mInLevelMenu = false;
-	freeRoam = true;
-	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
-	
-	inGameMenuRoot->setVisible(false);
-	if(mLevelMenuCreated) {
-		levelMenuRoot->setVisible(false);
-	}
-
-	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));*/
 	closeMenus();
 	return 1;
 }
