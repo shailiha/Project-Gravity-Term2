@@ -1557,10 +1557,10 @@ void PGFrameListener::createBulletTerrain(void)
 	
  	// Add Debug info display tool - creates a wire frame for the bullet objects
 	debugDrawer = new OgreBulletCollisions::DebugDrawer();
-	debugDrawer->setDrawWireframe(true);	// we want to see the Bullet containers
+	debugDrawer->setDrawWireframe(false);	// we want to see the Bullet containers
 	mWorld->setDebugDrawer(debugDrawer);
-	mWorld->setShowDebugShapes(true);	// enable it if you want to see the Bullet containers
-	showDebugOverlay(true);
+	mWorld->setShowDebugShapes(false);	// enable it if you want to see the Bullet containers
+	showDebugOverlay(false);
 	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode("debugDrawer", Ogre::Vector3::ZERO);
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
