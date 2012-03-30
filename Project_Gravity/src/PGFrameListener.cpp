@@ -1064,7 +1064,8 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 void PGFrameListener::animatePalms(const Ogre::FrameEvent& evt) {
 	auto palmIt = levelPalms.begin();
 	while(palmIt != levelPalms.end()) {
-		SceneNode* node = *palmIt;
+		OgreBulletDynamics::RigidBody* body = *palmIt;
+		SceneNode* node = body->getSceneNode();
 		Ogre::Entity* ent = (Entity*) mSceneMgr->getSceneNode(node->getName())->getAttachedObject(0);
 		anim = ent->getAnimationState("my_animation");
 		anim->setLoop(true);
@@ -1544,10 +1545,10 @@ void PGFrameListener::createBulletTerrain(void)
 	
  	// Add Debug info display tool - creates a wire frame for the bullet objects
 	debugDrawer = new OgreBulletCollisions::DebugDrawer();
-	debugDrawer->setDrawWireframe(false);	// we want to see the Bullet containers
+	debugDrawer->setDrawWireframe(true);	// we want to see the Bullet containers
 	mWorld->setDebugDrawer(debugDrawer);
-	mWorld->setShowDebugShapes(false);	// enable it if you want to see the Bullet containers
-	showDebugOverlay(false);
+	mWorld->setShowDebugShapes(true);	// enable it if you want to see the Bullet containers
+	showDebugOverlay(true);
 	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode("debugDrawer", Ogre::Vector3::ZERO);
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
@@ -2266,6 +2267,28 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 		++itLevelCoconuts;
  	}
 
+	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelBlocks = levelBlocks.begin();
+ 	while (levelBlocks.end() != itLevelBlocks)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelBlocks;
+		mesh = "cube.mesh,";
+		std::cout << "Block, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		objectDetails << "Block," << mesh <<
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().w) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
+								"0.6" << "," << "0.93" << "," << "1" << "," << "0" << "," << "0" << "," 
+								<< "0" << "," << "0" << "," << "1" << "," << "0" << "," << "0" << "," << "0" << "," << "0" << "\n";
+		++itLevelBlocks;
+ 	}
+
  	std::deque<Target *>::iterator itLevelTargets = levelTargets.begin();
  	while (levelTargets.end() != itLevelTargets)
  	{   
@@ -2286,6 +2309,28 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 								"0.6" << "," << "0.93" << "," << "1" << "," << "0" << "," << "0" << "," 
 								<< "0" << "," << "0" << "," << "1" << "," << "0" << "," << "0" << "," << "0" << "," << "0" << "\n";
 		++itLevelTargets;
+ 	}
+
+	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelPalms = levelPalms.begin();
+ 	while (levelPalms.end() != itLevelPalms)
+ 	{   
+		OgreBulletDynamics::RigidBody *currentBody = *itLevelPalms;
+		mesh = "Palm2.mesh,";
+		std::cout << "Palm, " << currentBody->getWorldPosition() << "\n" << std::endl;
+		objectDetails << "Palm," << mesh << 
+								StringConverter::toString(currentBody->getWorldPosition().x) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().y) << "," <<
+								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().x) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().y) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().z) << "," <<
+								StringConverter::toString(currentBody->getWorldOrientation().w) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().x) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().y) << "," <<
+								StringConverter::toString(currentBody->getSceneNode()->getScale().z) << "," <<
+								"0.6" << "," << "0.93" << "," << "1" << "," << "0" << "," << "0" << "," 
+								<< "0" << "," << "0" << "," << "1" << "," << "0" << "," << "0" << "," << "0" << "," << "0" << "\n";
+		++itLevelPalms;
  	}
 
 	std::string objects = objectDetails.str();
@@ -2321,10 +2366,12 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 	clearObjects(levelBodies);
 	std::cout << "remove coconuts" << std::endl;
 	clearObjects(levelCoconuts);
+	std::cout << "remove blocks" << std::endl;
+	clearObjects(levelBlocks);
 	std::cout << "remove targets" << std::endl;
 	clearTargets(levelTargets);
 	std::cout << "remove palms" << std::endl;
-	clearPalms(levelPalms);
+	clearObjects(levelPalms);
 
 	//Then go through the new level's file and call placeNewObject() for each line
 	currentLevel = levelNo;
@@ -2418,6 +2465,9 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	else if (name == "Target") {
 		levelTargets.push_back(newObject);
 	}
+	else if (name == "Block") {
+		levelBlocks.push_back(newObject->mBody);
+	}
 	else {
 		levelBodies.push_back(newObject->mBody);
 	}
@@ -2460,16 +2510,31 @@ void PGFrameListener::loadLevelPalms(std::string object[10]) {
 	float scaleX = atof(object[7].c_str());
 	float scaleY = atof(object[8].c_str());
 	float scaleZ = atof(object[9].c_str());
+	Ogre::Vector3 position = Ogre::Vector3(posX, posY, posZ);
+
 
 	Ogre::Entity* palmEntity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
+	
 	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 	palmNode->attachObject(palmEntity);
-	palmNode->setPosition(Ogre::Vector3(posX, posY, posZ));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
+	palmNode->setPosition(position);
 	palmNode->roll(Ogre::Radian(Degree(roll)));
 	palmNode->pitch(Ogre::Radian(Degree(pitch)));
 	palmNode->setScale(scaleX, scaleY, scaleZ);
-
+	
+	Ogre::Quaternion quat = palmNode->getOrientation();
+	palmNode->createChildSceneNode(Vector3(position.x, position.y, position.z), quat);
+	
+	OgreBulletDynamics::RigidBody* body = new OgreBulletDynamics::RigidBody(name + StringConverter::toString(mNumEntitiesInstanced), mWorld);
+	OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(palmEntity);
+	OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
+	OgreBulletCollisions::CollisionShape* f = (OgreBulletCollisions::CollisionShape*) ccs;
+	
+	Ogre::Vector3 scale = palmNode->getScale();
+	btVector3 scale2(scale.x, scale.y, scale.z);
+	f->getBulletShape()->setLocalScaling(scale2);
+	body->setShape(palmNode, (OgreBulletCollisions::CollisionShape*) ccs, 0.6f, 0.93f, 0.0f, position, quat);
+	
 	mNumEntitiesInstanced++;
-	levelPalms.push_back(palmNode);
+	levelPalms.push_back(body);
 }

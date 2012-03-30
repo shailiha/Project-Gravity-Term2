@@ -203,7 +203,7 @@ private:
 	std::deque<OgreBulletDynamics::RigidBody *> levelCoconuts;
 	std::deque<Target *> levelTargets;
 	std::deque<OgreBulletDynamics::RigidBody *> levelBlocks;
-	std::deque<Ogre::SceneNode *> levelPalms;
+	std::deque<OgreBulletDynamics::RigidBody *> levelPalms;
 	
 	//preview objects
 	Ogre::Entity *boxEntity;
