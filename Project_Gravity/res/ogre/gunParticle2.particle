@@ -1,0 +1,64 @@
+particle_system Classic
+{
+	material Particles/Flare.000
+	particle_width 40.0
+	particle_height 40.0
+	quota 30
+	cull_each false
+	sorted false
+	local_space false
+	iteration_interval 0.0
+	nonvisible_update_timeout 0.0
+	billboard_type point
+	billboard_origin center
+	billboard_rotation_type texcoord
+	point_rendering false
+	accurate_facing false
+
+	emitter Point
+	{
+		position 3.5 10.0 0.400000005960464
+		direction 0.0 1.0 0.0
+		angle 5
+		emission_rate 200
+		velocity_min 200
+		velocity_max 500
+		time_to_live_min 0.36
+		time_to_live_max 4
+		duration_min 0
+		duration_max 0
+		repeat_delay_min 0
+		repeat_delay_max 0
+		colour_range_start 1 1 1 1
+		colour_range_end 1 1 1 1
+	}
+
+	affector LinearForce
+	{
+		force_vector 0.0 -10.0 0.0
+		force_application add
+	}
+
+	affector ColourInterpolator
+	{
+		time0 0
+		colour0 0.666667 0 0.498039 1
+		time1 0.2
+		colour1 0 0 0.498039 1
+		time2 0.4
+		colour2 0.666667 0 0.498039 1
+		time3 0.6
+		colour3 1 0 0.498039 1
+		time4 0.8
+		colour4 0.333333 0 0.498039 1
+		time5 1
+		colour5 0.666667 0 0.498039 1
+	}
+
+//	affector DirectionRandomiser
+//	{
+//		randomness 500
+//		scope 60
+//		keep_velocity true
+//	}
+}

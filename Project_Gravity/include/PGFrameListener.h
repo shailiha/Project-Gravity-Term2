@@ -18,6 +18,8 @@ class PGFrameListener :
 	public Ogre::RenderTargetListener
 {
 private:
+	ParticleSystem* gunParticle; //For particles
+	ParticleSystem* gunParticle2;
 	OgreBulletCollisions::DebugDrawer *debugDrawer;
 	int mNumObjectsPlaced;
 	

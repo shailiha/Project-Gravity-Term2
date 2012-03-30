@@ -272,6 +272,14 @@ PGFrameListener::PGFrameListener (
 	//How many custom levels have been generated so far
 	mNumberOfCustomLevels = findUniqueName()-1;
 	mNewLevelsMade = 0;
+
+	//Particles :)
+	gunParticle = mSceneMgr->createParticleSystem("spiral", "Spiral");		//Grabbing
+	gunParticle2 = mSceneMgr->createParticleSystem("classic", "Classic");	//Shooting
+	gravityGun->attachObject(gunParticle);
+	gravityGun->attachObject(gunParticle2);
+	gunParticle->setEmitting(false);
+	gunParticle2->setEmitting(false);
 }
 
 
@@ -379,6 +387,7 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		if(mPickedBody != NULL){
 			if (mPickConstraint)
 			{
+				gunParticle->setEmitting(true);
 				// add a point to point constraint for picking
 				CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
 				//cout << mousePos.d_x << " " << mousePos.d_y << endl;
@@ -768,6 +777,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
 	// Left mouse button up
+	gunParticle2->setEmitting(false);
 	if(editMode) {
 		if (id == OIS::MB_Middle)
 		{
@@ -777,6 +787,7 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 	else {
 		if (id == OIS::MB_Right)
 		{
+			gunParticle->setEmitting(false);
 			mRMouseDown = false;
 
 			if(mPickedBody != NULL) {
@@ -1021,6 +1032,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) {
 		gunAnimate->addTime(-evt.timeSinceLastFrame * 10);
 		if (gunAnimate->getTimePosition() <= 0)
 			shotGun = false;
+		gunParticle2->setEmitting(true);
 	}
 	else if(mRMouseDown)
 	{
