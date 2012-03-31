@@ -5,13 +5,17 @@
 #include "MovableText.h"
 
 #define WIN32_LEAN_AND_MEAN
+const int NUM_FISH = 60;
 
 class PGFrameListener : 
 	public Ogre::FrameListener, 
 	public Ogre::WindowEventListener, 
 	public OIS::KeyListener,
 	public OIS::MouseListener,
-	public Ogre::RenderTargetListener
+	public Ogre::RenderTargetListener,
+	public Hydrax::RttManager::RttListener,
+	public Ogre::SceneManager::Listener,
+	public Ogre::CompositorInstance::Listener
 {
 private:
 	SceneManager* mSceneMgr; 
@@ -19,6 +23,11 @@ private:
 	OgreBulletCollisions::DebugDrawer *debugDrawer;
 	int mNumEntitiesInstanced;
 	int mNumObjectsPlaced;
+	struct shadowListener;
+	LightList renderedLight;
+	RenderTarget* mShadowTarget;
+	bool bloomEnabled;
+	bool hideHydrax;
 	
 	//Is level complete?
 	bool levelComplete;
@@ -30,8 +39,6 @@ private:
 
 	RenderWindow* mWindow;
 	Camera* mCamera;
-	Ogre::TerrainGroup* mTerrainGroup;
-    bool mTerrainsImported;
 	
 	Real mMoveSpeed;
 	Overlay* mDebugOverlay;
@@ -49,7 +56,25 @@ private:
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
     bool mShutDown;
-	
+
+	//Menu flags
+	bool mMainMenu;
+	bool mMainMenuCreated;
+	bool mInGameMenu;
+	bool mInGameMenuCreated;
+	bool mInLevelMenu;
+	bool mLevelMenuCreated;
+
+	//Menu windows
+	CEGUI::Window* inGameRoot;
+	CEGUI::Window* mainMenuRoot;
+	CEGUI::Window* inGameMenuRoot;
+	CEGUI::Window* levelMenuRoot;
+	CEGUI::Window* inGame;
+	CEGUI::Window* mainMenu;
+	CEGUI::Window* inGameMenu;
+	CEGUI::Window* levelMenu;
+
 	//Camera controls
 	Ogre::Real mTopSpeed;
 	Ogre::Vector3 mVelocity;
@@ -62,12 +87,7 @@ private:
 	bool mFastMove;
 
 	Ogre::Vector3 transVector;
-	
-    Ogre::Entity *mEntity;                 // The Entity we are animating
-    Ogre::SceneNode *mNode;                // The SceneNode that the Entity is attached to
-    std::deque<Ogre::Vector3> mWalkList;   // The list of points we are walking to
 
-    Ogre::AnimationState *mAnimationState; // The current animation state of the object
 	Ogre::AnimationState* anim;
 	Ogre::AnimationState* gunAnimate;
 	Ogre::AnimationState* targetAnimate;
@@ -86,6 +106,7 @@ private:
     Ogre::SceneNode *mCurrentObject;	// The newly created object
     CEGUI::Renderer *mGUIRenderer;		// CEGUI renderer
 	Hydrax::Hydrax *mHydrax;
+	SkyX::SkyX *mSkyX;
 	bool mPaused;
 	Caelum::CaelumSystem *mCaelumSystem;
     float mSpeedFactor;
@@ -94,7 +115,14 @@ private:
 	// Bullet objects
 	std::deque<OgreBulletDynamics::RigidBody *>         mBodies;
 	std::deque<OgreBulletCollisions::CollisionShape *>  mShapes;
-	std::deque<OgreBulletDynamics::RigidBody *>         mFish;
+	OgreBulletDynamics::RigidBody*				        mFish[NUM_FISH];
+	Ogre::SceneNode*									mFishNodes[NUM_FISH];
+	Ogre::Entity*										mFishEnts[NUM_FISH];
+	bool												mFishDead[NUM_FISH];
+	float												mFishLastMove[NUM_FISH];
+	Vector3												mFishLastDirection[NUM_FISH];
+	Ogre::AnimationState*								mFishAnim[NUM_FISH];
+	int													mFishAlive;
 	OgreBulletCollisions::HeightmapCollisionShape *mTerrainShape;
 
 	//JESS
@@ -181,6 +209,23 @@ private:
 	Vector3 targetTextPos[6];
 	int targetScore;
 	Real mLastPositionLength;
+	Ogre::Real mTimeMultiplier;
+	bool mForceDisableShadows;
+
+	// Color gradients
+	SkyX::ColorGradient mWaterGradient, 
+		                mSunGradient, 
+						mAmbientGradient;
+
+	bool weatherSystem;
+
+	Ogre::TerrainGlobalOptions* mTerrainGlobals;
+    Ogre::TerrainGroup* mTerrainGroup;
+    bool mTerrainsImported;
+ 
+    //void defineTerrain(long x, long y);
+    //void initBlendMaps(Ogre::Terrain* terrain);
+    //void configureTerrainDefaults(Ogre::Light* light);
 
 public:
     PGFrameListener(
@@ -189,7 +234,8 @@ public:
  		Camera* cam,
  		Vector3 &gravityVector,
  		AxisAlignedBox &bounds,
-		Hydrax::Hydrax *mHyd);
+		Hydrax::Hydrax *mHyd,
+		SkyX::SkyX *mSky);
 	~PGFrameListener();
 
 	bool frameStarted(const FrameEvent& evt);
@@ -204,12 +250,14 @@ public:
     bool mouseReleased( const OIS::MouseEvent& evt, OIS::MouseButtonID id );
 
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
-	void updateStats(void);
+	void worldUpdates(const Ogre::FrameEvent& evt);
+	void checkObjectsForRemoval();
+	void setupPSSMShadows();
+
 	void windowResized(Ogre::RenderWindow* rw);
 	void windowClosed(Ogre::RenderWindow* rw);
 	void moveCamera(Ogre::Real timeSinceLastFrame);
 	void showDebugOverlay(bool show);
-	void movefish(Ogre::Real timeSinceLastFrame);
 	CEGUI::MouseButton convertButton(OIS::MouseButtonID buttonID);
     bool quit(const CEGUI::EventArgs &e);
     bool nextLocation(void);
@@ -221,9 +269,14 @@ public:
 	void createCubeMap();
 	void postRenderTargetUpdate(const RenderTargetEvent& evt);
 	void preRenderTargetUpdate(const RenderTargetEvent& evt);
+	void preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt);
+	void postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt);
+	void notifyMaterialSetup(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat);
+    void notifyMaterialRender(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat);
+
 	void gunController(void);
 	void createTargets(void);
-	void moveFish(void);
+	void moveFish(double timeSinceLastFrame);
 	void spawnFish(void);
 	void moveTargets(double evtTime);
 
@@ -234,8 +287,29 @@ public:
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo);
 	void loadLevelObjects(std::string object[12]);
-	void doLevelSpecificStuff(void);
+	void checkLevelEndCondition(void);
 	void updateShadowFarDistance();
+	void updateEnvironmentLighting();
+
+	//Menu-related
+	void loadMainMenu(void);
+	void loadPauseGameMenu(void);
+	void loadLevelSelectorMenu(void); 
+	bool startGame(const CEGUI::EventArgs& e); //temp
+	bool inGameLoadPressed(const CEGUI::EventArgs& e);
+	bool inGameExitPressed(const CEGUI::EventArgs& e);
+	bool inGameResumePressed(const CEGUI::EventArgs& e);
+	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
+
+	// New Terrain
+	void createTerrain();
+	void defineTerrain(long x, long y);
+    void initBlendMaps(Ogre::Terrain* terrain);
+    void configureTerrainDefaults(Ogre::Light* light);
+	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img);
+	void shadowTextureCasterPreViewProj(Light *light, Camera *camera);
+	void shadowTextureReceiverPreViewProj (Light *light, Frustum *frustum);
+	void shadowTexturesUpdated();
 };
 
 #endif

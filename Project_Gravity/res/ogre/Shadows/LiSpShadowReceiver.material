@@ -1,0 +1,22 @@
+// Generic Shadow caster material (floating point shadowmap)
+material LiSpShadowReceiver
+{
+	technique
+    {
+        pass 
+        {
+            vertex_program_ref LiSpShadowReceiverVP
+            {
+            }
+            fragment_program_ref LiSpShadowReceiverFP
+            {
+            }
+            texture_unit ShadowMap
+            {
+                tex_address_mode clamp
+                filtering none
+            }
+        }
+    }
+}
+

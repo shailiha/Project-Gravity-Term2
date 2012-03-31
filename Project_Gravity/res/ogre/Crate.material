@@ -1,0 +1,18 @@
+
+// blender material: Coconut
+material Crate
+{
+    receive_shadows on
+    technique b2ogre_1327710599.692
+    {
+        pass b2ogre_1327710599.692
+        {
+            shading gouraud
+            texture_unit b2ogre_1327710599.692
+            {
+                texture crate.jpg
+            }
+        }
+    }
+}
+

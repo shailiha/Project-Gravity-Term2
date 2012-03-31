@@ -1,0 +1,21 @@
+vertex_program LiSpShadowCasterVP glsl
+{
+    source LiSpShadowmapCasterVp.glsl
+
+    default_params
+    {
+        param_named_auto worldViewProj worldviewproj_matrix
+		param_named_auto texelOffsets texel_offsets
+    }
+}
+
+fragment_program LiSpShadowCasterFP glsl
+{
+    source LiSpShadowmapCasterFp.glsl
+
+    default_params
+    {
+    }
+}
+
+

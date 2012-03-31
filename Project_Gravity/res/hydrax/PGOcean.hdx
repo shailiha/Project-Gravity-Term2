@@ -18,8 +18,8 @@ Components=Sun|Foam|Depth|Smooth|Caustics|Underwater|UnderwaterReflections|Under
 
 #Sun parameters
 <vector3>SunPosition=0x10000x0
-<float>SunStrength=2.4
-<float>SunArea=200
+<float>SunStrength=1.2
+<float>SunArea=500
 <vector3>SunColor=1x0.9x0.6
 
 #Foam parameters
@@ -29,7 +29,8 @@ Components=Sun|Foam|Depth|Smooth|Caustics|Underwater|UnderwaterReflections|Under
 <float>FoamTransparency=2.5
 
 #Depth parameters
-<float>DepthLimit=90
+<float>DepthLimit=95
+#<float>DistLimit=10
 
 #Smooth transitions parameters
 <float>SmoothPower=5
@@ -41,10 +42,10 @@ Components=Sun|Foam|Depth|Smooth|Caustics|Underwater|UnderwaterReflections|Under
 
 #God rays parameters
 <vector3>GodRaysExposure=0.26x2.36x2.29
-<float>GodRaysIntensity=0.05
+<float>GodRaysIntensity=0.03
 <float>GodRaysSpeed=5
 <int>GodRaysNumberOfRays=100
-<float>GodRaysRaysSize=0.03
+<float>GodRaysRaysSize=0.02
 <bool>GodRaysIntersections=false
 
 #Rtt quality field(0x0 = Auto)
@@ -59,7 +60,7 @@ Module=ProjectedGridVertex
 
 <float>PG_ChoopyStrength=3.75
 <bool>PG_ChoppyWaves=true
-<int>PG_Complexity=180
+<int>PG_Complexity=160
 <float>PG_Elevation=50
 <bool>PG_ForceRecalculateGeometry=false
 <bool>PG_Smooth=false

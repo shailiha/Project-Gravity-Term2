@@ -24,6 +24,8 @@ public:
 	void createResourceListener(void);
     bool quit(const CEGUI::EventArgs &e);
 	void createWindows(void);
+	//void setupPSSMShadows();
+	void setupLiSpSMShadows();
 
 private:
 	PGFrameListener* mFrameListener;
@@ -64,8 +66,10 @@ private:
 	double targetFPS;
 	double frameDelay;
 
-	// Hydrax pointer
+	// Hydrax and SkyX pointer
 	Hydrax::Hydrax *mHydrax;
+	SkyX::SkyX *mSkyX;
+	int weatherSystem;
 };
  
  #endif // #ifndef __Project_Gravity_h_

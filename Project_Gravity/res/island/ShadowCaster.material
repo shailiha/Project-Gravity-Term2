@@ -26,7 +26,7 @@ material ShadowCaster
          cull_software none
          cull_hardware none
          
-         alpha_rejection greater 79
+         alpha_rejection greater 150
          
          depth_check on
          depth_write on

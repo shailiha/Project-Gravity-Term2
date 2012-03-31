@@ -1,20 +1,17 @@
-
-// blender material: Material
 material Palm
 {
     receive_shadows on
-    technique b2ogre_1322842113.022
+    technique 
     {
-        pass b2ogre_1322842113.022
+        pass 
         {
             shading gouraud
 		 scene_blend alpha_blend
 		 alpha_rejection greater 150
 		 depth_write on
-            texture_unit b2ogre_1322842113.022
+            texture_unit 
             {
                 texture palm.png
-
             }
         }
     }

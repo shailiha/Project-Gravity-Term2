@@ -10,6 +10,7 @@
 #include "Constraints/OgreBulletDynamicsPoint2pointConstraint.h"
 #include "Shapes/OgreBulletCollisionsStaticPlaneShape.h" // for static planes
 #include "Shapes/OgreBulletCollisionsBoxShape.h"		 // for Boxes
+#include "Shapes/OgreBulletCollisionsSphereShape.h"		 // for Boxes
 #include "Shapes/OgreBulletCollisionsTerrainShape.h"	 // for the terrain
 #include "Shapes/OgreBulletCollisionsCapsuleShape.h"	// for player capsule
 #include "Shapes/OgreBulletCollisionsTrimeshShape.h"
@@ -49,5 +50,6 @@
 #include "Hydrax/Noise/Perlin/Perlin.h"
 #include "Hydrax/Modules/RadialGrid/RadialGrid.h"
 #include "Hydrax/Modules/ProjectedGrid/ProjectedGrid.h"
+#include "SkyX/SkyX.h"
 
 #include "Caelum.h"

@@ -57,6 +57,7 @@ bool Project_Gravity::configure(void)
  
 void Project_Gravity::createScene(void)
 {		
+
 	/*Ogre::CompositorManager& compMgr = Ogre::CompositorManager::getSingleton();
 	compMgr.registerCompositorLogic("HDR", new HDRLogic);
 	try 
@@ -70,13 +71,11 @@ void Project_Gravity::createScene(void)
     //Ogre::CompositorManager::getSingleton().setCompositorEnabled(mWindow->getViewport(0), "Bloom", true);
 	
 
-	Ogre::MaterialManager::getSingleton().setDefaultTextureFiltering(Ogre::TFO_ANISOTROPIC);
-    Ogre::MaterialManager::getSingleton().setDefaultAnisotropy(7);
-
-	// Set ambiant lighting
-    mSceneMgr->setAmbientLight(Ogre::ColourValue(1, 1, 1));
+	//Ogre::MaterialManager::getSingleton().setDefaultTextureFiltering(Ogre::TFO_ANISOTROPIC);
+    //Ogre::MaterialManager::getSingleton().setDefaultAnisotropy(7);
 
 	// Create Hydrax ocean
+	
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
 
 	Hydrax::Module::ProjectedGrid *mModule 
@@ -99,11 +98,15 @@ void Project_Gravity::createScene(void)
 
 	// Create water
 	mHydrax->create();
-
-	// Fixes horizon error where sea meets skydome
-	std::vector<Ogre::RenderQueueGroupID> caelumskyqueue;
-	caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
-	mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
+	
+	// Shadows
+	mSceneMgr->setShadowCameraSetup(Ogre::ShadowCameraSetupPtr(new Ogre::FocusedShadowCameraSetup()));
+	mSceneMgr->setShadowTextureCasterMaterial("ShadowCaster");
+	
+	mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE_INTEGRATED);
+	mSceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_FLOAT32_R);
+	//mSceneMgr->setShadowTextureSelfShadow(true);
+	//mSceneMgr->setShadowCasterRenderBackFaces(false);
 	
 	// Initializes the second camera window in the top right
 	this->createWindows();
@@ -134,70 +137,41 @@ void Project_Gravity::createScene(void)
 	palmNode3->roll(Ogre::Radian(Degree(270)));
 	palmNode3->pitch(Ogre::Radian(Degree(210)));
 	palmNode3->setScale(15.0, 15.0, 15.0);
-	
-	Ogre::Entity* palmEntity20 = mSceneMgr->createEntity("palm20", "angelFish.mesh");
-	palmNode20 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode20");
-	palmNode20->attachObject(palmEntity20);
-	palmNode20->setPosition(Ogre::Vector3(338, 120, 1692));
-	palmNode20->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
-	palmNode20->setScale(3.0, 3.0, 3.0);
-	
-	Ogre::Entity* palmEntity30 = mSceneMgr->createEntity("palm30", "angelFish.mesh");
-	palmNode30 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode30");
-	palmNode30->attachObject(palmEntity30);
-	palmNode30->setPosition(Ogre::Vector3(297, 120, 1627));
-	palmNode30->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
-	palmNode30->setScale(3.0, 3.0, 3.0);
-	
-	Ogre::Entity* palmEntity40 = mSceneMgr->createEntity("palm40", "angelFish.mesh");
-	palmNode40 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode40");
-	palmNode40->attachObject(palmEntity40);
-	palmNode40->setPosition(Ogre::Vector3(297, 120, 1555));
-	palmNode40->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
-	palmNode40->setScale(3.0, 3.0, 3.0);
-	
-	Ogre::Entity* palmEntity50 = mSceneMgr->createEntity("palm50", "angelFish.mesh");
-	palmNode50 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode50");
-	palmNode50->attachObject(palmEntity50);
-	palmNode50->setPosition(Ogre::Vector3(271, 120, 1503));
-	palmNode50->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
-	palmNode50->setScale(3.0, 3.0, 3.0);
-	
-	Ogre::Entity* palmEntity60 = mSceneMgr->createEntity("palm60", "angelFish.mesh");
-	palmNode60 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode60");
-	palmNode60->attachObject(palmEntity60);
-	palmNode60->setPosition(Ogre::Vector3(266, 120, 1429));
-	palmNode60->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
-	palmNode60->setScale(3.0, 3.0, 3.0);
-	
-	Ogre::Entity* palmEntity70 = mSceneMgr->createEntity("palm70", "angelFish.mesh");
-	palmNode70 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode70");
-	palmNode70->attachObject(palmEntity70);
-	palmNode70->setPosition(Ogre::Vector3(269, 120, 1319));
-	palmNode70->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_X));
-	palmNode70->setScale(3.0, 3.0, 3.0);
-	
-	// Produce the island from the config file
-	mSceneMgr->setWorldGeometry("Island.cfg");
-
-	// Adds depth so the water is darker the deeper you go
-	mHydrax->getMaterialManager()->addDepthTechnique(
-		static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"))
-		->createTechnique());
-	
-	// Shadows
-	mSceneMgr->setShadowCameraSetup(Ogre::ShadowCameraSetupPtr(new Ogre::FocusedShadowCameraSetup()));
-	mSceneMgr->setShadowTextureCasterMaterial("ShadowCaster");
-									
-	Ogre::MaterialPtr IslandMat = static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"));
-
-	mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE_INTEGRATED);
-	mSceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_FLOAT32_R);
-	//mSceneMgr->setShadowTextureSelfShadow(false);
-	//mSceneMgr->setShadowCasterRenderBackFaces(true);
-	IslandMat->getTechnique(0)->setSchemeName("Default");
-	IslandMat->getTechnique(1)->setSchemeName("NoDefault");
 }
+
+void Project_Gravity::setupLiSpSMShadows()
+{
+    mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE);
+
+    // 3 textures per directional light
+    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_DIRECTIONAL, 1);
+    mSceneMgr->setShadowTextureCount(1);
+    mSceneMgr->setShadowTextureConfig(0, 2048, 2048, PF_FLOAT32_RGB);
+
+    mSceneMgr->setShadowTextureSelfShadow(true);
+    // Set up caster material - this is just a standard depth/shadow map caster
+    mSceneMgr->setShadowTextureCasterMaterial("LiSpShadowCaster");
+    mSceneMgr->setShadowTextureReceiverMaterial("LiSpShadowReceiver");
+
+    // Dont render backfaces (mora surface acne, but avoid errors)
+    mSceneMgr->setShadowCasterRenderBackFaces(false);
+
+    const unsigned numShadowRTTs = mSceneMgr->getShadowTextureCount();
+    for (unsigned i = 0; i < numShadowRTTs; ++i)
+    {
+        Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(i);
+        Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
+        vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
+        vp->setClearEveryFrame(true);
+    }
+
+    // shadow camera setup
+    float ShadowFarDistance = 29000;
+    LiSPSMShadowCameraSetup* LiSpSMSetup = new LiSPSMShadowCameraSetup();
+    mSceneMgr->setShadowCameraSetup(ShadowCameraSetupPtr(LiSpSMSetup));
+    mSceneMgr->setShadowFarDistance(ShadowFarDistance);
+}
+
  
 void Project_Gravity::createFrameListener(void)
 {
@@ -208,7 +182,7 @@ void Project_Gravity::createFrameListener(void)
 								Vector3(0,-9.81,0), // gravity vector for Bullet
  								AxisAlignedBox (Ogre::Vector3 (-10000, -10000, -10000), //aligned box for Bullet
   									Ogre::Vector3 (10000,  10000,  10000)),
-									mHydrax);
+									mHydrax, mSkyX);
 
     mRoot->addFrameListener(mFrameListener);
 }
@@ -333,6 +307,12 @@ void Project_Gravity::go(void)
 
     if (!setup())
         return;
+
+
+	float lastSecond = 0;
+	int frameCount = 0;
+	float secondTester = 0;
+	float nextFrame = 0;
 	
 	while(true)
 	{
@@ -344,8 +324,35 @@ void Project_Gravity::go(void)
 			return;
 		}
 
-		// Render a frame
-		mRoot->renderOneFrame();
+		// Calculate framerate for the last second
+		secondTester = GetTickCount() - lastSecond;
+		nextFrame = secondTester;
+		
+		if (nextFrame > 1000/60)
+		{
+		
+			//cout << "frames " << frames << endl;
+			if (secondTester > 1000)
+			{
+				lastSecond = GetTickCount();
+				cout << "framecount is : " << frameCount << endl;
+				frameCount = 0;
+			}
+
+			nextFrame = lastSecond;
+			//mHydrax->getTextureManager()->remove();
+			//mHydrax->setComponents(Hydrax::HYDRAX_COMPONENTS_NONE);
+			mRoot->renderOneFrame();
+
+			if (frameCount == 10)
+			{
+				
+			}
+			frameCount++;
+			// Render a frame
+			//mHydrax->getRttManager()->getrt
+			mCamera->disableReflection();
+		}
 	}
 
     //mRoot->startRendering();
@@ -394,13 +401,15 @@ bool Project_Gravity::setup(void)
 }
 
 void Project_Gravity::destroyScene(void)
-{
+{    
+	OGRE_DELETE mTerrainGroup;
+    OGRE_DELETE mTerrainGlobals;
 }
 
 void Project_Gravity::chooseSceneManager(void)
 {
     // Get the SceneManager, in this case a generic one
-    mSceneMgr = mRoot->createSceneManager("TerrainSceneManager");
+    mSceneMgr = mRoot->createSceneManager("OctreeSceneManager");
 }
 
 void Project_Gravity::createResourceListener(void)
@@ -414,3 +423,62 @@ bool Project_Gravity::quit(const CEGUI::EventArgs &e)
 	mFrameListener->quit(e);
 	return true;
 }
+
+/*class HydraxRttListener : public Hydrax::RttManager::RttListener
+{
+public:
+	void preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
+	{
+		// If needed in any case...
+		bool underwater = mHydrax->_isCurrentFrameUnderwater();
+
+		switch (Rtt)
+		{
+			case Hydrax::RttManager::RTT_REFLECTION:
+			{
+				// No stars in the reflection map
+				mSkyX->setStarfieldEnabled(false);
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_REFRACTION:
+			{
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_DEPTH: case Hydrax::RttManager::RTT_DEPTH_REFLECTION:
+			{
+				// Hide SkyX components in depth maps
+				mSkyX->getMeshManager()->getEntity()->setVisible(false);
+				mSkyX->getMoonManager()->getMoonBillboard()->setVisible(false);
+			}
+			break;
+		}
+	}
+
+	void postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
+	{
+		bool underwater = mHydrax->_isCurrentFrameUnderwater();
+
+		switch (Rtt)
+		{
+			case Hydrax::RttManager::RTT_REFLECTION:
+			{
+				mSkyX->setStarfieldEnabled(true);
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_REFRACTION:
+			{
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_DEPTH: case Hydrax::RttManager::RTT_DEPTH_REFLECTION:
+			{
+				mSkyX->getMeshManager()->getEntity()->setVisible(true);
+				mSkyX->getMoonManager()->getMoonBillboard()->setVisible(true);
+			}
+			break;
+		}
+	}
+};*/

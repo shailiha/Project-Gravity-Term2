@@ -2,7 +2,12 @@
 #include "PGFrameListener.h"
 #include <iostream>
 
+extern const int NUM_FISH;
+
 using namespace std;
+
+Hydrax::Hydrax *mHydraxPtr;
+int testing;
 
 // Shadow config struct
 struct ShadowConfig
@@ -17,14 +22,33 @@ struct ShadowConfig
 	}
 };
 
+struct PGFrameListener::shadowListener : public Ogre::SceneManager::Listener
+{
+    // this is a callback we'll be using to set up our shadow camera
+    void shadowTextureCasterPreViewProj(Ogre::Light *light, Ogre::Camera *cam, size_t)
+    {
+		//cout << testing << endl;
+    }
+    void shadowTexturesUpdated(size_t) 
+	{
+		//cout << testing << endl;
+	}
+    void shadowTextureReceiverPreViewProj(Ogre::Light*, Ogre::Frustum* frustrum) {}
+    void preFindVisibleObjects(Ogre::SceneManager*, Ogre::SceneManager::IlluminationRenderStage, Ogre::Viewport*) {}
+    void postFindVisibleObjects(Ogre::SceneManager*, Ogre::SceneManager::IlluminationRenderStage, Ogre::Viewport*) {}
+} shadowCameraUpdater;
+
 //Custom Callback function
 bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
 {
+	float obj0Friction = obj0->getFriction();
+	float obj1Friction = obj1->getFriction();
+
 	//We check for collisions between Targets and Projectiles - we know which is which from their Friction value
-	if (((obj0->getFriction()==0.93f) && (obj1->getFriction()==0.61f))
-		||((obj0->getFriction()==0.61f) && (obj1->getFriction()==0.93f)))
+	if (((obj0Friction==0.93f) && (obj1Friction==0.61f))
+		||((obj0Friction==0.61f) && (obj1Friction==0.93f)))
 	{
-		if (obj0->getFriction()==0.93f) //Targets have a friction of 0.93
+		if (obj0Friction==0.93f) //Targets have a friction of 0.93
 		{
 			btCollisionShape* projectile = (btCollisionShape*)obj1->getCollisionShape();
 			btRigidBody* target = (btRigidBody*)obj0;
@@ -49,10 +73,10 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 	}
 
 	//Collisions between player and collectable coconuts
-	if (((obj0->getFriction()==0.92f) && (obj1->getFriction()==1.0f))
-		||((obj0->getFriction()==1.0f) && (obj1->getFriction()==0.92f)))
+	if (((obj0Friction==0.92f) && (obj1Friction==1.0f))
+		||((obj0Friction==1.0f) && (obj1Friction==0.92f)))
 	{
-		if (obj0->getFriction()==0.92f) //Coconuts have a friction of 0.92
+		if (obj0Friction==0.92f) //Coconuts have a friction of 0.92
 		{
 			btCollisionShape* player = (btCollisionShape*)obj1->getCollisionShape();
 			btRigidBody* coconut = (btRigidBody*)obj0;
@@ -79,15 +103,26 @@ PGFrameListener::PGFrameListener (
 			Camera* cam,
 			Vector3 &gravityVector,
 			AxisAlignedBox &bounds,
-			Hydrax::Hydrax *mHyd)
+			Hydrax::Hydrax *mHyd,
+			SkyX::SkyX *mSky)
 			:
-			mSceneMgr(sceneMgr), mWindow(mWin), mCamera(cam), mHydrax(mHyd), mDebugOverlay(0),
+			mSceneMgr(sceneMgr), mWindow(mWin), mCamera(cam), mHydrax(mHyd), mSkyX(mSky), mDebugOverlay(0), mForceDisableShadows(false),
 			mInputManager(0), mMouse(0), mKeyboard(0), mShutDown(false), mTopSpeed(150), 
 			mVelocity(Ogre::Vector3::ZERO), mGoingForward(false), mGoingBack(false), mGoingLeft(false), 
-			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false), 
-			freeRoam(true), mPaused(true), gunActive(false), shotGun(false), 
-			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length())
+			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false),
+			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
+			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mInLevelMenu(false), mLevelMenuCreated(false),
+			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f)
 {
+	mHydraxPtr = mHydrax;
+	testing = 1;
+
+	Ogre::CompositorManager::getSingleton().
+		addCompositor(mWindow->getViewport(0), "Bloom")->addListener(this);
+	Ogre::CompositorManager::getSingleton().
+		setCompositorEnabled(mWindow->getViewport(0), "Bloom", true);
+	bloomEnabled = true;
+
 	// Initialize Ogre and OIS (OIS used for mouse and keyboard input)
 	Ogre::LogManager::getSingletonPtr()->logMessage("*** Initializing OIS ***");
     OIS::ParamList pl;
@@ -105,7 +140,16 @@ PGFrameListener::PGFrameListener (
 	mCollisionClosestRayResultCallback = NULL; //Initialising variables needed for ray casting
 	mPickedBody = NULL;
     Ogre::WindowEventUtilities::addWindowEventListener(mWindow, this);    //Register as a Window listener
-	CEGUI::MouseCursor::getSingleton().setVisible(false);	// For the mouse cursor on pause
+
+	//Load CEGUI scheme
+	CEGUI::SchemeManager::getSingleton().create( "TaharezLook.scheme" );
+	//Set CEGUI default font
+	CEGUI::System::getSingleton().setDefaultFont( "DejaVuSans-10" );
+
+	//Set up cursor look, size and visibility
+	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
+	CEGUI::MouseCursor::getSingleton().setExplicitRenderSize(CEGUI::Size(20, 20));
+
     mCount = 0;	// Setup default variables for the pause menu
     mCurrentObject = NULL;
     mRMouseDown = false;
@@ -123,19 +167,7 @@ PGFrameListener::PGFrameListener (
 	gContactAddedCallback = CustomCallback;
 	cout << "CALLBACK: " << gContactAddedCallback << endl;
 
-	/*//Initialising custom object to allow drawing of ray cast
-	myManualObject =  mSceneMgr->createManualObject("manual1"); 
-	myManualObjectNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("manual1_node"); 
-	myManualObjectMaterial = MaterialManager::getSingleton().create("manual1Material","debugger"); 
-	myManualObjectMaterial->setReceiveShadows(false); 
-	myManualObjectMaterial->getTechnique(0)->setLightingEnabled(true) ;
-	myManualObjectMaterial->getTechnique(0)->getPass(0)->setDiffuse(1,0,0,0); 
-	myManualObjectMaterial->getTechnique(0)->getPass(0)->setAmbient(1,0,0); 
-	myManualObjectMaterial->getTechnique(0)->getPass(0)->setSelfIllumination(1,0,0);
-	myManualObjectNode->attachObject(myManualObject);*/
-
 	// Create the flocking fish
-	createRobot();
 	spawnFish();
 
 	// Create RaySceneQuery
@@ -144,12 +176,8 @@ PGFrameListener::PGFrameListener (
 	// Initialize the pause variable
 	mPaused = false;
 
-	// Create the day/night system
-	createCaelumSystem();
-	mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
-
 	//Create collision box for player
-	playerBoxShape = new OgreBulletCollisions::CapsuleCollisionShape(10, 40, Vector3::UNIT_Y);
+	playerBoxShape = new OgreBulletCollisions::CapsuleCollisionShape(10, 100, Vector3::UNIT_Y);
 	playerBody = new OgreBulletDynamics::RigidBody("playerBoxRigid", mWorld);
 
 	playerBody->setShape(	mSceneMgr->getSceneNode("PlayerNode"),
@@ -212,7 +240,6 @@ PGFrameListener::PGFrameListener (
     ocean = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 	ocean->attachObject(mOceanSurfaceEnt);
 	ocean->setPosition(1700, 120, 1100);
-	//ocean->setScale(10.0, 1.0, 10.0);
 	
     // Define a plane mesh that will be used for the ocean surface
     Ogre::Plane oceanFadePlane;
@@ -229,6 +256,7 @@ PGFrameListener::PGFrameListener (
 	oceanFade->attachObject(mOceanFadeEnt);
 	oceanFade->setPosition(1700, 121, 1100);
 
+	// Create the targets
 	createTargets();
 	spinTime = 0;
 	
@@ -244,33 +272,211 @@ PGFrameListener::PGFrameListener (
 	//Create the box to show where spawned object will be placed
  	boxEntity = mSceneMgr->createEntity(
  			"SpawnBox",
- 			"cube.mesh");
+ 			"Crate.mesh");
 	coconutEntity = mSceneMgr->createEntity(
 			"CoconutBox",
 			"Coco.mesh");
 	targetEntity = mSceneMgr->createEntity(
 			"TargetBox",
-			"robot.mesh");
+			"Target.mesh");
 	blockEntity = mSceneMgr->createEntity(
 			"DynBlock",
-			"cube.mesh");
+			"Jenga.mesh");
  	boxEntity->setCastShadows(true);
- 	boxEntity->setMaterialName("Jenga");
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
     mSpawnObject->attachObject(boxEntity);
-	mSpawnLocation = Ogre::Vector3(0.f,0.f,0.f);
+	mSpawnObject->setScale(20, 20, 20);
+	mSpawnLocation = Ogre::Vector3(2000.f,2000.f,2000.f);
+
 	//Initialise number of coconuts collected and targets killed
 	coconutCount = 0;
 	targetCount = 0;
 	gridsize = 26;
+	weatherSystem = 0;
+
+	for (int i = 0; i < NUM_FISH; i++)
+	{
+		mFishDead[i] = false;
+		mFishLastMove[i] = GetTickCount();
+		mFishLastDirection[i] = Vector3(1, -0.2, 1);
+	}
+
+	if (weatherSystem == 0)
+	{
+		// Create the day/night system
+		createCaelumSystem();
+		mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
+
+		// Fixes horizon error where sea meets skydome
+		std::vector<Ogre::RenderQueueGroupID> caelumskyqueue;
+		caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
+		mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
+	}
+	else
+	{
+		// Set ambiant lighting
+		mSceneMgr->setAmbientLight(Ogre::ColourValue(1, 1, 1));
+
+		// Light
+		Ogre::Light *mLight0 = mSceneMgr->createLight("Light0");
+		mLight0->setDiffuseColour(0.3, 0.3, 0.3);
+		mLight0->setCastShadows(false);
+
+		// Shadow caster
+		Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
+		mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+
+		// Create SkyX object
+		mSkyX = new SkyX::SkyX(mSceneMgr, mCamera);
+
+		// No smooth fading
+		mSkyX->getMeshManager()->setSkydomeFadingParameters(false);
+
+		// A little change to default atmosphere settings :)
+		SkyX::AtmosphereManager::Options atOpt = mSkyX->getAtmosphereManager()->getOptions();
+		atOpt.RayleighMultiplier = 0.003075f;
+		atOpt.MieMultiplier = 0.00125f;
+		atOpt.InnerRadius = 9.92f;
+		atOpt.OuterRadius = 10.3311f;
+		mSkyX->getAtmosphereManager()->setOptions(atOpt);
+
+		// Create the sky
+		mSkyX->create();
+
+		// Add a basic cloud layer
+		mSkyX->getCloudsManager()->add(SkyX::CloudLayer::Options(/* Default options */));
+
+		// Add the Hydrax Rtt listener
+		mHydrax->getRttManager()->addRttListener(this);
+		mWaterGradient = SkyX::ColorGradient();
+		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.779105)*0.4, 1));
+		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.729105)*0.3, 0.8));
+		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.25, 0.6));
+		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.2, 0.5));
+		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.1, 0.45));
+		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.025, 0));
+		// Sun
+		mSunGradient = SkyX::ColorGradient();
+		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.5, 1.0f));
+		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.4, 0.75f));
+		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.3, 0.5625f));
+		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.6,0.5,0.2)*1.5, 0.5f));
+		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.25, 0.45f));
+		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.01, 0.0f));
+		// Ambient
+		mAmbientGradient = SkyX::ColorGradient();
+		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 1.0f));
+		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 0.6f));
+		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.6, 0.5f));
+		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.3, 0.45f));
+		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.1, 0.35f));
+		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.05, 0.0f));
+	}
+	
+	mHydrax->getRttManager()->addRttListener(this);
+	createTerrain();
 }
 
+void PGFrameListener::setupPSSMShadows()
+{
+/*	Ogre::MaterialPtr IslandMat = static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"));
+	//IslandMat->getTechnique(0)->setSchemeName("Default");
+	//IslandMat->getTechnique(1)->setSchemeName("NoDefault");
+	
+	// Produce the island from the config file
+	mSceneMgr->setWorldGeometry("Island.cfg");
+
+	// Adds depth so the water is darker the deeper you go
+	mHydrax->getMaterialManager()->addDepthTechnique(
+		static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"))
+		->createTechnique());
+		*/
+    mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE_INTEGRATED);
+
+    // 3 textures per spotlight
+    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_SPOTLIGHT, 3);
+
+    // 3 textures per directional light
+    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_DIRECTIONAL, 3);
+    mSceneMgr->setShadowTextureCount(3);
+    mSceneMgr->setShadowTextureConfig(0, 1024, 1024, PF_FLOAT32_RGB);
+    mSceneMgr->setShadowTextureConfig(1, 1024, 1024, PF_FLOAT32_RGB);
+    mSceneMgr->setShadowTextureConfig(2, 512, 512, PF_FLOAT32_RGB);
+
+    mSceneMgr->setShadowTextureSelfShadow(true);
+    // Set up caster material - this is just a standard depth/shadow map caster
+    mSceneMgr->setShadowTextureCasterMaterial("PSVSMShadowCaster");
+
+    // big NONO to render back faces for VSM.  it doesn't need any biasing
+    // so it's worthless (and rather problematic) to use the back face hack that
+    // works so well for normal depth shadow mapping (you know, so you don't
+    // get surface acne)
+    mSceneMgr->setShadowCasterRenderBackFaces(false);
+
+
+    const unsigned numShadowRTTs = mSceneMgr->getShadowTextureCount();
+    for (unsigned i = 0; i < numShadowRTTs; ++i)
+    {
+        Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(i);
+        Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
+        vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
+        vp->setClearEveryFrame(true);
+    }
+
+    // shadow camera setup
+    // float shadowFarDistance = mCamera->getFarClipDistance();
+    float shadowNearDistance = mCamera->getNearClipDistance();
+    float shadowFarDistance = 1000;
+    // float shadowNearDistance = 100;
+    PSSMShadowCameraSetup* pssmSetup = new PSSMShadowCameraSetup();
+    pssmSetup->calculateSplitPoints(3, shadowNearDistance, shadowFarDistance);
+    pssmSetup->setSplitPadding(mCamera->getNearClipDistance());
+    pssmSetup->setOptimalAdjustFactor(0, 2);
+    pssmSetup->setOptimalAdjustFactor(1, 1);
+    pssmSetup->setOptimalAdjustFactor(2, 0.5);
+
+    mSceneMgr->setShadowCameraSetup(ShadowCameraSetupPtr(pssmSetup));
+    mSceneMgr->setShadowFarDistance(shadowFarDistance);
+
+    // once the camera setup is finialises comment this section out and set the param_named in
+    // the .program script with the values of splitPoints
+    Vector4 splitPoints;
+    const PSSMShadowCameraSetup::SplitPointList& splitPointList = pssmSetup->getSplitPoints();
+    for (int i = 0; i < 3; ++i)
+    {
+        splitPoints[i] = splitPointList[i];
+    }
+    Ogre::ResourceManager::ResourceMapIterator it = Ogre::MaterialManager::getSingleton().getResourceIterator();
+
+    static const Ogre::String receiverPassName[2] =
+    {
+        "PSSMShadowReceiverDirectional",
+        "PSSMShadowReceiverSpotlight",
+    };
+
+    while (it.hasMoreElements())
+    {
+        Ogre::MaterialPtr mat = it.getNext();
+        for(int i=0; i<2; i++)
+        {
+            if (mat->getNumTechniques() > 0 &&
+                mat->getTechnique(0)->getPass(receiverPassName[i]) != NULL &&
+                mat->getTechnique(0)->getPass(receiverPassName[i])->getFragmentProgramParameters()->
+                _findNamedConstantDefinition("pssmSplitPoints", false) != NULL)
+            {
+                //printf("set pssmSplitPoints %s\n", mat->getName().c_str());
+                mat->getTechnique(0)->getPass(receiverPassName[i])->getFragmentProgramParameters()->
+                setNamedConstant("pssmSplitPoints", splitPoints);
+            }
+        }
+    }
+}
 
 /** Update shadow far distance
 	*/
 void PGFrameListener::updateShadowFarDistance()
 {
-	Ogre::Light* Light1 = mCaelumSystem->getSun()->getMainLight();
+	Ogre::Light* Light1 = mSceneMgr->getLight("Light1");
 	float currentLength = (Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length();
 
 	if (currentLength < 1000)
@@ -291,6 +497,33 @@ void PGFrameListener::updateShadowFarDistance()
 
 		Light1->setShadowFarDistance(Light1->getShadowFarDistance() - 100);
 	}
+}
+
+void PGFrameListener::updateEnvironmentLighting()
+{
+	Ogre::Vector3 lightDir = mSkyX->getAtmosphereManager()->getSunDirection();
+
+	bool preForceDisableShadows = mForceDisableShadows;
+	mForceDisableShadows = (lightDir.y > 0.15f) ? true : false;
+
+	// Calculate current color gradients point
+	float point = (-lightDir.y + 1.0f) / 2.0f;
+	//mHydrax->setWaterColor(mWaterGradient.getColor(point));
+
+	Ogre::Vector3 sunPos = mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.1;
+	mHydrax->setSunPosition(sunPos);
+
+	Ogre::Light *Light0 = mSceneMgr->getLight("Light0"),
+				*Light1 = mSceneMgr->getLight("Light1");
+
+	Light0->setPosition(mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.02);
+	Light1->setDirection(lightDir);
+
+	Ogre::Vector3 sunCol = mSunGradient.getColor(point);
+	Light0->setSpecularColour(sunCol.x, sunCol.y, sunCol.z);
+	Ogre::Vector3 ambientCol = mAmbientGradient.getColor(point);
+	Light0->setDiffuseColour(ambientCol.x, ambientCol.y, ambientCol.z);
+	mHydrax->setSunColor(sunCol);
 }
 
 PGFrameListener::~PGFrameListener()
@@ -329,79 +562,91 @@ PGFrameListener::~PGFrameListener()
 
 bool PGFrameListener::frameStarted(const FrameEvent& evt)
 {
-	// Move the sun
-	Ogre::Vector3 sunPosition = mCamera->getDerivedPosition();
-	sunPosition -= mCaelumSystem->getSun()->getLightDirection() * 80000;
-	
-    Ogre::String MaterialNameTmp = mHydrax->getMesh()->getMaterialName();
-	mHydrax->setSunPosition(sunPosition);
-	mHydrax->setSunColor(Ogre::Vector3(mCaelumSystem->getSun()->getBodyColour().r,
-		mCaelumSystem->getSun()->getBodyColour().g,
-		mCaelumSystem->getSun()->getBodyColour().b));
-	//CAN ALSO CHANGE THE COLOUR OF THE WATER
-	
-	// Update shadow far distance
-	updateShadowFarDistance();
+	if(!mInGameMenu && !mMainMenu) { //If not in menu continue to update world
 
-	// Update Hydrax
-    mHydrax->update(evt.timeSinceLastFrame);
+		if (weatherSystem == 0)
+		{
+			// Move the sun
+			Ogre::Vector3 sunPosition = mCamera->getDerivedPosition();
+			sunPosition -= mCaelumSystem->getSun()->getLightDirection() * 80000;
 	
-	gunPosBuffer6 =  gunPosBuffer5;
-	gunPosBuffer5 =  gunPosBuffer4;
-	gunPosBuffer4 =  gunPosBuffer3;
-	gunPosBuffer3 =  gunPosBuffer2;
-	gunPosBuffer2 = gunPosBuffer;
-	gunPosBuffer = mCamera->getDerivedPosition();
-	moveCamera(evt.timeSinceLastFrame);
+			Ogre::String MaterialNameTmp = mHydrax->getMesh()->getMaterialName();
+			mHydrax->setSunPosition(sunPosition);
+			mHydrax->setSunColor(Ogre::Vector3(mCaelumSystem->getSun()->getBodyColour().r,
+				mCaelumSystem->getSun()->getBodyColour().g,
+				mCaelumSystem->getSun()->getBodyColour().b));
+			//CAN ALSO CHANGE THE COLOUR OF THE WATER
+	
+			// Update shadow far distance
+			//updateShadowFarDistance();
+		}
+		else
+		{
+			// Change SkyX atmosphere options if needed
+			SkyX::AtmosphereManager::Options SkyXOptions = mSkyX->getAtmosphereManager()->getOptions();
+			mSkyX->setTimeMultiplier(mTimeMultiplier);
+			mSkyX->getAtmosphereManager()->setOptions(SkyXOptions);
+			// Update environment lighting
+			updateEnvironmentLighting();
+			// Update SkyX
+			mSkyX->update(evt.timeSinceLastFrame);
+		}
+	
+		gunPosBuffer6 =  gunPosBuffer5;
+		gunPosBuffer5 =  gunPosBuffer4;
+		gunPosBuffer4 =  gunPosBuffer3;
+		gunPosBuffer3 =  gunPosBuffer2;
+		gunPosBuffer2 = gunPosBuffer;
+		gunPosBuffer = mCamera->getDerivedPosition();
+
+		// Update the game elements
+		moveCamera(evt.timeSinceLastFrame);
+		mHydrax->update(evt.timeSinceLastFrame);
+		moveTargets(evt.timeSinceLastFrame);	
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
+
+		// Move the Gravity Gun
+		gunController();
+
+		// Dragging a selected object
+		if(mPickedBody != NULL){
+			if (mPickConstraint)
+			{
+				// add a point to point constraint for picking
+				CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
+				//cout << mousePos.d_x << " " << mousePos.d_y << endl;
+				Ogre::Ray rayTo = mCamera->getCameraToViewportRay (mousePos.d_x/mWindow->getWidth(), mousePos.d_y/mWindow->getHeight());
+			
+				//move the constraint pivot
+				OgreBulletDynamics::PointToPointConstraint * p2p = static_cast <OgreBulletDynamics::PointToPointConstraint *>(mPickConstraint);
+			
+				//keep it at the same picking distance
+				const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
+				Ogre::Vector3 dir = rayTo.getDirection () * mOldPickingDist;
+				const Ogre::Vector3 newPos (eyePos + dir);
+				p2p->setPivotB (newPos);   
+			}
+		}
+	} //End of non-menu specifics
 
 	//Keep player upright
 	playerBody->getBulletRigidBody()->setAngularFactor(0.0);
-
-	// Dragging a selected object
-	if(mPickedBody != NULL){
-		if (mPickConstraint)
-		{
-			// add a point to point constraint for picking
-			CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
-			//cout << mousePos.d_x << " " << mousePos.d_y << endl;
-			Ogre::Ray rayTo = mCamera->getCameraToViewportRay (mousePos.d_x/mWindow->getWidth(), mousePos.d_y/mWindow->getHeight());
-			
-			//move the constraint pivot
-			OgreBulletDynamics::PointToPointConstraint * p2p = static_cast <OgreBulletDynamics::PointToPointConstraint *>(mPickConstraint);
-			
-			//keep it at the same picking distance
-			const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
-			Ogre::Vector3 dir = rayTo.getDirection () * mOldPickingDist;
-			const Ogre::Vector3 newPos (eyePos + dir);
-			p2p->setPivotB (newPos);   
-		}
-	}
-
-	moveTargets(evt.timeSinceLastFrame);
-	
-	mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-	mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
-	mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-	mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-
-	// Move the Gravity Gun
-	gunController();
 
  	return true;
 }
 
 bool PGFrameListener::frameEnded(const FrameEvent& evt)
 {
-	// This was used to update the FPS of the ogre interface but that has been replaced
-	// by the cegui library and so this function should be changed to output the
-	// same numbers on the console
- 	updateStats();
-
  	return true;
 }
 
 void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 {
+	// FOG UNDERWATER?
+
 	gravityGun->setVisible(false);
 	mHydrax->setVisible(false);
 	ocean->setVisible(true);
@@ -418,17 +663,87 @@ void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 
 void PGFrameListener::postRenderTargetUpdate(const RenderTargetEvent& evt)
 {
-    gravityGun->setVisible(true);  // unhide the head
-	mHydrax->setVisible(true);
+    gravityGun->setVisible(true); 
+	mHydrax->setVisible(hideHydrax);
 	ocean->setVisible(false);
 	oceanFade->setVisible(false);
+}
+
+void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
+{
+	while(!mHydrax->isVisible()) {cout << "howdy" << endl;}
+	//mHydrax->setVisible(true);
+	//mHydrax->setWaterColor(Vector3(0, 0, 0));
+	//mHydrax->remove();
+	//cout << "hello" << endl;
+	/*if (weatherSystem == 1)
+	{
+		// If needed in any case...
+		bool underwater = mHydrax->_isCurrentFrameUnderwater();
+
+		switch (Rtt)
+		{
+			case Hydrax::RttManager::RTT_REFLECTION:
+			{
+				// No stars in the reflection map
+				mSkyX->setStarfieldEnabled(false);
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_REFRACTION:
+			{
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_DEPTH: case Hydrax::RttManager::RTT_DEPTH_REFLECTION:
+			{
+				// Hide SkyX components in depth maps
+				mSkyX->getMeshManager()->getEntity()->setVisible(false);
+				mSkyX->getMoonManager()->getMoonBillboard()->setVisible(false);
+			}
+			break;
+		}
+	}*/
+}
+
+void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
+{
+	while(!mHydrax->isVisible()) {cout << "howdy2" << endl;}
+	//mHydrax->setWaterColor(Vector3(0, 0, 0));
+	//mHydrax->create();
+	//mHydrax->setVisible(false);
+	/*if (weatherSystem == 1)
+	{
+		bool underwater = mHydrax->_isCurrentFrameUnderwater();
+
+		switch (Rtt)
+		{
+			case Hydrax::RttManager::RTT_REFLECTION:
+			{
+				mSkyX->setStarfieldEnabled(true);
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_REFRACTION:
+			{
+			}
+			break;
+
+			case Hydrax::RttManager::RTT_DEPTH: case Hydrax::RttManager::RTT_DEPTH_REFLECTION:
+			{
+				mSkyX->getMeshManager()->getEntity()->setVisible(true);
+				mSkyX->getMoonManager()->getMoonBillboard()->setVisible(true);
+			}
+			break;
+		}
+	}*/
 }
 
 void PGFrameListener::createCubeMap()
 {
 	// create our dynamic cube map texture
 	TexturePtr tex = TextureManager::getSingleton().createManual("dyncubemap",
-		ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, TEX_TYPE_CUBE_MAP, 512, 512, 0, PF_R8G8B8, TU_RENDERTARGET);
+		ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, TEX_TYPE_CUBE_MAP, 256, 256, 0, PF_R8G8B8, TU_RENDERTARGET);
 
 	// assign our camera to all 6 render targets of the texture (1 for each direction)
 	for (unsigned int i = 0; i < 6; i++)
@@ -484,8 +799,33 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     }
     else if (evt.key == OIS::KC_ESCAPE)
     {
-        mShutDown = true;
+        if(!mMainMenu) {
+			mInGameMenu = !mInGameMenu; //Toggle menu
+			freeRoam = !freeRoam;
+			if(!mInGameMenu) {//If no longer in in-game menu then close menu
+				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
+				inGameMenuRoot->setVisible(false);
+				if(mLevelMenuCreated) {
+					levelMenuRoot->setVisible(false);
+				}
+				//Reset mouse position to centre of screen
+				CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+			}
+			else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
+				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+				loadPauseGameMenu();
+				inGameMenuRoot->setVisible(true);
+			}
+		}
     }
+	else if(evt.key == (OIS::KC_K))	hideHydrax = !hideHydrax;
+	else if (evt.key == (OIS::KC_I)) 
+	{
+		Ogre::CompositorManager::getSingleton().setCompositorEnabled(
+			mWindow->getViewport(0), "Bloom", !bloomEnabled);
+		bloomEnabled = !bloomEnabled;
+	}
+
 	else if (evt.key == OIS::KC_PGUP) editMode = !editMode; //Toggle edit mode
 	else if(evt.key == OIS::KC_Q) spawnBox();
 
@@ -514,7 +854,6 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			objSpawnType = 4;
 			mSpawnObject->detachAllObjects();
 			mSpawnObject->attachObject(blockEntity);
-			mSpawnObject->setScale(1,0.25,0.25);
 		}
 		else if (evt.key ==  (OIS::KC_8))
 		{
@@ -598,9 +937,9 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 	{
 		mCamera->yaw(Ogre::Degree(-evt.state.X.rel * 0.15f));
 		mCamera->pitch(Ogre::Degree(-evt.state.Y.rel * 0.15f));
-
 		if (editMode)
 		{
+
 			//Set object spawning distance
 			//std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
 			spawnDistance = spawnDistance + evt.state.Z.rel;
@@ -629,9 +968,7 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 		// Scroll wheel.
 		if (evt.state.Z.rel)
 			sys.injectMouseWheelChange(evt.state.Z.rel / 120.0f);
-		CEGUI::MouseCursor::getSingleton().setVisible(true);
 	}
-	CEGUI::MouseCursor::getSingleton().setVisible(false);
 		
 	return true;
 }
@@ -663,14 +1000,6 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 			//Fire ray towards mouse position
 			mWorld->launchRay (*mCollisionClosestRayResultCallback);
 
-			//Draw ray
-			/*myManualObjectNode->detachObject(myManualObject);
-			myManualObject->begin("manual1Material", Ogre::RenderOperation::OT_LINE_LIST); 
-			myManualObject->position(rayTo.getOrigin().x, rayTo.getOrigin().y, rayTo.getOrigin().z); 
-			myManualObject->position(mCollisionClosestRayResultCallback->getRayEndPoint().x, mCollisionClosestRayResultCallback->getRayEndPoint().y, mCollisionClosestRayResultCallback->getRayEndPoint().z); 
-			myManualObject->end(); 
-			myManualObjectNode->attachObject(myManualObject);
-			*/
 			//If there was a collision, select the one nearest the player
 			if (mCollisionClosestRayResultCallback->doesCollide ())
 			{
@@ -791,29 +1120,27 @@ void PGFrameListener::placeNewObject(int objectType) {
 	if(editMode) {
 		position = mSpawnLocation;
 		//Entity will have to change depending on what type of object is selected
-		Entity *entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		Entity *entity;
 		mNumEntitiesInstanced++;
 		switch(objectType)
 		{
-			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
+			case 1: entity = mSceneMgr->createEntity("Crate" + StringConverter::toString(mNumEntitiesInstanced), "Crate.mesh"); break;
 			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
-			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
-			case 4: entity = mSceneMgr->createEntity("DynBlock" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
+			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "Target.mesh"); break;
+			case 4: entity = mSceneMgr->createEntity("DynBlock" + StringConverter::toString(mNumEntitiesInstanced), "Jenga.mesh"); break;
 			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
 		}
  		
  		entity->setCastShadows(true);
-		entity->setMaterialName("Jenga");
  		AxisAlignedBox boundingB = entity->getBoundingBox();
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
 	
- 		//entity->setMaterialName("Examples/BumpyMetal");
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 
- 		node->attachObject(entity);
 		node->setScale(scale);
+ 		node->attachObject(entity);
  		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
@@ -941,61 +1268,42 @@ CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
 
 bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 {	
-	// Move the robot
-	if (mDirection == Ogre::Vector3::ZERO) 
-    {
-        if (nextLocation()) 
-        {
-            // Set walking animation
-			mAnimationState = mSceneMgr->getEntity("Robot")->getAnimationState("Walk");
-            mAnimationState->setLoop(true);
-            mAnimationState->setEnabled(true);
-        }
-    }
-	else
-    {
-        Ogre::Real move = mWalkSpeed * evt.timeSinceLastFrame;
-        mDistance -= move;
-	
-		if (mDistance <= 0.0f)
-		{
-			mSceneMgr->getSceneNode("RobotNode")->setPosition(mDestination);
-			mDirection = Ogre::Vector3::ZERO;
+	if(mWindow->isClosed())
+        return false;
 
-				// Set animation based on if the robot has another point to walk to. 
-			if (! nextLocation())
-			{
-				// Set Idle animation                     
-				mAnimationState = mSceneMgr->getEntity("Robot")->getAnimationState("Idle");
-				mAnimationState->setLoop(true);
-				mAnimationState->setEnabled(true);
-			} 
+	if(mShutDown)
+		return false;
+	
+	if(mMainMenu) {
+		loadMainMenu();
+	} 
+	else {
+		//Check whether viewing in-game menu
+		if(mInGameMenu) {
+			if(mInLevelMenu)
+				loadLevelSelectorMenu();
 			else
-			{
-				Ogre::Vector3 mDirection = mDestination - mNode->getPosition(); 
-				Ogre::Vector3 src = mNode->getOrientation() * Ogre::Vector3::UNIT_X;
+				loadPauseGameMenu();
+		}
+		//Else, update the world
+		else {
+			worldUpdates(evt); // Cam, caelum etc.
+			checkObjectsForRemoval(); //Targets and coconuts
+		}
+	}
 
-				if ((1.0f + src.dotProduct(mDirection)) < 0.0001f) 
-				{
-					mNode->yaw(Ogre::Degree(180));
-				}
-				else
-				{
-					src.y = 0;                                                    // Ignore pitch difference angle
-					mDirection.y = 0;
-					src.normalise();
-					Real mDistance = mDirection.normalise( );                     // Both vectors modified so renormalize them
-					Ogre::Quaternion quat = src.getRotationTo(mDirection);
-					mNode->rotate(quat);
-				} 
-			}
-        }
-		else
-        {
-            mSceneMgr->getSceneNode("RobotNode")->translate(mDirection * move);
-        } 
-    } 
-	
+    //Need to capture/update each device
+    mKeyboard->capture();
+    mMouse->capture();
+
+	checkLevelEndCondition();	
+
+    return true;
+}
+
+void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) 
+{
+	//Palm animations
 	anim = mSceneMgr->getEntity("palm")->getAnimationState("my_animation");
     anim->setLoop(true);
     anim->setEnabled(true);
@@ -1008,36 +1316,9 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
     anim->setLoop(true);
     anim->setEnabled(true);
 	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm20")->getAnimationState("Act: ArmatureAction.001");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm30")->getAnimationState("Act: ArmatureAction.001");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm40")->getAnimationState("Act: ArmatureAction.001");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm50")->getAnimationState("Act: ArmatureAction.001");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm60")->getAnimationState("Act: ArmatureAction.001");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
-	anim = mSceneMgr->getEntity("palm70")->getAnimationState("Act: ArmatureAction.001");
-    anim->setLoop(true);
-    anim->setEnabled(true);
-	anim->addTime(evt.timeSinceLastFrame);
 
 	//Move the fish
-	moveFish();
-
-	// Animate the robot
-	mAnimationState->addTime(evt.timeSinceLastFrame);
+	moveFish(evt.timeSinceLastFrame);
 
 	if (shotGun)
 	{
@@ -1054,25 +1335,12 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	else
 		gunAnimate->addTime(-evt.timeSinceLastFrame * 1.5);
 
-	// Make the secondary camera look at the robot
-	//mSceneMgr->getCamera("RTTCam")->lookAt(mSceneMgr->getSceneNode("RobotNode")->getPosition());
-
-	if(mWindow->isClosed())
-        return false;
-
-    if(mShutDown)
-        return false;
-	
-    //Need to capture/update each device
-    mKeyboard->capture();
-    mMouse->capture();
-	
-	movefish(evt.timeSinceLastFrame);
-
-	// So that the caelum system is updated for both cameras
-	mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("PlayerCam"));
-    mCaelumSystem->updateSubcomponents (evt.timeSinceLastFrame);
-	//mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("RTTCam"));
+	if (weatherSystem == 0)
+	{
+		// So that the caelum system is updated for both cameras
+		mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("PlayerCam"));
+		mCaelumSystem->updateSubcomponents (evt.timeSinceLastFrame);
+	}
 
 	Ogre::Vector3 camPosition = mCamera->getPosition();
 	Ogre::Quaternion camOr = mCamera->getOrientation();
@@ -1081,19 +1349,34 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	mCamera->setAspectRatio(1);
 
 	for (unsigned int i = 0; i < 6; i++)
-	{
 		mTargets[i]->update();
-		//mTargets2[i]->update();
-	}
 
 	mCamera->setFOVy(Degree(45));
 	mCamera->setAspectRatio(1.76296); // NEED TO CHANGE
 	mCamera->setPosition(camPosition);
 	mCamera->setOrientation(camOr);
 
-	//mCamera->lookAt(target->getPosition());
-	//cout << mCamera->getDerivedPosition() << endl;
+	Real pitch = mCamera->getOrientation().getPitch(false).valueRadians();
 	
+	if ((pitch > -2.767 && pitch < -Math::PI/2) || 
+		(pitch > 0.384 && pitch < Math::PI/2)) // Possible glitch here
+		mHydrax->setVisible(false);
+	else if (mCamera->getDerivedPosition().y < 105)
+	{
+		mHydrax->setVisible(true);
+		Ogre::CompositorManager::getSingleton().setCompositorEnabled(
+				mWindow->getViewport(0), "Bloom", false);
+	}
+	else
+	{
+		mHydrax->setVisible(hideHydrax);
+		Ogre::CompositorManager::getSingleton().setCompositorEnabled(
+				mWindow->getViewport(0), "Bloom", bloomEnabled);
+	}
+}
+
+void PGFrameListener::checkObjectsForRemoval() 
+{
 	//Here we check the status of targets, and remove if necessary
  	std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
  	while (levelTargets.end() != itLevelTargets)
@@ -1128,49 +1411,6 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 		}
 		++itLevelCoconuts;
  	}
-
-	doLevelSpecificStuff();
-
-    return true;
-}
-
-void PGFrameListener::updateStats(void)
-{
-	// CHANGE TO DISPLAY ON CONSOLE
-
-	/*static String currFps = "Current FPS: ";
-	static String avgFps = "Average FPS: ";
-	static String bestFps = "Best FPS: ";
-	static String worstFps = "Worst FPS: ";
-	static String tris = "Triangle Count: ";
-	static String batches = "Batch Count: ";
-
-	// update stats when necessary
-	try {
-		OverlayElement* guiAvg = OverlayManager::getSingleton().getOverlayElement("Core/AverageFps");
-		OverlayElement* guiCurr = OverlayManager::getSingleton().getOverlayElement("Core/CurrFps");
-		OverlayElement* guiBest = OverlayManager::getSingleton().getOverlayElement("Core/BestFps");
-		OverlayElement* guiWorst = OverlayManager::getSingleton().getOverlayElement("Core/WorstFps");
-
-		const RenderTarget::FrameStats& stats = mWindow->getStatistics();
-		guiAvg->setCaption(avgFps + StringConverter::toString(stats.avgFPS));
-		guiCurr->setCaption(currFps + StringConverter::toString(stats.lastFPS));
-		guiBest->setCaption(bestFps + StringConverter::toString(stats.bestFPS)
-			+" "+StringConverter::toString(stats.bestFrameTime)+" ms");
-		guiWorst->setCaption(worstFps + StringConverter::toString(stats.worstFPS)
-			+" "+StringConverter::toString(stats.worstFrameTime)+" ms");
-
-		OverlayElement* guiTris = OverlayManager::getSingleton().getOverlayElement("Core/NumTris");
-		guiTris->setCaption(tris + StringConverter::toString(stats.triangleCount));
-
-		OverlayElement* guiBatches = OverlayManager::getSingleton().getOverlayElement("Core/NumBatches");
-		guiBatches->setCaption(batches + StringConverter::toString(stats.batchCount));
-
-		OverlayElement* guiDbg = OverlayManager::getSingleton().getOverlayElement("Core/DebugText");
-		guiDbg->setCaption(mDebugText);
-	}
-	catch(...) {  }
-	*/
 }
 
 void PGFrameListener::windowResized(Ogre::RenderWindow* rw)
@@ -1206,29 +1446,31 @@ void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 	linVelY = playerBody->getLinearVelocity().y;
 	linVelZ = 0.5 * playerBody->getLinearVelocity().z;
 
+	Radian yaw = mCamera->getDerivedOrientation().getYaw();
+
 	if (mGoingForward)
 	{
 		int multiplier = 1;
 		if (mFastMove)
 			multiplier = 2;
 
-		linVelX += Ogre::Math::Sin(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI)) * 30 * multiplier;
-		linVelZ += Ogre::Math::Cos(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI)) * 30 * multiplier;
+		linVelX += Ogre::Math::Sin(yaw + Ogre::Radian(Ogre::Math::PI)) * 30 * multiplier;
+		linVelZ += Ogre::Math::Cos(yaw + Ogre::Radian(Ogre::Math::PI)) * 30 * multiplier;
 	}
 	if(mGoingBack)
 	{
-		linVelX -= Ogre::Math::Sin(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI)) * 30;
-		linVelZ -= Ogre::Math::Cos(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI)) * 30;
+		linVelX -= Ogre::Math::Sin(yaw + Ogre::Radian(Ogre::Math::PI)) * 30;
+		linVelZ -= Ogre::Math::Cos(yaw + Ogre::Radian(Ogre::Math::PI)) * 30;
 	}
 	if (mGoingLeft)
 	{
-		linVelX += Ogre::Math::Sin(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
-		linVelZ += Ogre::Math::Cos(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
+		linVelX += Ogre::Math::Sin(yaw + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
+		linVelZ += Ogre::Math::Cos(yaw + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
 	}
 	if (mGoingRight)
 	{
-		linVelX -= Ogre::Math::Sin(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
-		linVelZ -= Ogre::Math::Cos(mCamera->getDerivedOrientation().getYaw() + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
+		linVelX -= Ogre::Math::Sin(yaw + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
+		linVelZ -= Ogre::Math::Cos(yaw + Ogre::Radian(Ogre::Math::PI) + Ogre::Radian(Ogre::Math::PI / 2)) * 30;
 	}
 	if (mGoingUp)
 	{
@@ -1249,45 +1491,9 @@ void PGFrameListener::showDebugOverlay(bool show)
 	}
 }
 
-void PGFrameListener::movefish(Ogre::Real timeSinceLastFrame)
-{
-	/*if (nGoingForward) mSceneMgr->getSceneNode("fishNode")->translate(Ogre::Vector3(0, 0, -200) * timeSinceLastFrame, Ogre::Node::TS_LOCAL);
-	if (nGoingBack) mSceneMgr->getSceneNode("fishNode")->translate(Ogre::Vector3(0, 0, 200) * timeSinceLastFrame, Ogre::Node::TS_LOCAL);
-	if (nGoingUp) mSceneMgr->getSceneNode("fishNode")->translate(Ogre::Vector3(0, 200, 0) * timeSinceLastFrame, Ogre::Node::TS_LOCAL);
-	if (nGoingDown) mSceneMgr->getSceneNode("fishNode")->translate(Ogre::Vector3(0, -200, 0) * timeSinceLastFrame, Ogre::Node::TS_LOCAL);
-
-	if (nGoingRight)
-		if (nYaw)*/
-			//mSceneMgr->getSceneNode("palmNode")->roll(Ogre::Degree(-1.3 * 100) * timeSinceLastFrame);
-	/*	else
-			mSceneMgr->getSceneNode("fishNode")->translate(Ogre::Vector3(200, 0, 0) * timeSinceLastFrame, Ogre::Node::TS_LOCAL);
-
-	if (nGoingLeft)
-		if (nYaw)
-			mSceneMgr->getSceneNode("fishNode")->roll(Ogre::Degree(1.3 * 100) * timeSinceLastFrame);
-		else
-			mSceneMgr->getSceneNode("fishNode")->translate(Ogre::Vector3(-200, 0, 0) * timeSinceLastFrame, Ogre::Node::TS_LOCAL);*/
-}
-
 bool PGFrameListener::quit(const CEGUI::EventArgs &e)
 {
     mShutDown = true;
-	return true;
-}
-
-bool PGFrameListener::nextLocation(void)
-{
-	// Get the new location for the robot to walk to
-
-	if (mWalkList.empty())
-             return false;
-
-	mDestination = mWalkList.front();  // this gets the front of the deque
-    mWalkList.pop_front();             // this removes the front of the deque
- 
-    mDirection = mDestination - mNode->getPosition();
-    mDistance = mDirection.normalise();
-
 	return true;
 }
 
@@ -1308,13 +1514,14 @@ void PGFrameListener::spawnBox(void)
 	if(editMode) {
 		position = mSpawnLocation;
 		//Entity will have to change depending on what type of object is selected
-		Entity *entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
+		Entity *entity;
 		mNumEntitiesInstanced++;
 		switch(objSpawnType)
 		{
-			case 1: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh"); break;
+			case 1: entity = mSceneMgr->createEntity("Crate" + StringConverter::toString(mNumEntitiesInstanced), "Crate.mesh"); break;
 			case 2: entity = mSceneMgr->createEntity("Coconut" + StringConverter::toString(mNumEntitiesInstanced), "Coco.mesh"); break;
-			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "robot.mesh"); break;
+			case 3: entity = mSceneMgr->createEntity("Target" + StringConverter::toString(mNumEntitiesInstanced), "Target.mesh"); break;
+			case 4: entity = mSceneMgr->createEntity("DynBlock" + StringConverter::toString(mNumEntitiesInstanced), "Jenga.mesh"); break;
 			default: entity = mSceneMgr->createEntity("Box" + StringConverter::toString(mNumEntitiesInstanced), "cube.mesh");
 		}
  		
@@ -1323,10 +1530,10 @@ void PGFrameListener::spawnBox(void)
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
- 		entity->setMaterialName("Jenga");
+ 		//entity->setMaterialName("Jenga");
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
- 		node->attachObject(entity);
 		node->setScale(scale);
+ 		node->attachObject(entity);
  		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
@@ -1341,7 +1548,7 @@ void PGFrameListener::spawnBox(void)
  			mNumEntitiesInstanced++;				
 		defaultBody->setCastShadows(true);
  		mShapes.push_back(sceneBoxShape);
- 		//mBodies.push_back(defaultBody);
+
 		switch(objSpawnType)
 		{
 			case 1: defaultBody->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(defaultBody); break;
@@ -1354,8 +1561,8 @@ void PGFrameListener::spawnBox(void)
 	{
   		// create an ordinary, Ogre mesh with texture
  		Entity *entity = mSceneMgr->createEntity(
- 				"Box" + StringConverter::toString(mNumEntitiesInstanced),
- 				"coco.mesh");			    
+ 				"Coconut" + StringConverter::toString(mNumEntitiesInstanced),
+ 				"Coco.mesh");			    
  		entity->setCastShadows(true);
 	
  		// we need the bounding box of the box to be able to set the size of the Bullet-box
@@ -1363,20 +1570,28 @@ void PGFrameListener::spawnBox(void)
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
  		size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
  								// (Bullet 2.76 Physics SDK Manual page 18)
-		//size *= 30;
+		size *= 4;
+		
+		float biggestSize = 0;
+		if (size.x > biggestSize)
+			biggestSize = size.x;
+		if (size.y > biggestSize)
+			biggestSize = size.y;
+		if (size.z > biggestSize)
+			biggestSize = size.z;
  	
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-		entity->setMaterialName("Jenga");
+		node->setScale(4, 4, 4);
  		node->attachObject(entity);
  
  		// after that create the Bullet shape with the calculated size
- 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		OgreBulletCollisions::CollisionShape *sceneSphereShape = new OgreBulletCollisions::SphereCollisionShape(biggestSize);
  		// and the Bullet rigid body
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), 
  				mWorld);
  		defaultBody->setShape(	node,
- 					sceneBoxShape,
+ 					sceneSphereShape,
  					0.6f,			// dynamic body restitution
  					0.61f,			// dynamic body friction
  					5.0f, 			// dynamic bodymass
@@ -1389,7 +1604,7 @@ void PGFrameListener::spawnBox(void)
 		defaultBody->getBulletRigidBody()->setCollisionFlags(defaultBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
  		// push the created objects to the dequese
- 		mShapes.push_back(sceneBoxShape);
+ 		mShapes.push_back(sceneSphereShape);
  		mBodies.push_back(defaultBody);
 	}
 
@@ -1431,7 +1646,6 @@ void PGFrameListener::spawnBox(void)
 
 void PGFrameListener::createTargets(void)
 {
-
 	for (int i = 0; i < 6; i++)
 	{
 
@@ -1476,15 +1690,8 @@ void PGFrameListener::createTargets(void)
  		mShapes.push_back(ccs);
  		mBodies.push_back(targetBody[i]);
 
-		// Create the target scores
-		//billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
-		//billboardSet[i] = mSceneMgr->createBillboardSet("billboardSet" + i);
-		//billboards[i] = billboardSet[i]->createBillboard(Vector3(position.x, position.y + 100, position.z));
-		//billNodes[i]->attachObject(billboardSet[i]);
-
 		targetText[i] = new MovableText("targetText" + i, "100", "000_@KaiTi_33", 17.0f);
 		targetText[i]->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
-		//msg->setAdditionalHeight( 100.0f ); //msg->setAdditionalHeight( ei.getRadius() )
 		
 		billNodes[i] = static_cast<SceneNode*>(mSceneMgr->getRootSceneNode()->createChild());
 		billNodes[i]->attachObject(targetText[i]);
@@ -1495,14 +1702,14 @@ void PGFrameListener::createTargets(void)
 	}
 }
 
-
 void PGFrameListener::moveTargets(double evtTime)
 {
 	spinTime += evtTime;
 
 	for (int i = 0; i < 6; i++)
 	{
-		targetBody[i]->getBulletRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+		btRigidBody *targetRigidBody = targetBody[i]->getBulletRigidBody();
+		targetRigidBody->setActivationState(DISABLE_DEACTIVATION);
 		btTransform transform = targetBody[i] -> getCenterOfMassTransform();
 
 		switch (i)
@@ -1510,30 +1717,30 @@ void PGFrameListener::moveTargets(double evtTime)
 			case (0) : transform.setOrigin(btVector3(1550 + (50 * sin(spinTime)), 300 + (50 * cos(spinTime)), 850)); break;
 			case (1) : transform.setOrigin(btVector3(1640, 220 + (50 * cos(spinTime)), 2175)); break;
 			case (2) : transform.setOrigin(btVector3(1490, 140, 1500)); 
-				if (targetBody[i]->getBulletRigidBody()->getFriction() != 0.94f)
-					targetBody[i]->getBulletRigidBody()->setAngularVelocity(btVector3(0, 1, 0)); break;
+				if (targetRigidBody->getFriction() != 0.94f)
+					targetRigidBody->setAngularVelocity(btVector3(0, 1, 0)); break;
 			case (3) : transform.setOrigin(btVector3(590, 200, 1466 + (150 * sin(spinTime/1.5)))); break;
 			case (4) : transform.setOrigin(btVector3(2392, 200, 1530 + (150 * sin(spinTime/1.5)))); break;
 			case (5) : transform.setOrigin(btVector3(223, 200, 2758)); 
-				if (targetBody[i]->getBulletRigidBody()->getFriction() != 0.94f)
-					targetBody[i]->getBulletRigidBody()->setAngularVelocity(btVector3(0, 1, 0)); break;
+				if (targetRigidBody->getFriction() != 0.94f)
+					targetRigidBody->setAngularVelocity(btVector3(0, 1, 0)); break;
 		}
 		
-		targetBody[i] ->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		targetRigidBody->setCenterOfMassTransform(transform);
 		targetBody[i]->setLinearVelocity(0, 0, 0);
 
-		if (targetBody[i]->getBulletRigidBody()->getFriction() == 0.94f)
+		if (targetRigidBody->getFriction() == 0.94f)
 		{
 			billNodes[i]->setVisible(false);
+			AnimationState *animation = targetEnt[i]->getAnimationState("my_animation");
 
-			if (targetEnt[i]->getAnimationState("my_animation")->getTimePosition() + evtTime/2 < 0.54)
+			if (animation->getTimePosition() + evtTime/2 < 0.54)
 			{
-				targetEnt[i]->getAnimationState("my_animation")->addTime(evtTime/2);
-				targetEnt[i]->getAnimationState("my_animation")->setLoop(false);
-				targetEnt[i]->getAnimationState("my_animation")->setEnabled(true);
+				animation->addTime(evtTime/2);
+				animation->setLoop(false);
+				animation->setEnabled(true);
 
 				targetTextAnim[i] += evtTime;
-				//cout << targetBody[i]->getBulletRigidBody()->getRestitution() << endl;
 
 				billNodes[i]->setVisible(true);
 
@@ -1542,7 +1749,7 @@ void PGFrameListener::moveTargets(double evtTime)
 					targetTextPos[i] = targetBody[i]->getCenterOfMassPosition();
 					targetTextBool[i] = true;
 					
-					targetScore = (int) (targetBody[i]->getBulletRigidBody()->getRestitution() * 1000);
+					targetScore = (int) (targetRigidBody->getRestitution() * 1000);
 					std::stringstream ss;//create a stringstream
 					ss << targetScore;//add number to the stream
 					string targetString = ss.str();;
@@ -1570,8 +1777,8 @@ void PGFrameListener::spawnFish(void)
 {
 	Vector3 size = Vector3::ZERO;	// size of the fish
 	//Create 20 fish
-	for(int i=0; i<20; i++) { 
-		Vector3 position = Vector3(1200+i*rand()%20, 72, 1240+i*rand()%20);
+	for(int i=0; i<NUM_FISH; i++) { 
+		Vector3 position = Vector3(1490+i*rand()%NUM_FISH, 70, 1500+i*rand()%NUM_FISH);
 
 		// create an ordinary, Ogre mesh with texture
  		Entity *entity = mSceneMgr->createEntity("Fish" + StringConverter::toString(i), "angelFish.mesh");			    
@@ -1582,67 +1789,248 @@ void PGFrameListener::spawnFish(void)
  		size = boundingB.getSize(); 
 		size /= 2.0f; // only the half needed
  		size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
+		size *= 2.2;
+
+		float biggestSize = 0;
+		if (size.x > biggestSize)
+			biggestSize = size.x;
+		if (size.y > biggestSize)
+			biggestSize = size.y;
+		if (size.z > biggestSize)
+			biggestSize = size.z;
 
 		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
- 		node->attachObject(entity);
+		SceneNode *node2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("Fish" + StringConverter::toString(i));
+		node2->setScale(2.6, 2.6, 2.6);
+
+		if (i % 3 == 0)
+			entity->setMaterialName("FishMaterialBlue");
+
+		node2->attachObject(entity);
 
 		// after that create the Bullet shape with the calculated size
- 		OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 		OgreBulletCollisions::SphereCollisionShape *sceneBoxShape = new OgreBulletCollisions::SphereCollisionShape(biggestSize);
  		// and the Bullet rigid body
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
  		defaultBody->setShape(	node,
  					sceneBoxShape,
  					0.6f,			// dynamic body restitution
- 					0.6f,			// dynamic body friction
+ 					0.0f,			// dynamic body friction
  					5.0f, 			// dynamic bodymass
  					position,		// starting position of the box
  					Quaternion(0,0,0,1));// orientation of the box
  			mNumEntitiesInstanced++;				
-			defaultBody->getBulletRigidBody()->setAngularFactor(btVector3(1,0,1));
-			defaultBody->getBulletRigidBody()->setLinearFactor(btVector3(1,0,1));
- 		//defaultBody->setLinearVelocity(mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
- 		// push the created objects to the dequese
+
+		// Counteract the gravity
+		defaultBody->getBulletRigidBody()->setGravity(btVector3(0, 0, 0));
  		mShapes.push_back(sceneBoxShape);
  		mBodies.push_back(defaultBody);
-		mFish.push_back(defaultBody);
+		defaultBody->setLinearVelocity(0.5, -0.2, 0.5);
+		mFish[i] = defaultBody;
+		mFishNodes[i] = node2;
+		mFishEnts[i] = entity;
+		mFishAnim[i] = mFishEnts[i]->getAnimationState("Act: ArmatureAction.001");
+		mFishAnim[i]->setLoop(true);
+		mFishAnim[i]->setEnabled(true);
 	}
 }
 
-void PGFrameListener::moveFish(void) {
-	for(int i=0; i<mFish.size(); i++) {
-		Vector3 centreOfMass = Vector3(0, 0, 0);
-		Vector3 averageVelocity = Vector3(0, 0, 0);
-		Vector3 avoidCollision = Vector3(0, 0, 0);
+void PGFrameListener::moveFish(double timeSinceLastFrame) 
+{
+	float currentTime = GetTickCount();
+	srand ( time(0) );
+	int randomGenerator = rand() % 100 + 1;
+	bool randomMove = false;
+	Vector3 randomPosition(0, 50, 0);
+	if (randomGenerator < 50)
+	{
+		randomMove = true;
+		randomPosition.x = rand() % 3000 + 1;
+		randomPosition.z = rand() % 3000 + 1;
+		randomPosition.normalise();
+		randomPosition -= 0.5;
+	}
 
-		for(int j=0; j<mFish.size(); j++) {
-			if(i != j) {
-				Vector3 diffInPosition = mFish.at(j)->getSceneNode()->getPosition()-mFish.at(i)->getSceneNode()->getPosition();
-				centreOfMass += mFish.at(j)->getSceneNode()->getPosition();
-				averageVelocity += mFish.at(j)->getLinearVelocity();
+	for(int i=0; i<NUM_FISH; i++) 
+	{
+		if (mFishNodes[i]->getPosition().y > 120 && !mFishDead[i])
+		{
+			mFishDead[i] = true;
+			mFishAlive -= 1;
+			
+			// Create new box shape for flat fish
+			Vector3 size = Vector3::ZERO;	// size of the fish
+			AxisAlignedBox boundingB = mSceneMgr->getEntity("Fish" + StringConverter::toString(i))->getBoundingBox();
+ 			size = boundingB.getSize(); 
+			size /= 2.0f; // only the half needed
+ 			size *= 0.95f;	// Bullet margin is a bit bigger so we need a smaller size
+			size *= 2.6;// after that create the Bullet shape with the calculated size
+ 			OgreBulletCollisions::BoxCollisionShape *sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
+ 			Entity *entity = mSceneMgr->createEntity("FishDead" + StringConverter::toString(i), "angelFish.mesh");	
+			SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+			node->attachObject(entity);
+			node->setScale(2.6, 2.6, 2.6);
+			mFishNodes[i]->setVisible(false);
+			Quaternion temp = mFishNodes[i]->getOrientation();
+			Vector3	   tempPos = mFishNodes[i]->getPosition();
+			mFishNodes[i] = node;
+			OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
+ 				"defaultBoxRigidDead" + StringConverter::toString(i), mWorld);
 
-				if(diffInPosition.length() <= 10){
-					//std::cout << i << " and " << j << " colliding" << std::endl;
-					avoidCollision -= diffInPosition*3;
+			if(mPickedBody != NULL) 
+			{
+				mWorld->removeConstraint(mPickConstraint);
+				delete mPickConstraint;
+
+				mPickConstraint = NULL;
+				mPickedBody->forceActivationState();
+				mPickedBody->setDeactivationTime( 0.f );
+				mPickedBody = NULL;
+			}
+
+			// Remove unwanted sphere shape
+			mFish[i]->getBulletRigidBody()->setActivationState(DISABLE_DEACTIVATION);
+			btTransform transform = mFish[i]->getCenterOfMassTransform();
+			transform.setOrigin(btVector3(-10, 10, -10));
+			mFish[i] ->getBulletRigidBody()->setCenterOfMassTransform(transform);
+			mFish[i]->setLinearVelocity(0, 0, 0);
+			btVector3 angVelocity = mFish[i]->getBulletRigidBody()->getAngularVelocity();
+
+			// Assign new shape
+			defaultBody->setShape(	mFishNodes[i],
+ 					sceneBoxShape,
+ 					0.6f,			// dynamic body restitution
+ 					0.61f,			// dynamic body friction
+ 					5.0f, 			// dynamic bodymass
+					tempPos,		// starting position of the box
+					temp);			// orientation of the box
+			mFish[i] = defaultBody;
+
+			mWorld->stepSimulation(0.0000000001);	// update Bullet Physics animation	
+
+			// Create new constraint on dead fish
+			mPickedBody = mFish[i];
+			mFish[i]->disableDeactivation();		
+			const Ogre::Vector3 localPivot (mFish[i]->getCenterOfMassPivot(mFish[i]->getCenterOfMassPosition()));
+			OgreBulletDynamics::PointToPointConstraint *p2pConstraint  = new OgreBulletDynamics::PointToPointConstraint(mFish[i], localPivot);
+			mWorld->addConstraint(p2pConstraint);					    
+			mOldPickingPos = mFish[i]->getCenterOfMassPosition();
+			const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
+			mOldPickingDist  = (mFish[i]->getCenterOfMassPosition() - eyePos).length();
+
+			//very weak constraint for picking
+			p2pConstraint->setTau (0.1f);
+			mPickConstraint = p2pConstraint;
+
+			if (i % 3 == 0)
+				mSceneMgr->getEntity("FishDead" + StringConverter::toString(i))->setMaterialName("FishMaterialBlueDead");
+			else
+				mSceneMgr->getEntity("FishDead" + StringConverter::toString(i))->setMaterialName("FishMaterialDead");
+
+			mFish[i]->getBulletRigidBody()->setAngularVelocity(angVelocity);
+		}
+		else if (!mFishDead[i])
+		{
+			Vector3 centreOfMass = Vector3(0, 0, 0);
+			Vector3 averageVelocity = Vector3(0, 0, 0);
+			Vector3 avoidCollision = Vector3(0, 0, 0);
+			Vector3 avoidPlayer = Vector3(0, 0, 0);
+			Vector3 avoidSurface = Vector3(0, 0, 0);
+			Vector3 avoidBorders = Vector3(0, 0, 0);
+			Vector3 randomVelocity = Vector3(0, 0, 0);
+			Vector3 mFishPosition = mFish[i]->getSceneNode()->getPosition();
+
+			for(int j=0; j<NUM_FISH; j++) 
+			{
+				if(i != j && !mFishDead[j]) 
+				{
+					Vector3 jPosition = mFish[j]->getSceneNode()->getPosition();
+					Vector3 diffInPosition = jPosition-mFishPosition;
+					centreOfMass += jPosition;
+				
+					averageVelocity += mFish[j]->getLinearVelocity();
+
+					if (diffInPosition.length() <= 20 && currentTime - mFishLastMove[i]  >400) // 18 for 30
+					{
+						avoidCollision -= (diffInPosition)/1.5;
+						mFishLastMove[i] = currentTime;
+					}
 				}
 			}
-		}
-		
-		centreOfMass /= mFish.size();
-		centreOfMass.normalise();
-		averageVelocity /= mFish.size(); //.normalise();
-		averageVelocity.normalise();
-		avoidCollision.normalise();
-		
-		mFish.at(i)->setLinearVelocity((centreOfMass+averageVelocity+avoidCollision));
 
-		if(i == 2){
-			//std::cout << "CoM" << centreOfMass.x << " " << centreOfMass.y << " " << centreOfMass.z << std::endl;
-			//std::cout << "AvV" << averageVelocity.x << " " << averageVelocity.y << " " << averageVelocity.z << std::endl;
-			//std::cout << "ACo" << avoidCollision.x << " " << avoidCollision.y << " " << avoidCollision.z << std::endl;
-			//std::cout << "NeV" << mFish.at(i)->getLinearVelocity().x << " " << mFish.at(i)->getLinearVelocity().y << " " << mFish.at(i)->getLinearVelocity().z << std::endl;
-		}
+			centreOfMass = ((centreOfMass / (mFishAlive - 1)) - mFishPosition) / 50;
+			if ((centreOfMass * 50).length() > 150)
+				mFishLastMove[i] = currentTime;
 
+			averageVelocity = ((averageVelocity / (mFishAlive - 1)) - mFish[i]->getLinearVelocity()) / 10;
+			Vector3 worldPosition = mFish[i]->getWorldPosition();
+
+			if (worldPosition.y > 90)
+			{
+				avoidSurface = Vector3(0, -(worldPosition.y - 82)*20, 0);
+				avoidCollision /= 10;
+			}
+			else if (worldPosition.y > 82)
+			{
+				avoidSurface = Vector3(0, -(worldPosition.y - 82)*10, 0);
+				avoidCollision /= 4;
+			}
+			if (worldPosition.x > 3000)
+			{
+				avoidBorders += Vector3(-(worldPosition.x - 3000)*2, 0, 0);
+				avoidCollision /= 4;
+			}
+			if (worldPosition.x < 0)
+			{
+				avoidBorders += Vector3(-(worldPosition.x)*2, 0, 0);
+				avoidCollision /= 4;
+			}
+			if (worldPosition.z > 3000)
+			{
+				avoidBorders += Vector3(0, 0, -(worldPosition.z - 3000)*2);
+				avoidCollision /= 4;
+			}
+			if (worldPosition.z < 0)
+			{
+				avoidBorders += Vector3(0, 0, -(worldPosition.z)*2);
+				avoidCollision /= 4;
+			}
+			if (randomMove == true)
+			{
+				int factor = (i % 4) + 1;
+				randomVelocity -= Vector3(randomPosition.x*factor,
+										  0,
+										  randomPosition.z*factor);
+				avoidCollision /= 4;
+			}
+
+			Vector3 disFromPlayer = mFishPosition-playerBody->getWorldPosition();
+			if(disFromPlayer.length() <= 180)
+				avoidPlayer += (disFromPlayer)/25;
+
+			Vector3 finalVelocity = mFish[i]->getLinearVelocity() + (randomVelocity+centreOfMass+averageVelocity+avoidCollision+avoidSurface+avoidPlayer+avoidBorders);
+			finalVelocity.normalise();
+
+			if (disFromPlayer.length() <= 165 && !(mFish[i]->getWorldPosition().y > 80))
+				finalVelocity *= 50;
+			else if (currentTime - mFishLastMove[i]  < 400)
+				finalVelocity *= 40;
+			else if (currentTime - mFishLastMove[i]  < 600)
+				finalVelocity *= 40 - ((currentTime - mFishLastMove[i] - 400) / 20);
+			else
+				finalVelocity *= 30;
+
+			mFish[i]->setLinearVelocity(finalVelocity);
+			mFishNodes[i]->setPosition(worldPosition);
+			Vector3 localY = mFishNodes[i]->getOrientation() * Vector3::UNIT_Y;
+			Quaternion quat = localY.getRotationTo(Vector3::UNIT_Y);                        
+			mFishNodes[i]->rotate(quat, Node::TS_WORLD);
+			mFishNodes[i]->lookAt(mFishNodes[i]->getPosition() + (finalVelocity * 20), Ogre::Node::TS_WORLD);
+			mFishNodes[i]->pitch(Degree(270));
+			mFishLastDirection[i] = finalVelocity + ((finalVelocity - mFishLastDirection[i]) / 2);
+			mFishAnim[i]->addTime(timeSinceLastFrame*5);
+		}
 	}
 }
 
@@ -1719,49 +2107,6 @@ void PGFrameListener::createBulletTerrain(void)
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
 
-void PGFrameListener::createRobot(void)
-{
-	// Create the robot
-    mEntity = mSceneMgr->createEntity("Robot", "robot.mesh");
-    mNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("RobotNode", Ogre::Vector3(0.0f, 300.0f, 25.0f));
-    mNode->attachObject(mEntity);
-
-	// Create the walking list for the robot to walk
-    mWalkList.push_back(Ogre::Vector3(550.0f,  250.0f,  50.0f ));
-    mWalkList.push_back(Ogre::Vector3(-100.0f,  600.0f, -200.0f));
-
-	// Create the knots for the robot to walk between
-    Ogre::Entity *ent;
-    Ogre::SceneNode *knode;
- 
-    ent = mSceneMgr->createEntity("Knot1", "knot.mesh");
-    knode = mSceneMgr->getRootSceneNode()->createChildSceneNode("Knot1Node",
-        Ogre::Vector3(0.0f, 290.0f,  25.0f));
-    knode->attachObject(ent);
-    knode->setScale(0.1f, 0.1f, 0.1f);
- 
-    ent = mSceneMgr->createEntity("Knot2", "knot.mesh");
-    knode = mSceneMgr->getRootSceneNode()->createChildSceneNode("Knot2Node",
-        Ogre::Vector3(550.0f, 240.0f,  50.0f));
-    knode->attachObject(ent);
-    knode->setScale(0.1f, 0.1f, 0.1f);
- 
-    ent = mSceneMgr->createEntity("Knot3", "knot.mesh");
-    knode = mSceneMgr->getRootSceneNode()->createChildSceneNode("Knot3Node",
-        Ogre::Vector3(-100.0f, 590.0f,-200.0f));
-    knode->attachObject(ent);
-    knode->setScale(0.1f, 0.1f, 0.1f);
-
-	// Set idle animation for the robot
-	mAnimationState = mSceneMgr->getEntity("Robot")->getAnimationState("Idle");
-    mAnimationState->setLoop(true);
-    mAnimationState->setEnabled(true);
-
-	// Set default values for variables
-    mWalkSpeed = 35.0f;
-    mDirection = Ogre::Vector3::ZERO;
-}
-
 void PGFrameListener::createCaelumSystem(void)
 {
 	// Initialize the caelum day/night weather system
@@ -1769,27 +2114,352 @@ void PGFrameListener::createCaelumSystem(void)
     Caelum::CaelumSystem::CaelumComponent componentMask;
 	componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
 		Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
-		Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
+		//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
 		Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
 		Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
 		Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
 		Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
 		0);
-	componentMask = Caelum::CaelumSystem::CAELUM_COMPONENTS_DEFAULT;
+	//componentMask = Caelum::CaelumSystem::CAELUM_COMPONENTS_DEFAULT;
     mCaelumSystem = new Caelum::CaelumSystem(Root::getSingletonPtr(), mSceneMgr, componentMask);
 	((Caelum::SpriteSun*) mCaelumSystem->getSun())->setSunTextureAngularSize(Ogre::Degree(6.0f));
 
     // Set time acceleration.
 	mCaelumSystem->setSceneFogDensityMultiplier(0.0008f); // or some other smal6l value.
 	mCaelumSystem->setManageSceneFog(false);
-	mCaelumSystem->getUniversalClock()->setTimeScale (64); // This sets the timescale for the day/night system
-	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(1750);
+	mCaelumSystem->getUniversalClock()->setTimeScale (0); // This sets the timescale for the day/night system
+	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(2000);
+	mCaelumSystem->getSun()->getMainLight()->setVisible(false);
 
     // Register caelum as a listener.
     mWindow->addListener(mCaelumSystem);
 	Root::getSingletonPtr()->addFrameListener(mCaelumSystem);
 
+	//mCaelumSystem->get->setFarRadius(Ogre::Real(80000.0));
+
     UpdateSpeedFactor(mCaelumSystem->getUniversalClock ()->getTimeScale ());
+
+	//Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(0);
+    //Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
+    //vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
+    //vp->setClearEveryFrame(true);
+	//vp->setAutoUpdated(false);
+	//mShadowTarget = tex->getBuffer()->getRenderTarget();
+	//mShadowTarget->addViewport(mCamera)->setOverlaysEnabled(false);
+	//mShadowTarget->getViewport(0)->setClearEveryFrame(true);
+	//mShadowTarget->getViewport(0)->setBackgroundColour(Ogre::ColourValue::Blue);
+	//mShadowTarget->setAutoUpdated(true);
+	//mShadowTarget->addListener(this);
+	
+    renderedLight.push_back(mCaelumSystem->getSun()->getMainLight());
+	
+	mSceneMgr->addListener(&shadowCameraUpdater);
+}
+
+void PGFrameListener::gunController()
+{
+	// Position the Gun
+	playerBody->getBulletRigidBody()->setAngularFactor(0.0);
+	pivotNode->setPosition(mCamera->getDerivedPosition() + ((gunPosBuffer6 - mCamera->getDerivedPosition())) / 10);
+	playerBody->getBulletRigidBody()->setAngularFactor(0.0);
+	pivotNode->setOrientation(mCamera->getDerivedOrientation());
+	Real camFalsePitch = mCamera->getDerivedOrientation().getPitch(false).valueRadians();
+	Real gunFalsePitch = gunOrBuffer4.getPitch(false).valueRadians();
+	Real camYaw = mCamera->getDerivedOrientation().getYaw().valueRadians();
+	Real gunYaw = gunOrBuffer4.getYaw().valueRadians();
+
+	if (abs((camFalsePitch + Math::PI) -
+		(gunFalsePitch + Math::PI)) > 5)
+	{
+		if ((camFalsePitch) > 0 &&
+			(gunFalsePitch) <= 0)
+		{
+			pivotNode->pitch(Radian(-((camFalsePitch  + Math::PI)
+				- (gunFalsePitch + (3 * Math::PI))) / 3));
+		}
+		else
+		{
+			pivotNode->pitch(Radian(-((camFalsePitch + (3 * Math::PI))
+				- (gunFalsePitch  + Math::PI)) / 3));
+		}
+	}
+	else if (abs((camFalsePitch + Math::PI) -
+		(gunFalsePitch + Math::PI)) > 1.5)
+	{
+		if ((camFalsePitch) > 0 &&
+		(gunFalsePitch) > Math::PI/2)
+		{
+				pivotNode->pitch(Radian(-((camFalsePitch)
+					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
+		}
+		else if ((camFalsePitch) < 0 &&
+			(gunFalsePitch) < -Math::PI/2)
+		{
+				pivotNode->pitch(Radian(-((camFalsePitch)
+					- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) / 3));
+		}
+		else if ((camFalsePitch) > Math::PI/2 &&
+		(gunFalsePitch) > 0)
+		{
+				pivotNode->pitch(Radian(-((camFalsePitch)
+					- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) / 3));
+		}
+		else if ((camFalsePitch) < -Math::PI/2 &&
+			(gunFalsePitch) < 0)
+		{
+				pivotNode->pitch(Radian(-((camFalsePitch)
+					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
+		}
+		else if ((camFalsePitch) < 0 &&
+			(gunFalsePitch) < 0)
+		{
+				pivotNode->pitch(Radian(-((camFalsePitch - Math::PI)
+					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
+		}
+		else if ((camFalsePitch) > 0 &&
+			(gunFalsePitch) <= 0)
+		{
+			pivotNode->pitch(Radian(-((camFalsePitch - Math::PI)
+				- (gunFalsePitch)) / 3));
+		}
+		else
+		{
+			pivotNode->pitch(Radian(-((camFalsePitch)
+				- (gunFalsePitch - Math::PI)) / 3));
+		}
+	}
+	else
+	{
+		pivotNode->pitch(Radian(-((camFalsePitch + Math::PI/2)
+				- (gunFalsePitch + Math::PI/2)) / 3));
+	}
+	
+	// Orientate the Gun
+	if (abs((camYaw + Math::PI) -
+		(gunOrBuffer4.getYaw().valueRadians() + Math::PI)) > 1.5)
+	{
+		if ((camYaw) > 0 &&
+			(gunYaw) <= 0)
+		{
+			pivotNode->yaw(Radian(-((camYaw  + Math::PI)
+				- (gunYaw + (3 * Math::PI))) / 3));
+		}
+		else
+		{
+			pivotNode->yaw(Radian(-((camYaw + (3 * Math::PI))
+				- (gunYaw  + Math::PI)) / 3));
+		}
+	}
+	else
+	{
+		pivotNode->yaw(Radian(-((camYaw + Math::PI/2)
+				- (gunYaw + Math::PI/2)) / 3));
+	}
+
+	gunOrBuffer4 = gunOrBuffer3;
+	gunOrBuffer3 = gunOrBuffer2;
+	gunOrBuffer2 = gunOrBuffer;
+	gunOrBuffer = mCamera->getDerivedOrientation();
+}
+
+void PGFrameListener::checkLevelEndCondition() //Here we check if levels are complete and whatnot
+{
+	if ((currentLevel ==1) && (levelComplete ==false))
+	{
+		//level one ends either when the fishies get hit or when you kill all the targets
+		bool winning = true;
+ 		std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
+ 		while (levelTargets.end() != itLevelTargets)
+ 		{   
+			OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
+			std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
+			if (currentBody->getBulletRigidBody()->getFriction()==0.93f)
+			{
+				winning = false;
+				break;
+			}
+			++itLevelTargets;
+ 		}
+		if (winning)
+		{
+			std::cout << "You're Winner!" << std::endl;
+			levelComplete = true;
+		}
+	}
+}
+
+void PGFrameListener::loadMainMenu() {
+	CEGUI::Window *mainMenu;
+	if(!mMainMenuCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		//Create root window
+		mainMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_mainMenuRoot" );
+		CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
+		
+		//Create new, inner window, set position, size and attach to root.
+		mainMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","MainMenu" );
+		mainMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0),CEGUI::UDim(0.25, 0)));
+		mainMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenu); //Attach to current (inGameMenuRoot) GUI sheet
+		
+		//Menu Buttons
+		CEGUI::System::getSingleton().setGUISheet(mainMenu); //Change GUI sheet to the 'visible' Taharez window
+		CEGUI::Window *newGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainNewGameBtn");  // Create Window
+		newGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.2,0)));
+		newGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		newGameBtn->setText("New Game");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(newGameBtn);  //Buttons are now added to the window so they will move with it.
+
+		CEGUI::Window *loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainLoadLevelBtn");  // Create Window
+		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.35,0)));
+		loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
+		loadLevelBtn->setText("Load Level");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
+
+		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainExitGameBtn");  // Create Window
+		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.5,0)));
+		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		exitGameBtn->setText("Exit Game");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
+
+		//Register events
+		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::startGame, this));
+		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadPressed, this));
+		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameExitPressed, this));
+		mMainMenuCreated=true;
+	}
+	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
+	CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
+	
+}
+
+void PGFrameListener::loadPauseGameMenu() {
+	CEGUI::Window *inGameMenu;
+	if(!mInGameMenuCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		
+		//Create root window
+		inGameMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_inGameMenuRoot" );
+		CEGUI::System::getSingleton().setGUISheet(inGameMenuRoot);
+		
+		//Create new, inner window, set position, size and attach to root.
+		inGameMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","InGameMenu" );
+		inGameMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0),CEGUI::UDim(0.25, 0)));
+		inGameMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(inGameMenu); //Attach to current (inGameMenuRoot) GUI sheet
+		
+		//Menu Buttons
+		CEGUI::System::getSingleton().setGUISheet(inGameMenu); //Change GUI sheet to the 'visible' Taharez window
+		CEGUI::Window *loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameLoadLevelBtn");  // Create Window
+		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.2,0)));
+		loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		loadLevelBtn->setText("Load Level");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);  //Buttons are now added to the window so they will move with it.
+
+		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameExitGameBtn");  // Create Window
+		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.35,0)));
+		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		exitGameBtn->setText("Exit Game");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
+
+		CEGUI::Window *resumeGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameResumeGameBtn");  // Create Window
+		resumeGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.55,0),CEGUI::UDim(0.80,0)));
+		resumeGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
+		resumeGameBtn->setText("Resume");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn);
+
+		//Register events
+		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameLoadPressed, this));
+		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameExitPressed, this));
+		resumeGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
+		mInGameMenuCreated=true;
+	}
+	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
+	CEGUI::System::getSingleton().setGUISheet(inGameMenuRoot);
+	
+}
+
+void PGFrameListener::loadLevelSelectorMenu() {
+	CEGUI::Window *levelMenu;
+	if(!mLevelMenuCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		//Create root window
+		levelMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_LevelRoot" );
+		CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
+		
+		//Create new, inner window, set position, size and attach to root.
+		levelMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","levelMenu" );
+		levelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0),CEGUI::UDim(0.25, 0)));
+		levelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(levelMenu); //Attach to current (inGameMenuRoot) GUI sheet
+		
+		//Menu Buttons
+		CEGUI::System::getSingleton().setGUISheet(levelMenu); //Change GUI sheet to the 'visible' Taharez window
+		CEGUI::Window *loadLevel1Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel1Btn");  // Create Window
+		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.2,0)));
+		loadLevel1Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		loadLevel1Btn->setText("Level 1");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel1Btn);  //Buttons are now added to the window so they will move with it.
+
+		CEGUI::Window *loadLevel2Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel2Btn");  // Create Window
+		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.35,0)));
+		loadLevel2Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		loadLevel2Btn->setText("Level 2");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
+
+		CEGUI::Window *resumeGameBtn2 = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
+		resumeGameBtn2->setPosition(CEGUI::UVector2(CEGUI::UDim(0.55,0),CEGUI::UDim(0.80,0)));
+		resumeGameBtn2->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
+		resumeGameBtn2->setText("Resume");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn2);
+
+		//Register events
+		//loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 1));
+		//exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel(), 2));
+		resumeGameBtn2->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
+		mLevelMenuCreated=true;
+	}
+	CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
+}
+
+bool PGFrameListener::startGame(const CEGUI::EventArgs& e) {
+	mMainMenu=false;
+	freeRoam = true;
+	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
+	mainMenuRoot->setVisible(false);
+	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+	
+	return 1;
+}
+
+bool PGFrameListener::inGameLoadPressed(const CEGUI::EventArgs& e) {
+	std::cout << "load" << std::endl;
+	mInLevelMenu = true;
+	loadLevelSelectorMenu();
+	return 1;
+}
+bool PGFrameListener::inGameExitPressed(const CEGUI::EventArgs& e) {
+	std::cout << "exit" << std::endl;
+	//mInGameMenu = false;
+	//windowClosed(mWindow);
+	//mShutDown = true;
+	return 1;
+}
+bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
+	mInGameMenu = false;
+	mInLevelMenu = false;
+	freeRoam = true;
+	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
+	inGameMenuRoot->setVisible(false);
+
+	if(mLevelMenuCreated) {
+		levelMenuRoot->setVisible(false);
+	}
+	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+	return 1;
 }
 
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
@@ -1884,273 +2554,178 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 
 }
 
-void PGFrameListener::doLevelSpecificStuff() //Here we check if levels are complete and whatnot
+void PGFrameListener::createTerrain()
 {
-	if ((currentLevel ==1) && (levelComplete ==false))
-	{
-		//level one ends either when the fishies get hit or when you kill all the targets
-		bool winning = true;
- 		std::deque<OgreBulletDynamics::RigidBody *>::iterator itLevelTargets = levelTargets.begin();
- 		while (levelTargets.end() != itLevelTargets)
- 		{   
-			OgreBulletDynamics::RigidBody *currentBody = *itLevelTargets;
-			std::cout << "Target, " << currentBody->getWorldPosition() << "\n" << std::endl;
-			if (currentBody->getBulletRigidBody()->getFriction()==0.93f)
-			{
-				winning = false;
-				break;
-			}
-			++itLevelTargets;
- 		}
-		if (winning)
-		{
-			std::cout << "You're Winner!" << std::endl;
-			levelComplete = true;
-		}
-	}
-}
+	Ogre::Vector3 lightdir(0.55, -0.3, 0.75);
+    lightdir.normalise();
+ 
+    Ogre::Light* light = mSceneMgr->createLight("tstLight");
+    light->setType(Ogre::Light::LT_DIRECTIONAL);
+    light->setDirection(lightdir);
+    light->setDiffuseColour(Ogre::ColourValue::White);
+    light->setSpecularColour(Ogre::ColourValue(0.4, 0.4, 0.4));
 
-void PGFrameListener::gunController()
-{
-	// Position the Gun
-	playerBody->getBulletRigidBody()->setAngularFactor(0.0);
-	pivotNode->setPosition(mCamera->getDerivedPosition() + ((gunPosBuffer6 - mCamera->getDerivedPosition())) / 10);
-	playerBody->getBulletRigidBody()->setAngularFactor(0.0);
-	pivotNode->setOrientation(mCamera->getDerivedOrientation());
-
-	//cout << "gpitch " << gunOrBuffer4.getPitch(false).valueRadians() << " cpitch " << 
-		//mCamera->getDerivedOrientation().getPitch(false).valueRadians() << endl;
-	/*cout << "gyaw " << gunOrBuffer4.getYaw(false).valueRadians() << " cyaw " << 
-		mCamera->getDerivedOrientation().getYaw(false).valueRadians() << endl;*/
-	
-	if (abs((mCamera->getDerivedOrientation().getPitch(false).valueRadians() + Math::PI) -
-		(gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) > 5)
-	{
-		if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > 0 &&
-			(gunOrBuffer4.getPitch(false).valueRadians()) <= 0)
-		{
-			//cout << "1" << endl;
-			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians()  + Math::PI)
-				- (gunOrBuffer4.getPitch(false).valueRadians() + (3 * Math::PI))) / 3));
-		}
-		else
-		{
-			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() + (3 * Math::PI))
-				- (gunOrBuffer4.getPitch(false).valueRadians()  + Math::PI)) / 3));
-			//cout << "2" << endl;
-		}
-	}
-	else if (abs((mCamera->getDerivedOrientation().getPitch(false).valueRadians() + Math::PI) -
-		(gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) > 1.5)
-	{
-		if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > 0 &&
-		(gunOrBuffer4.getPitch(false).valueRadians()) > Math::PI/2)
-		{
-			//cout << "3" << endl;
-				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
-					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) < 0 &&
-			(gunOrBuffer4.getPitch(false).valueRadians()) < -Math::PI/2)
-		{
-			//cout << "4" << endl;
-				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
-					- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > Math::PI/2 &&
-		(gunOrBuffer4.getPitch(false).valueRadians()) > 0)
-		{
-			//cout << "5" << endl;
-				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
-					- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) < -Math::PI/2 &&
-			(gunOrBuffer4.getPitch(false).valueRadians()) < 0)
-		{
-			//cout << "6" << endl;
-				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
-					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) < 0 &&
-			(gunOrBuffer4.getPitch(false).valueRadians()) < 0)
-		{
-			//cout << "7" << endl;
-				pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() - Math::PI)
-					- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getPitch(false).valueRadians()) > 0 &&
-			(gunOrBuffer4.getPitch(false).valueRadians()) <= 0)
-		{
-			//cout << "8" << endl;
-			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() - Math::PI)
-				- (gunOrBuffer4.getPitch(false).valueRadians())) / 3));
-		}
-		else
-		{
-			//cout << "9" << endl;
-			pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians())
-				- (gunOrBuffer4.getPitch(false).valueRadians() - Math::PI)) / 3));
-		}
-	}
-	else
-	{
-			//cout << "10" << endl;
-		pivotNode->pitch(Radian(-((mCamera->getDerivedOrientation().getPitch(false).valueRadians() + Math::PI/2)
-				- (gunOrBuffer4.getPitch(false).valueRadians() + Math::PI/2)) / 3));
-	}
-	
-	// Orientate the Gun
-	if (abs((mCamera->getDerivedOrientation().getYaw().valueRadians() + Math::PI) -
-		(gunOrBuffer4.getYaw().valueRadians() + Math::PI)) > 1.5)
-	{
-		if ((mCamera->getDerivedOrientation().getYaw().valueRadians()) > 0 &&
-			(gunOrBuffer4.getYaw().valueRadians()) <= 0)
-		{
-			pivotNode->yaw(Radian(-((mCamera->getDerivedOrientation().getYaw().valueRadians()  + Math::PI)
-				- (gunOrBuffer4.getYaw().valueRadians() + (3 * Math::PI))) / 3));
-		}
-		else
-		{
-			pivotNode->yaw(Radian(-((mCamera->getDerivedOrientation().getYaw().valueRadians() + (3 * Math::PI))
-				- (gunOrBuffer4.getYaw().valueRadians()  + Math::PI)) / 3));
-		}
-	}
-	else
-	{
-		pivotNode->yaw(Radian(-((mCamera->getDerivedOrientation().getYaw().valueRadians() + Math::PI/2)
-				- (gunOrBuffer4.getYaw().valueRadians() + Math::PI/2)) / 3));
-	}
-	
-	/*if (abs((mCamera->getDerivedOrientation().getRoll(false).valueRadians() + Math::PI) -
-		(gunOrBuffer4.getRoll(false).valueRadians() + Math::PI)) > 5)
-	{
-		if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) > 0 &&
-			(gunOrBuffer4.getRoll(false).valueRadians()) <= 0)
-		{
-			pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians()  + Math::PI)
-				- (gunOrBuffer4.getRoll(false).valueRadians() + (3 * Math::PI))) / 3));
-		}
-		else
-		{
-			pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians() + (3 * Math::PI))
-				- (gunOrBuffer4.getRoll(false).valueRadians()  + Math::PI)) / 3));
-		}
-	}
-	else if (abs((mCamera->getDerivedOrientation().getRoll(false).valueRadians() + Math::PI) -
-		(gunOrBuffer4.getRoll(false).valueRadians() + Math::PI)) > 1.5)
-	{
-		if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) > 0 &&
-		(gunOrBuffer4.getRoll(false).valueRadians()) > Math::PI/2)
-		{
-				pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians())
-					- (gunOrBuffer4.getRoll(false).valueRadians() - Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) < 0 &&
-			(gunOrBuffer4.getRoll(false).valueRadians()) < -Math::PI/2)
-		{
-				pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians())
-					- (gunOrBuffer4.getRoll(false).valueRadians() + Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) > Math::PI/2 &&
-		(gunOrBuffer4.getRoll(false).valueRadians()) > 0)
-		{
-				pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians())
-					- (gunOrBuffer4.getRoll(false).valueRadians() + Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) < -Math::PI/2 &&
-			(gunOrBuffer4.getRoll(false).valueRadians()) < 0)
-		{
-				pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians())
-					- (gunOrBuffer4.getRoll(false).valueRadians() - Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) < 0 &&
-			(gunOrBuffer4.getRoll(false).valueRadians()) < 0)
-		{
-				pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians() - Math::PI)
-					- (gunOrBuffer4.getRoll(false).valueRadians() - Math::PI)) / 3));
-		}
-		else if ((mCamera->getDerivedOrientation().getRoll(false).valueRadians()) > 0 &&
-			(gunOrBuffer4.getRoll(false).valueRadians()) <= 0)
-		{
-			pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians() - Math::PI)
-				- (gunOrBuffer4.getRoll(false).valueRadians())) / 3));
-		}
-		else
-		{
-			pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians())
-				- (gunOrBuffer4.getRoll(false).valueRadians() - Math::PI)) / 3));
-		}
-	}
-	else
-	{
-		pivotNode->roll(Radian(-((mCamera->getDerivedOrientation().getRoll(false).valueRadians() + Math::PI/2)
-				- (gunOrBuffer4.getRoll(false).valueRadians() + Math::PI/2)) / 3));
-	}*/
-
-	gunOrBuffer4 = gunOrBuffer3;
-	gunOrBuffer3 = gunOrBuffer2;
-	gunOrBuffer2 = gunOrBuffer;
-	gunOrBuffer = mCamera->getDerivedOrientation();
-}
-/*
-void PGFrameListener::loadMaterialControlsFile(MaterialControlsContainer& controlsContainer, const Ogre::String& filename)
-{
-    // Load material controls from config file
-    Ogre::ConfigFile cf;
-
-    try
+	Ogre::MaterialManager::getSingleton().setDefaultTextureFiltering(Ogre::TFO_ANISOTROPIC);
+    Ogre::MaterialManager::getSingleton().setDefaultAnisotropy(7);
+ 
+    mTerrainGlobals = OGRE_NEW Ogre::TerrainGlobalOptions();
+ 
+    mTerrainGroup = OGRE_NEW Ogre::TerrainGroup(mSceneMgr, Ogre::Terrain::ALIGN_X_Z, 129, 3000.0f);
+    mTerrainGroup->setFilenameConvention(Ogre::String("BasicTutorial3Terrain"), Ogre::String("dat"));
+    mTerrainGroup->setOrigin(Ogre::Vector3(1500, 0, 1500));
+ 
+	configureTerrainDefaults(light);
+ 
+    for (long x = 0; x <= 0; ++x)
+        for (long y = 0; y <= 0; ++y)
+            defineTerrain(x, y);
+ 
+    // sync load since we want everything in place when we start
+    mTerrainGroup->loadAllTerrains(true);
+ 
+    if (mTerrainsImported)
     {
-
-        cf.load(filename, Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME, "\t;=", true);
-
-        // Go through all sections & controls in the file
-        Ogre::ConfigFile::SectionIterator seci = cf.getSectionIterator();
-
-        Ogre::String secName, typeName, materialName, dataString;
-
-        while (seci.hasMoreElements())
+        Ogre::TerrainGroup::TerrainIterator ti = mTerrainGroup->getTerrainIterator();
+        while(ti.hasMoreElements())
         {
-            secName = seci.peekNextKey();
-            Ogre::ConfigFile::SettingsMultiMap* settings = seci.getNext();
-            if (!secName.empty() && settings)
-            {
-                materialName = cf.getSetting("material", secName);
-
-                MaterialControls newMaaterialControls(secName, materialName);
-                controlsContainer.push_back(newMaaterialControls);
-
-                size_t idx = controlsContainer.size() - 1;
-
-                Ogre::ConfigFile::SettingsMultiMap::iterator i;
-
-                for (i = settings->begin(); i != settings->end(); ++i)
-                {
-                    typeName = i->first;
-                    dataString = i->second;
-                    if (typeName == "control")
-                        controlsContainer[idx].addControl(dataString);
-                }
-            }
+            Ogre::Terrain* t = ti.getNext()->instance;
+			//t->sha
+            initBlendMaps(t);
         }
-
-	    Ogre::LogManager::getSingleton().logMessage( "Material Controls setup" );
     }
-    catch (Ogre::Exception e)
+ 
+    mTerrainGroup->freeTemporaryResources();
+}
+
+void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
+{
+    // Configure global
+    mTerrainGlobals->setMaxPixelError(3);
+    // testing composite map
+    mTerrainGlobals->setCompositeMapDistance(3000);
+ 
+    // Important to set these so that the terrain knows what to use for derived (non-realtime) data
+	mTerrainGlobals->setLightMapDirection(light->getDerivedDirection());
+    mTerrainGlobals->setCompositeMapAmbient(mSceneMgr->getAmbientLight());
+    mTerrainGlobals->setCompositeMapDiffuse(light->getDiffuseColour());
+ 
+    // Configure default import settings for if we use imported image
+    Ogre::Terrain::ImportData& defaultimp = mTerrainGroup->getDefaultImportSettings();
+    defaultimp.terrainSize = 129;
+    defaultimp.worldSize = 3000.0f;
+    defaultimp.inputScale = 230;
+    defaultimp.minBatchSize = 33;
+    defaultimp.maxBatchSize = 65;
+    // textures
+    defaultimp.layerList.resize(3);
+    defaultimp.layerList[0].worldSize = 120;
+    defaultimp.layerList[0].textureNames.push_back("sandSpecular.dds");
+    defaultimp.layerList[0].textureNames.push_back("sandNormal.dds");
+    defaultimp.layerList[1].worldSize = 60;
+    defaultimp.layerList[1].textureNames.push_back("grassSpecular.dds");
+    defaultimp.layerList[1].textureNames.push_back("grassNormal.dds");
+    defaultimp.layerList[2].worldSize = 30;
+    defaultimp.layerList[2].textureNames.push_back("grass_green-01_diffusespecular.dds");
+    defaultimp.layerList[2].textureNames.push_back("grass_green-01_normalheight.dds");
+}
+
+void PGFrameListener::defineTerrain(long x, long y)
+{
+    Ogre::String filename = mTerrainGroup->generateFilename(x, y);
+    if (Ogre::ResourceGroupManager::getSingleton().resourceExists(mTerrainGroup->getResourceGroup(), filename))
     {
-        // Guess the file didn't exist
+        mTerrainGroup->defineTerrain(x, y);
+    }
+    else
+    {
+        Ogre::Image img;
+        getTerrainImage(x % 2 != 0, y % 2 != 0, img);
+        mTerrainGroup->defineTerrain(x, y, &img);
+        mTerrainsImported = true;
     }
 }
 
-
-void PGFrameListener::loadAllMaterialControlFiles(MaterialControlsContainer& controlsContainer)
+void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img)
 {
-    Ogre::StringVectorPtr fileStringVector = Ogre::ResourceGroupManager::getSingleton().findResourceNames( "Popular", "*.controls");
-	Ogre::StringVector::iterator controlsFileNameIterator = fileStringVector->begin();
+    img.load("terrain.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    if (flipX)
+        img.flipAroundY();
+    if (flipY)
+        img.flipAroundX();
+ 
+}
 
-    while ( controlsFileNameIterator != fileStringVector->end() )
+void PGFrameListener::initBlendMaps(Ogre::Terrain* terrain)
+{
+    Ogre::TerrainLayerBlendMap* blendMap0 = terrain->getLayerBlendMap(1);
+    Ogre::TerrainLayerBlendMap* blendMap1 = terrain->getLayerBlendMap(2);
+    Ogre::Real minHeight0 = 125; // 
+    Ogre::Real fadeDist0 = 40;
+    Ogre::Real minHeight1 = 200; // grass
+    Ogre::Real fadeDist1 = 50;
+    float* pBlend0 = blendMap0->getBlendPointer();
+    float* pBlend1 = blendMap1->getBlendPointer();
+    for (Ogre::uint16 y = 0; y < terrain->getLayerBlendMapSize(); ++y)
+    {
+        for (Ogre::uint16 x = 0; x < terrain->getLayerBlendMapSize(); ++x)
+        {
+            Ogre::Real tx, ty;
+ 
+            blendMap0->convertImageToTerrainSpace(x, y, &tx, &ty);
+            Ogre::Real height = terrain->getHeightAtTerrainPosition(tx, ty);
+            Ogre::Real val = (height - minHeight0) / fadeDist0;
+            val = Ogre::Math::Clamp(val, (Ogre::Real)0, (Ogre::Real)1);
+            *pBlend0++ = val;
+ 
+            val = (height - minHeight1) / fadeDist1;
+            val = Ogre::Math::Clamp(val, (Ogre::Real)0, (Ogre::Real)1);
+            *pBlend1++ = val;
+        }
+    }
+    blendMap0->dirty();
+    blendMap1->dirty();
+    blendMap0->update();
+    blendMap1->update();
+	
+	// Adds depth so the water is darker the deeper you go
+	mHydrax->getMaterialManager()->addDepthTechnique(
+		static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName(
+		terrain->getMaterialName()))->createTechnique());
+}
+
+void PGFrameListener::shadowTextureCasterPreViewProj(Light *light, Camera *camera)
+{
+	mHydrax->setVisible(true);
+	cout << "1111" << endl;
+}
+
+void PGFrameListener::shadowTextureReceiverPreViewProj (Light *light, Frustum *frustum)
+{
+	mHydrax->setVisible(false);
+	cout << "2222" << endl;
+}
+
+void PGFrameListener::shadowTexturesUpdated()
+{
+	mHydrax->setVisible(true);
+	cout << "2222" << endl;
+}
+
+void PGFrameListener::notifyMaterialSetup(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat)
+{
+}
+
+void PGFrameListener::notifyMaterialRender(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat)
+{
+	if (pass_id == 3)
 	{
-        loadMaterialControlsFile(controlsContainer, *controlsFileNameIterator);
-        ++controlsFileNameIterator;
+		float bloomStrength;
+
+		if (weatherSystem == 1)
+			bloomStrength = 0.75 + Ogre::Math::Clamp<Ogre::Real>(-mSkyX->getAtmosphereManager()->getSunDirection().y, 0, 1)*0.75;
+		else
+			bloomStrength = 0.75 + Ogre::Math::Clamp<Ogre::Real>(-mCaelumSystem->getSun()->getMainLight()->getDirection().y, 0, 1)*0.75;
+
+		mat->getTechnique(0)->getPass(0)->getFragmentProgramParameters()->setNamedConstant("uBloomStrength", bloomStrength);
 	}
 }
-*/
