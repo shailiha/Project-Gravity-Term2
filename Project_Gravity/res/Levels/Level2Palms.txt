@@ -1,0 +1,6 @@
+# File format:
+# Name, mesh, posX, posY, posZ, roll, pitch, scaleX, scaleY, scaleZ
+# Note: Do not leave spaces between commas and values
+Palm,Palm2.mesh,267,310,2207,270,0,15,15,15
+Palm,Palm2.mesh,687,580,1270,270,150,15,15,15
+Palm,Palm2.mesh,2554,400,1186,270,210,15,15,15

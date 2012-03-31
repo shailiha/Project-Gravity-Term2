@@ -41,6 +41,12 @@
     <ClInclude Include="include\MovableText.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Target.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\LevelLoad.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Main.cpp">
@@ -56,6 +62,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\MovableText.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Target.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LevelLoad.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
