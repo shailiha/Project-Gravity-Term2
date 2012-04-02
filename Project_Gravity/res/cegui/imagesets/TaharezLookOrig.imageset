@@ -156,7 +156,7 @@
 	<Image Name="CloseButtonNormal" XPos="41" YPos="128" Width="16" Height="16" />
 	<Image Name="CloseButtonHover" XPos="41" YPos="146" Width="16" Height="16" />
 	<Image Name="CloseButtonPressed" XPos="41" YPos="164" Width="16" Height="16" />
-	<Image Name="NewCloseButtonNormal" XPos="88" YPos="146" Width="12" Height="10" />
+	<Image Name="NewCloseButtonNormal" XPos="90" YPos="146" Width="10" Height="10" />
 	<Image Name="NewCloseButtonHover" XPos="90" YPos="146" Width="10" Height="10" />
 	<Image Name="NewCloseButtonPressed" XPos="90" YPos="146" Width="10" Height="10" />
 	<Image Name="MultiLineEditboxLeft" XPos="41" YPos="89" Width="6" Height="6" />
