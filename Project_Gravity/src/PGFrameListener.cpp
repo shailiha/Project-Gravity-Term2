@@ -2636,7 +2636,6 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 	currentLevel = levelNo;
 	levelComplete = false;
 	loadObjectFile(levelNo, false);
-	loadPalmFile(levelNo);
 	if(levelNo == 1) {
 		spinTime = 0;
 	}
@@ -2727,6 +2726,9 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	else if (name == "Target") {
 		levelTargets.push_back(newObject);
 	}
+	else if (name == "Palm") {
+		levelPalms.push_back(newObject->getBody());
+	}
 	else if (name == "Block") {
 		levelBlocks.push_back(newObject->getBody());
 	}
@@ -2775,7 +2777,6 @@ void PGFrameListener::loadLevelPalms(std::string object[10]) {
 	float scaleZ = atof(object[9].c_str());
 	Ogre::Vector3 position = Ogre::Vector3(posX, posY, posZ);
 
-
 	Ogre::Entity* palmEntity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
 	
 	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
@@ -2786,7 +2787,6 @@ void PGFrameListener::loadLevelPalms(std::string object[10]) {
 	palmNode->setScale(scaleX, scaleY, scaleZ);
 	
 	Ogre::Quaternion quat = palmNode->getOrientation();
-	palmNode->createChildSceneNode(Vector3(position.x, position.y, position.z), quat);
 	
 	OgreBulletDynamics::RigidBody* body = new OgreBulletDynamics::RigidBody(name + StringConverter::toString(mNumEntitiesInstanced), mWorld);
 	OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(palmEntity);
