@@ -46,14 +46,7 @@ private:
     Ogre::TerrainGroup* mTerrainGroup;
     bool mTerrainsImported;
  
-	CEGUI::OgreRenderer* mRenderer;
-	Ogre::SceneNode *palmNode20;
-	Ogre::SceneNode *palmNode30;
-	Ogre::SceneNode *palmNode40;
-	Ogre::SceneNode *palmNode50;
-	Ogre::SceneNode *palmNode60;
-	Ogre::SceneNode *palmNode70;
-	
+	CEGUI::OgreRenderer* mRenderer;	
 	Ogre::SceneNode* playerNode;
 	Ogre::SceneNode* gravityGun;
 	double currentTicks;

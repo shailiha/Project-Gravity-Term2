@@ -1,14 +1,9 @@
 #include "stdafx.h"
 #include "Target.h"
 
-Target::Target(PGFrameListener* frameListener, std::string object[24]) : 
-	mFrameListener(frameListener), 
-	mBody(NULL) {
+Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld *mWorld, int mNumEntitiesInstanced, SceneManager* mSceneMgr, std::string object[24])
+{
 	std::cout << "loading object" << std::endl;
-
-	auto mSceneMgr = mFrameListener->mSceneMgr;
-	auto mNumEntitiesInstanced = mFrameListener->mNumEntitiesInstanced;
-	auto mWorld = mFrameListener->mWorld;
 
 	mName = object[0];
 	mMesh = object[1];
@@ -74,7 +69,8 @@ Target::Target(PGFrameListener* frameListener, std::string object[24]) :
 	std::cout << "object loaded" << std::endl;
 }
 
-void Target::move(float spinTime, double evtTime) {
+void Target::move(float spinTime, double evtTime) 
+{
 	mBody->getBulletRigidBody()->setActivationState(DISABLE_DEACTIVATION);
 	btTransform transform = mBody->getCenterOfMassTransform();
 
@@ -126,5 +122,19 @@ void Target::move(float spinTime, double evtTime) {
 	}
 }
 
-Target::~Target() {
+bool Target::targetHit()
+{
+	if (mBody->getBulletRigidBody()->getFriction()==0.93f)
+		return false;
+	else
+		return true;
+}
+
+OgreBulletDynamics::RigidBody* Target::getBody()
+{
+	return mBody;
+}
+
+Target::~Target() 
+{
 }

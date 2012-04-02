@@ -98,6 +98,7 @@ void Project_Gravity::createScene(void)
 
 	// Create water
 	mHydrax->create();
+	//mHydrax->update(0);
 	
 	// Shadows
 	mSceneMgr->setShadowCameraSetup(Ogre::ShadowCameraSetupPtr(new Ogre::FocusedShadowCameraSetup()));
@@ -110,33 +111,6 @@ void Project_Gravity::createScene(void)
 	
 	// Initializes the second camera window in the top right
 	this->createWindows();
-
-		// Create LOOK AT SHADOWS!
-	Ogre::Entity* palmEntity = mSceneMgr->createEntity("palm", "Palm2.mesh");
-	palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode");
-	palmNode->attachObject(palmEntity);
-	palmNode->setPosition(Ogre::Vector3(867, 410, 2207));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode->roll(Ogre::Radian(Degree(270)));
-	palmNode->setScale(15.0, 15.0, 15.0);
-	
-	Ogre::Entity* palmEntity2 = mSceneMgr->createEntity("palm2", "Palm2.mesh");
-	palmNode2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode2");
-	palmNode2->attachObject(palmEntity2);
-	palmNode2->setPosition(Ogre::Vector3(887, 480, 1270));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode2->roll(Ogre::Radian(Degree(270)));
-	palmNode2->pitch(Ogre::Radian(Degree(150)));
-	palmNode2->setScale(15.0, 15.0, 15.0);
-	
-	Ogre::Entity* palmEntity3 = mSceneMgr->createEntity("palm3", "Palm2.mesh");
-	palmNode3 = mSceneMgr->getRootSceneNode()->createChildSceneNode("palmNode3");
-	palmNode3->attachObject(palmEntity3);
-	palmNode3->setPosition(Ogre::Vector3(1954, 410, 1186));
-	//palmNode->setOrientation(Ogre::Quaternion (Degree(270), Vector3::UNIT_Z));
-	palmNode3->roll(Ogre::Radian(Degree(270)));
-	palmNode3->pitch(Ogre::Radian(Degree(210)));
-	palmNode3->setScale(15.0, 15.0, 15.0);
 }
 
 void Project_Gravity::setupLiSpSMShadows()

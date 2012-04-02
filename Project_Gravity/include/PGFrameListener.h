@@ -3,7 +3,10 @@
 
 #include "stdafx.h"
 #include "MovableText.h"
+#include "Target.h"
+#include "LevelLoad.h"
 
+class Target;
 #define WIN32_LEAN_AND_MEAN
 const int NUM_FISH = 60;
 
@@ -28,6 +31,8 @@ private:
 	RenderTarget* mShadowTarget;
 	bool bloomEnabled;
 	bool hideHydrax;
+	ParticleSystem* gunParticle; //For particles
+	ParticleSystem* gunParticle2;
 	
 	//Is level complete?
 	bool levelComplete;
@@ -63,17 +68,25 @@ private:
 	bool mInGameMenu;
 	bool mInGameMenuCreated;
 	bool mInLevelMenu;
+	bool mInUserLevelMenu;
 	bool mLevelMenuCreated;
+	bool mUserLevelMenuCreated;
+	bool mBackPressedFromMainMenu;
+	//For updating Custom Level loader menu when new levels made
+	CEGUI::Window* mScroll;
+	int mNumberOfCustomLevels;
+	int mNewLevelsMade;
 
 	//Menu windows
-	CEGUI::Window* inGameRoot;
 	CEGUI::Window* mainMenuRoot;
 	CEGUI::Window* inGameMenuRoot;
 	CEGUI::Window* levelMenuRoot;
+	CEGUI::Window* userLevelMenuRoot;
 	CEGUI::Window* inGame;
 	CEGUI::Window* mainMenu;
 	CEGUI::Window* inGameMenu;
 	CEGUI::Window* levelMenu;
+	CEGUI::Window* userLevelMenu;
 
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -88,9 +101,8 @@ private:
 
 	Ogre::Vector3 transVector;
 
-	Ogre::AnimationState* anim;
+	Ogre::AnimationState* palmAnim;
 	Ogre::AnimationState* gunAnimate;
-	Ogre::AnimationState* targetAnimate;
 	bool gunActive;
 	bool shotGun;
     Ogre::Real mDistance;                  // The distance the object has left to travel
@@ -125,7 +137,7 @@ private:
 	int													mFishAlive;
 	OgreBulletCollisions::HeightmapCollisionShape *mTerrainShape;
 
-	//JESS
+	// Gravity gun object selection
 	OgreBulletDynamics::RigidBody *mPickedBody;
 	Ogre::Vector3 mOldPickingPos;
     Ogre::Vector3 mOldPickingDist;
@@ -193,10 +205,11 @@ private:
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelBodies;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelCoconuts;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelTargets;
-	std::deque<OgreBulletDynamics::RigidBody *>         levelBlocks;
+	std::deque<OgreBulletDynamics::RigidBody *> levelBodies;
+	std::deque<OgreBulletDynamics::RigidBody *> levelCoconuts;
+	std::deque<Target *> levelTargets;
+	std::deque<OgreBulletDynamics::RigidBody *> levelBlocks;
+	std::deque<OgreBulletDynamics::RigidBody *> levelPalms;
 	//preview objects
 	Ogre::Entity *boxEntity;
 	Ogre::Entity *coconutEntity;
@@ -222,10 +235,6 @@ private:
 	Ogre::TerrainGlobalOptions* mTerrainGlobals;
     Ogre::TerrainGroup* mTerrainGroup;
     bool mTerrainsImported;
- 
-    //void defineTerrain(long x, long y);
-    //void initBlendMaps(Ogre::Terrain* terrain);
-    //void configureTerrainDefaults(Ogre::Light* light);
 
 public:
     PGFrameListener(
@@ -275,31 +284,43 @@ public:
     void notifyMaterialRender(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat);
 
 	void gunController(void);
-	void createTargets(void);
 	void moveFish(double timeSinceLastFrame);
-	void spawnFish(void);
 	void moveTargets(double evtTime);
+	void spawnFish(void);
 
-	//The following will be moved into Level manager class eventually
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
+	int findUniqueName(void);
 	void loadLevel(int levelNo);
-	void loadObjectFile(int levelNo);
-	void loadLevelObjects(std::string object[12]);
+	void loadObjectFile(int levelNo, bool userLevel);
+	void loadPalmFile(int levelNo);
+	void loadLevelObjects(std::string object[24]);
+	void loadLevelPalms(std::string object[10]);
+	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
+	void clearTargets(std::deque<Target *> &queue);
+	void clearPalms(std::deque<SceneNode *> &queue);
 	void checkLevelEndCondition(void);
 	void updateShadowFarDistance();
 	void updateEnvironmentLighting();
+	void animatePalms(const Ogre::FrameEvent& evt);
 
 	//Menu-related
 	void loadMainMenu(void);
-	void loadPauseGameMenu(void);
+	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
-	bool startGame(const CEGUI::EventArgs& e); //temp
-	bool inGameLoadPressed(const CEGUI::EventArgs& e);
-	bool inGameExitPressed(const CEGUI::EventArgs& e);
+	void loadUserLevelSelectorMenu(void);
+	bool newGame(const CEGUI::EventArgs& e); //temp
+	bool loadLevelPressed(const CEGUI::EventArgs& e);
+	bool loadUserLevelPressed(const CEGUI::EventArgs& e);
+	bool levelBackPressed(const CEGUI::EventArgs& e);
+	bool exitGamePressed(const CEGUI::EventArgs& e);
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
+	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
+	bool loadLevel1(const CEGUI::EventArgs& e);
+	bool loadLevel2(const CEGUI::EventArgs& e);
+	void closeMenus(void);
 
 	// New Terrain
 	void createTerrain();
@@ -307,9 +328,6 @@ public:
     void initBlendMaps(Ogre::Terrain* terrain);
     void configureTerrainDefaults(Ogre::Light* light);
 	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img);
-	void shadowTextureCasterPreViewProj(Light *light, Camera *camera);
-	void shadowTextureReceiverPreViewProj (Light *light, Frustum *frustum);
-	void shadowTexturesUpdated();
 };
 
 #endif
