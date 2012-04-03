@@ -33,6 +33,7 @@ private:
 	bool hideHydrax;
 	ParticleSystem* gunParticle; //For particles
 	ParticleSystem* gunParticle2;
+	float stepTime;
 	
 	//Is level complete?
 	bool levelComplete;
@@ -150,6 +151,8 @@ private:
 	//Player collision box
 	OgreBulletCollisions::CapsuleCollisionShape *playerBoxShape;
 	OgreBulletDynamics::RigidBody *playerBody;
+	SceneNode *playerNode;
+	SceneNode *playerNodeHeight;
 	//Player velocity
 	btScalar linVelX;
 	btScalar linVelY;
@@ -244,7 +247,9 @@ public:
  		Vector3 &gravityVector,
  		AxisAlignedBox &bounds,
 		Hydrax::Hydrax *mHyd,
-		SkyX::SkyX *mSky);
+		SkyX::SkyX *mSky,
+		SceneNode *pNode,
+		SceneNode *pNodeHeight);
 	~PGFrameListener();
 
 	bool frameStarted(const FrameEvent& evt);
@@ -296,7 +301,7 @@ public:
 	void loadObjectFile(int levelNo, bool userLevel);
 	void loadPalmFile(int levelNo);
 	void loadLevelObjects(std::string object[24]);
-	void loadLevelPalms(std::string object[10]);
+	void loadLevelPalms(std::string object[12]);
 	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
 	void clearTargets(std::deque<Target *> &queue);
 	void clearPalms(std::deque<SceneNode *> &queue);
