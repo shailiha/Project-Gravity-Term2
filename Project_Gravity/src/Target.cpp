@@ -41,7 +41,18 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 		mBody->setShape(objectNode, ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
 		mBody->setDebugDisplayEnabled(true);
 		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
-	} else {
+	} 
+	else if(mName == "Palm") {
+		OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(entity);
+		OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
+		OgreBulletCollisions::CollisionShape* f = (OgreBulletCollisions::CollisionShape*) ccs;
+	
+		Ogre::Vector3 scale = objectNode->getScale();
+		btVector3 scale2(scale.x, scale.y, scale.z);
+		f->getBulletShape()->setLocalScaling(scale2);
+		mBody->setShape(objectNode, (OgreBulletCollisions::CollisionShape*) ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
+	}
+	else {
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
 		mBody->setShape(objectNode, sceneBoxShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
 		mBody->setCastShadows(true);

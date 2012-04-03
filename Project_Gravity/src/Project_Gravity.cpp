@@ -320,7 +320,9 @@ void Project_Gravity::go(void)
 			nextFrame = lastSecond;
 			//mHydrax->getTextureManager()->remove();
 			//mHydrax->setComponents(Hydrax::HYDRAX_COMPONENTS_NONE);
-			mRoot->renderOneFrame();
+			if (!mRoot->renderOneFrame()) {	
+				return;
+			}
 
 			if (frameCount == 10)
 			{
