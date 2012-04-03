@@ -627,11 +627,10 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		// Update the game elements
 		moveCamera(evt.timeSinceLastFrame);
 		mHydrax->update(evt.timeSinceLastFrame);
-		mWorld->stepSimulation((GetTickCount() - stepTime)/1000);	// update Bullet Physics animation
-		cout << evt.timeSinceLastFrame << endl;
-		//mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
-		//mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-		//mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
+		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
 		
 		playerNodeHeight->setPosition(playerNode->getPosition().x,
 			playerNode->getPosition().y + 30,
@@ -1255,8 +1254,6 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
     mMouse->capture();
 
 	checkLevelEndCondition();
-		cout << "kjashdf " << GetTickCount()- stepTime << endl;
-		stepTime = GetTickCount();
 
     return true;
 }
