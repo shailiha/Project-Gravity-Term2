@@ -77,7 +77,7 @@ private:
 	CEGUI::Window* mScroll;
 	int mNumberOfCustomLevels;
 	int mNewLevelsMade;
-
+	
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
 	CEGUI::Window* inGameMenuRoot;
@@ -251,6 +251,9 @@ public:
 		SceneNode *pNode,
 		SceneNode *pNodeHeight);
 	~PGFrameListener();
+
+	//Variable required to prevent palm tree collision shape being re-created
+	bool mPalmShapeCreated;
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);

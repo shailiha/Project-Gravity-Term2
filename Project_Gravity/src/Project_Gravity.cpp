@@ -65,24 +65,8 @@ bool Project_Gravity::configure(void)
 void Project_Gravity::createScene(void)
 {		
 	std::cout<<"create scene"<<std::endl;
-	/*Ogre::CompositorManager& compMgr = Ogre::CompositorManager::getSingleton();
-	compMgr.registerCompositorLogic("HDR", new HDRLogic);
-	try 
-	{
-		Ogre::CompositorManager::getSingleton().addCompositor(mWindow->getViewport(0), "HDR", 0);
-		Ogre::CompositorManager::getSingleton().setCompositorEnabled(mWindow->getViewport(0), "HDR", false);
-	} catch (...) {
-	}*/
-
-	//Ogre::CompositorManager::getSingleton().addCompositor(mWindow->getViewport(0), "Bloom");
-    //Ogre::CompositorManager::getSingleton().setCompositorEnabled(mWindow->getViewport(0), "Bloom", true);
-	
-
-	//Ogre::MaterialManager::getSingleton().setDefaultTextureFiltering(Ogre::TFO_ANISOTROPIC);
-    //Ogre::MaterialManager::getSingleton().setDefaultAnisotropy(7);
 
 	// Create Hydrax ocean
-	
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
 
 	Hydrax::Module::ProjectedGrid *mModule 
@@ -153,7 +137,6 @@ void Project_Gravity::setupLiSpSMShadows()
     mSceneMgr->setShadowCameraSetup(ShadowCameraSetupPtr(LiSpSMSetup));
     mSceneMgr->setShadowFarDistance(ShadowFarDistance);
 }
-
  
 void Project_Gravity::createFrameListener(void)
 {
@@ -196,57 +179,6 @@ void Project_Gravity::createWindows(void)
 	CEGUI::System::getSingleton().setDefaultMouseCursor("WindowsLook", "MouseArrow");
 	CEGUI::FontManager::getSingleton().create("DejaVuSans-10.font");
 	CEGUI::System::getSingleton().setDefaultFont("DejaVuSans-10");
-
-	/*// Create themed window
-	CEGUI::WindowManager  &wmgr = CEGUI::WindowManager::getSingleton();
-	CEGUI::Window *sheet = wmgr.createWindow("DefaultWindow", "CEGUIDemo/Sheet");
-
-	// Create quit button
-	CEGUI::Window *quit = wmgr.createWindow("WindowsLook/Button", "CEGUIDemo/QuitButton");
-	quit->setSize(CEGUI::UVector2(CEGUI::UDim(0.15, 0), CEGUI::UDim(0.05, 0)));
-	quit->setText("Quit");
-	//quit->setFont("DejaVuSans");
-	sheet->addChildWindow(quit);
-	CEGUI::System::getSingleton().setGUISheet(sheet);
-	quit->subscribeEvent(CEGUI::PushButton::EventClicked, 
-		CEGUI::Event::Subscriber(&Project_Gravity::quit, this));
-
-	// Create the window which uses render to texture technique
-	Ogre::TexturePtr tex = mRoot->getTextureManager()->createManual(
-		"RTT",
-		Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME,
-		Ogre::TEX_TYPE_2D,
-		512,
-		512,
-		0,
-		Ogre::PF_R8G8B8,
-		Ogre::TU_RENDERTARGET);
-	Ogre::RenderTexture *rtex = tex->getBuffer()->getRenderTarget();
-
-	// Create second camera and viewport to be used for this window
-	Ogre::Camera *cam = mSceneMgr->createCamera("RTTCam");
-	cam->setPosition(100, 400, -400);
-	Ogre::Viewport *v = rtex->addViewport(cam);
-	v->setOverlaysEnabled(false);
-	v->setClearEveryFrame(true);
-	v->setBackgroundColour(Ogre::ColourValue::Black);
-
-	// Render to texture
-	CEGUI::Texture &guiTex = mRenderer->createTexture(tex);
-
-	CEGUI::Imageset &imageSet =	CEGUI::ImagesetManager::getSingleton().create("RTTImageset", guiTex);
-	imageSet.defineImage("RTTImage",
-						 CEGUI::Point(0.0f, 0.0f),
-						 CEGUI::Size(guiTex.getSize().d_width,
-									 guiTex.getSize().d_height),
-						 CEGUI::Point(0.0f, 0.0f));
-
-	CEGUI::Window *si = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage", "RTTWindow");
-	si->setSize(CEGUI::UVector2(CEGUI::UDim(0.25f, 0), CEGUI::UDim(0.2f, 0)));
-	si->setPosition(CEGUI::UVector2(CEGUI::UDim(0.75f, 0), CEGUI::UDim(0.0f, 0)));
-	si->setProperty("Image", CEGUI::PropertyHelper::imageToString(&imageSet.getImage("RTTImage")));
-
-	sheet->addChildWindow(si);*/
 }
 
 void Project_Gravity::setupResources(void)
@@ -367,17 +299,8 @@ bool Project_Gravity::setup(void)
     createCamera();
     createViewports();
 
-	/*Ogre::TextAreaOverlayElement* loading;
-	loading->initialise();
-	loading->setCaption("LOADING...");
-	loading->setColour(Ogre::ColourValue::White);
-	loading->show();*/
-	
     // Set default mipmap level (NB some APIs ignore this)
     Ogre::TextureManager::getSingleton().setDefaultNumMipmaps(5);
-
-    // Create any resource listeners (for loading screens)
-    //createResourceListener();
 
     // Load resources
     loadResources();
@@ -413,62 +336,3 @@ bool Project_Gravity::quit(const CEGUI::EventArgs &e)
 	mFrameListener->quit(e);
 	return true;
 }
-
-/*class HydraxRttListener : public Hydrax::RttManager::RttListener
-{
-public:
-	void preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
-	{
-		// If needed in any case...
-		bool underwater = mHydrax->_isCurrentFrameUnderwater();
-
-		switch (Rtt)
-		{
-			case Hydrax::RttManager::RTT_REFLECTION:
-			{
-				// No stars in the reflection map
-				mSkyX->setStarfieldEnabled(false);
-			}
-			break;
-
-			case Hydrax::RttManager::RTT_REFRACTION:
-			{
-			}
-			break;
-
-			case Hydrax::RttManager::RTT_DEPTH: case Hydrax::RttManager::RTT_DEPTH_REFLECTION:
-			{
-				// Hide SkyX components in depth maps
-				mSkyX->getMeshManager()->getEntity()->setVisible(false);
-				mSkyX->getMoonManager()->getMoonBillboard()->setVisible(false);
-			}
-			break;
-		}
-	}
-
-	void postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
-	{
-		bool underwater = mHydrax->_isCurrentFrameUnderwater();
-
-		switch (Rtt)
-		{
-			case Hydrax::RttManager::RTT_REFLECTION:
-			{
-				mSkyX->setStarfieldEnabled(true);
-			}
-			break;
-
-			case Hydrax::RttManager::RTT_REFRACTION:
-			{
-			}
-			break;
-
-			case Hydrax::RttManager::RTT_DEPTH: case Hydrax::RttManager::RTT_DEPTH_REFLECTION:
-			{
-				mSkyX->getMeshManager()->getEntity()->setVisible(true);
-				mSkyX->getMoonManager()->getMoonBillboard()->setVisible(true);
-			}
-			break;
-		}
-	}
-};*/

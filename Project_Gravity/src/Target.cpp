@@ -43,14 +43,19 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 	} 
 	else if(mName == "Palm") {
-		OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(entity);
-		OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
-		OgreBulletCollisions::CollisionShape* f = (OgreBulletCollisions::CollisionShape*) ccs;
+		//if(!(frameListener->mPalmShapeCreated)) {
+			std::cout << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" << std::endl;
+			OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(entity);
+			OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
+			mPalmCollisionShape = ((OgreBulletCollisions::CollisionShape*) ccs);
+			
+			frameListener->mPalmShapeCreated = true;
+		//}
 	
 		Ogre::Vector3 scale = objectNode->getScale();
 		btVector3 scale2(scale.x, scale.y, scale.z);
-		f->getBulletShape()->setLocalScaling(scale2);
-		mBody->setShape(objectNode, (OgreBulletCollisions::CollisionShape*) ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
+		mPalmCollisionShape->getBulletShape()->setLocalScaling(scale2);
+		mBody->setShape(objectNode, mPalmCollisionShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
 	}
 	else {
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);

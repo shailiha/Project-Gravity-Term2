@@ -46,7 +46,8 @@ private:
     Ogre::TerrainGroup* mTerrainGroup;
     bool mTerrainsImported;
  
-	CEGUI::OgreRenderer* mRenderer;	
+	CEGUI::OgreRenderer* mRenderer;
+
 	Ogre::SceneNode* playerNode;
 	Ogre::SceneNode* playerNodeHeight;
 	Ogre::SceneNode* gravityGun;

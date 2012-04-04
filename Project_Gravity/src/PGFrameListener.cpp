@@ -115,7 +115,7 @@ PGFrameListener::PGFrameListener (
 			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
 			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), 
 			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false),
-			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f)
+			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false)
 {
 	mHydraxPtr = mHydrax;
 	testing = 1;
@@ -151,8 +151,6 @@ PGFrameListener::PGFrameListener (
 
 	//Load CEGUI scheme
 	CEGUI::SchemeManager::getSingleton().create( "TaharezLook.scheme" );
-	//Set CEGUI default font
-	CEGUI::System::getSingleton().setDefaultFont( "DejaVuSans-10" );
 
 	//Set up cursor look, size and visibility
 	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
@@ -793,7 +791,6 @@ void PGFrameListener::createCubeMap()
 
 bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 {
-
 	if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = true; // mVariables for camera movement
 	else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
 	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
@@ -1499,7 +1496,7 @@ void PGFrameListener::spawnBox(void)
  		size = boundingB.getSize(); size /= 2.0f; // only the half needed
 		size *= 0.98f;
 		size *= (scale); // set to same scale as preview object
- 		//entity->setMaterialName("Jenga");
+ 
  		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 		node->setScale(scale);
  		node->attachObject(entity);
@@ -1575,41 +1572,6 @@ void PGFrameListener::spawnBox(void)
  		mShapes.push_back(sceneSphereShape);
  		mBodies.push_back(defaultBody);
 	}
-
-	/*
-	Entity *entity = mSceneMgr->createEntity(
- 			"Target" + StringConverter::toString(mNumEntitiesInstanced),
- 			"Target.mesh");	
-	
-	AxisAlignedBox boundingB = entity->getBoundingBox();
-	size = boundingB.getSize() * 10;
-	size /= 2.0f;
-	size *= 0.95f;
-
- 	SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
- 	node->attachObject(entity);
-	node->setScale(10, 10, 10);
-		
-	OgreBulletCollisions::CylinderCollisionShape* ccs = 
-		new OgreBulletCollisions::CylinderCollisionShape(size, Ogre::Vector3(0,0,1));
-
-	OgreBulletDynamics::RigidBody *targetBody = new OgreBulletDynamics::RigidBody("Target" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
-	targetBody->setShape(node, ccs, 0.6f, 0.6f, 1.0f, position, Quaternion(0,0,0,1));
-	targetBody->setDebugDisplayEnabled(false);
-	targetBody->setLinearVelocity(mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
- 	// push the created objects to the dequese
- 	mShapes.push_back(ccs);
- 	mBodies.push_back(targetBody);
-
-	//OgreBulletCollisions::StaticMeshToShapeConverter *smtsc = 
-	//	new OgreBulletCollisions::StaticMeshToShapeConverter(entity);
-	//smtsc->addEntity(entity);
-
-	//OgreBulletCollisions::TriangleMeshCollisionShape *tri = smtsc->createTrimesh();
-	//delete smtsc;
-	//btScaledBvhTriangleMeshShape *triShape = new btScaledBvhTriangleMeshShape(((btBvhTriangleMeshShape*)(tri->getBulletShape())), btVector3(150, 150, 150));
-	
- 	mNumEntitiesInstanced++;				*/
 }
 
 void PGFrameListener::spawnFish(void)

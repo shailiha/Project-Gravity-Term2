@@ -35,6 +35,8 @@ private:
 	bool mTextBool;
 	Vector3 mTextPos;
 	
+	OgreBulletCollisions::CollisionShape* mPalmCollisionShape;
+
 public:
 
 	//Target(PGFrameListener* frameListener, Vector3 position, Quaternion orientation, int animationType, float x, float y, float z, float speed, float rotation);
