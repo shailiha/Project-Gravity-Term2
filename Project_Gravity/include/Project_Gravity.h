@@ -48,6 +48,7 @@ private:
  
 	CEGUI::OgreRenderer* mRenderer;	
 	Ogre::SceneNode* playerNode;
+	Ogre::SceneNode* playerNodeHeight;
 	Ogre::SceneNode* gravityGun;
 	double currentTicks;
 	double speedFactor;

@@ -104,7 +104,9 @@ PGFrameListener::PGFrameListener (
 			Vector3 &gravityVector,
 			AxisAlignedBox &bounds,
 			Hydrax::Hydrax *mHyd,
-			SkyX::SkyX *mSky)
+			SkyX::SkyX *mSky,
+			Ogre::SceneNode *pNode,
+			Ogre::SceneNode *pNodeHeight)
 			:
 			mSceneMgr(sceneMgr), mWindow(mWin), mCamera(cam), mHydrax(mHyd), mSkyX(mSky), mDebugOverlay(0), mForceDisableShadows(false),
 			mInputManager(0), mMouse(0), mKeyboard(0), mShutDown(false), mTopSpeed(150), 
@@ -117,12 +119,17 @@ PGFrameListener::PGFrameListener (
 {
 	mHydraxPtr = mHydrax;
 	testing = 1;
+	stepTime = 0;
+
+	playerNode = pNode;
+	playerNodeHeight = pNodeHeight;
 
 	Ogre::CompositorManager::getSingleton().
 		addCompositor(mWindow->getViewport(0), "Bloom")->addListener(this);
 	Ogre::CompositorManager::getSingleton().
 		setCompositorEnabled(mWindow->getViewport(0), "Bloom", true);
 	bloomEnabled = true;
+	hideHydrax = true;
 
 	// Initialize Ogre and OIS (OIS used for mouse and keyboard input)
 	Ogre::LogManager::getSingletonPtr()->logMessage("*** Initializing OIS ***");
@@ -178,10 +185,10 @@ PGFrameListener::PGFrameListener (
 	mPaused = false;
 
 	//Create collision box for player
-	playerBoxShape = new OgreBulletCollisions::CapsuleCollisionShape(10, 100, Vector3::UNIT_Y);
+	playerBoxShape = new OgreBulletCollisions::CapsuleCollisionShape(10, 40, Vector3::UNIT_Y);
 	playerBody = new OgreBulletDynamics::RigidBody("playerBoxRigid", mWorld);
 
-	playerBody->setShape(	mSceneMgr->getSceneNode("PlayerNode"),
+	playerBody->setShape(playerNode,
  				playerBoxShape,
  				0.6f,			// dynamic body restitution
  				1.0f,			// dynamic body friction
@@ -273,7 +280,7 @@ PGFrameListener::PGFrameListener (
 	objSpawnType = 1;
 	//Create the box to show where spawned object will be placed
  	boxEntity = mSceneMgr->createEntity(
- 			"SpawnBox",
+ 			"CrateBox",
  			"Crate.mesh");
 	coconutEntity = mSceneMgr->createEntity(
 			"CoconutBox",
@@ -287,7 +294,7 @@ PGFrameListener::PGFrameListener (
  	boxEntity->setCastShadows(true);
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
     mSpawnObject->attachObject(boxEntity);
-	mSpawnObject->setScale(20, 20, 20);
+	mSpawnObject->setScale(15, 15, 15);
 	mSpawnLocation = Ogre::Vector3(2000.f,2000.f,2000.f);
 
 	//Initialise number of coconuts collected and targets killed
@@ -624,7 +631,11 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
 		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
 		mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-
+		
+		playerNodeHeight->setPosition(playerNode->getPosition().x,
+			playerNode->getPosition().y + 30,
+			playerNode->getPosition().z);
+	
 		// Move the Gravity Gun
 		gunController();
 
@@ -652,6 +663,11 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 
 	//Keep player upright
 	playerBody->getBulletRigidBody()->setAngularFactor(0.0);
+
+	if (editMode)
+		gravityGun->setVisible(false);
+	else
+		gravityGun->setVisible(true);
 
  	return true;
 }
@@ -960,6 +976,12 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 			}
 			//std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
 			mSpawnObject->setPosition(mSpawnLocation);
+			cout << mSpawnObject->getPosition() << endl;
+			cout << mSpawnObject->getOrientation().w << endl;
+			cout << mSpawnObject->getOrientation().x << endl;
+			cout << mSpawnObject->getOrientation().y << endl;
+			cout << mSpawnObject->getOrientation().z << endl;
+			cout << mSpawnObject->getScale() << endl;
 		}
 		else
 		{
@@ -1297,6 +1319,21 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 		mHydrax->setVisible(hideHydrax);
 		Ogre::CompositorManager::getSingleton().setCompositorEnabled(
 				mWindow->getViewport(0), "Bloom", bloomEnabled);
+	}
+
+	for (int i = 0; i < levelBodies.size(); i++)
+	{
+		OgreBulletDynamics::RigidBody *body = levelBodies.at(i);
+		if (body->getWorldPosition().y < 90)
+			body->getBulletRigidBody()->setDamping(0.25, 0.1);
+		else
+			body->getBulletRigidBody()->setDamping(0.0, 0.0);
+		if (body->getWorldPosition().y < 90)
+		{
+			body->setLinearVelocity(body->getLinearVelocity().x,
+				body->getLinearVelocity().y + 1.2,
+				body->getLinearVelocity().z);
+		}
 	}
 }
 
@@ -1645,7 +1682,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 	int randomGenerator = rand() % 100 + 1;
 	bool randomMove = false;
 	Vector3 randomPosition(0, 50, 0);
-	if (randomGenerator < 50)
+	if (randomGenerator < 80)
 	{
 		randomMove = true;
 		randomPosition.x = rand() % 3000 + 1;
@@ -2494,8 +2531,8 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
  	while (levelBodies.end() != itLevelBodies)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = *itLevelBodies;
-		mesh = "cube.mesh,";
-		objectDetails << "Box," << mesh <<
+		mesh = "Crate.mesh,";
+		objectDetails << "Crate," << mesh <<
 								StringConverter::toString(currentBody->getWorldPosition().x) << "," <<
 								StringConverter::toString(currentBody->getWorldPosition().y) << "," <<
 								StringConverter::toString(currentBody->getWorldPosition().z) << "," <<
@@ -2737,9 +2774,6 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	}
 	else if (name == "Target") {
 		levelTargets.push_back(newObject);
-	}
-	else if (name == "Palm") {
-		levelPalms.push_back(newObject->getBody());
 	}
 	else if (name == "Block") {
 		levelBlocks.push_back(newObject->getBody());

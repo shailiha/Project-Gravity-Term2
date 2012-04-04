@@ -1,0 +1,19 @@
+
+material Palm2
+{
+    receive_shadows on
+    technique 
+    {
+        pass 
+        {
+            shading gouraud
+		 scene_blend alpha_blend
+		 alpha_rejection greater 150
+		 depth_write on
+            texture_unit 
+            {
+                texture palm.png
+            }
+        }
+    }
+}

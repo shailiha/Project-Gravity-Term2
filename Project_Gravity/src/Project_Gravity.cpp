@@ -29,9 +29,13 @@ void Project_Gravity::createCamera(void)
 
 	//Create child node for the player
 	playerNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("PlayerNode");
-	playerNode->attachObject(mCamera);
-	playerNode->setPosition(401, 189, 2568);
 
+	playerNodeHeight = mSceneMgr->getRootSceneNode()->createChildSceneNode("PlayerNodeHeight");
+	playerNodeHeight->attachObject(mCamera);
+	playerNode->setPosition(401, 159, 2568);
+	playerNodeHeight->setPosition(playerNode->getPosition().x,
+		playerNode->getPosition().y + 30,
+		playerNode->getPosition().z);
 }
 
 bool Project_Gravity::configure(void)
@@ -101,7 +105,7 @@ void Project_Gravity::createScene(void)
 
 	// Create water
 	mHydrax->create();
-	//mHydrax->update(0);
+	mHydrax->update(0);
 	
 	// Shadows
 	mSceneMgr->setShadowCameraSetup(Ogre::ShadowCameraSetupPtr(new Ogre::FocusedShadowCameraSetup()));
@@ -161,7 +165,7 @@ void Project_Gravity::createFrameListener(void)
 								Vector3(0,-9.81,0), // gravity vector for Bullet
  								AxisAlignedBox (Ogre::Vector3 (-10000, -10000, -10000), //aligned box for Bullet
   									Ogre::Vector3 (10000,  10000,  10000)),
-									mHydrax, mSkyX);
+									mHydrax, mSkyX, playerNode, playerNodeHeight);
 
     mRoot->addFrameListener(mFrameListener);
 }
