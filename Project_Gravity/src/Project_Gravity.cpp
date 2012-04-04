@@ -31,10 +31,12 @@ void Project_Gravity::createCamera(void)
 	playerNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("PlayerNode");
 	playerNode->attachObject(mCamera);
 	playerNode->setPosition(401, 189, 2568);
+
 }
 
 bool Project_Gravity::configure(void)
 {
+	std::cout<<"window loading"<<std::endl;
 	// Show the configuration dialog and initialise the system
  	if(mRoot->showConfigDialog())
 	{
@@ -46,6 +48,7 @@ bool Project_Gravity::configure(void)
  		mWindow->getCustomAttribute("WINDOW", (void*)&hwnd);
  		LONG iconID   = (LONG)LoadIcon( GetModuleHandle(0), MAKEINTRESOURCE(IDI_APPICON) );
  		SetClassLong( hwnd, GCL_HICON, iconID );
+		
 		cout << "loading" << endl;
 		return true;
 	}
@@ -57,7 +60,7 @@ bool Project_Gravity::configure(void)
  
 void Project_Gravity::createScene(void)
 {		
-
+	std::cout<<"create scene"<<std::endl;
 	/*Ogre::CompositorManager& compMgr = Ogre::CompositorManager::getSingleton();
 	compMgr.registerCompositorLogic("HDR", new HDRLogic);
 	try 
@@ -115,6 +118,7 @@ void Project_Gravity::createScene(void)
 
 void Project_Gravity::setupLiSpSMShadows()
 {
+	std::cout<<"setup LISP"<<std::endl;
     mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE);
 
     // 3 textures per directional light
@@ -149,6 +153,7 @@ void Project_Gravity::setupLiSpSMShadows()
  
 void Project_Gravity::createFrameListener(void)
 {
+	std::cout<<"create frame listener"<<std::endl;
 	// Create the frame listener for keyboard and mouse inputs along with frame dependant processing
 	mFrameListener = new PGFrameListener( mSceneMgr, 
  								mWindow, 
@@ -163,7 +168,8 @@ void Project_Gravity::createFrameListener(void)
 
 void Project_Gravity::createViewports(void)
 {
-    // Create one viewport, entire window
+	std::cout<<"create viewports"<<std::endl;
+	// Create one viewport, entire window
 	Viewport* vp = mWindow->addViewport(mCamera);
     vp->setBackgroundColour(ColourValue(0,0,0));
 
@@ -174,6 +180,7 @@ void Project_Gravity::createViewports(void)
 
 void Project_Gravity::createWindows(void)
 {	
+	std::cout<<"init cegui"<<std::endl;
 	// Initializes CEGUI
 	mRenderer = &CEGUI::OgreRenderer::bootstrapSystem();
 	CEGUI::Imageset::setDefaultResourceGroup("Imagesets");
@@ -240,7 +247,8 @@ void Project_Gravity::createWindows(void)
 
 void Project_Gravity::setupResources(void)
 {
-    // Load resource paths from config file
+    std::cout<<"setup resources"<<std::endl;
+	// Load resource paths from config file
     Ogre::ConfigFile cf;
     cf.load(mResourcesCfg);
 
@@ -265,7 +273,8 @@ void Project_Gravity::setupResources(void)
 
 void Project_Gravity::loadResources(void)
 {
-    Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
+    std::cout<<"Mass resource loading begins"<<std::endl;
+	Ogre::ResourceGroupManager::getSingleton().initialiseAllResourceGroups();
 }
 
 void Project_Gravity::go(void)
@@ -282,6 +291,7 @@ void Project_Gravity::go(void)
     if (!setup())
         return;
 
+	std::cout<<"Mass loading done"<<std::endl;
 
 	float lastSecond = 0;
 	int frameCount = 0;
@@ -339,6 +349,7 @@ void Project_Gravity::go(void)
 
 bool Project_Gravity::setup(void)
 {
+	std::cout<<"setup"<<std::endl;
 	// Setup resources
     mRoot = new Ogre::Root(mPluginsCfg);
     setupResources();
@@ -356,13 +367,13 @@ bool Project_Gravity::setup(void)
 	loading->initialise();
 	loading->setCaption("LOADING...");
 	loading->setColour(Ogre::ColourValue::White);
-	loading->show();
-	*/
+	loading->show();*/
+	
     // Set default mipmap level (NB some APIs ignore this)
     Ogre::TextureManager::getSingleton().setDefaultNumMipmaps(5);
 
     // Create any resource listeners (for loading screens)
-    createResourceListener();
+    //createResourceListener();
 
     // Load resources
     loadResources();
@@ -372,7 +383,7 @@ bool Project_Gravity::setup(void)
 
 	// Create the frame listener
     createFrameListener();
-    
+
 	return true;
 }
 
@@ -390,7 +401,6 @@ void Project_Gravity::chooseSceneManager(void)
 
 void Project_Gravity::createResourceListener(void)
 {
-
 }
 
 bool Project_Gravity::quit(const CEGUI::EventArgs &e)

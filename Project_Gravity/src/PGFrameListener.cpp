@@ -2089,42 +2089,47 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 void PGFrameListener::loadMainMenu() {
 	CEGUI::Window *mainMenu;
 	if(!mMainMenuCreated) {
-		loadPalmFile(1);
 		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
 		//Create root window
 		mainMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_mainMenuRoot" );
 		CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
 		
+		// Creating Imagesets and defining images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("Splash","PGLogo.jpg");
+		imgs->defineImage("SplashBack", CEGUI::Point(0.0,0.0), CEGUI::Size(800,400), CEGUI::Point(0.0,0.0));
+		imgs->setAutoScalingEnabled(false);
+
 		//Create new, inner window, set position, size and attach to root.
-		mainMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","MainMenu" );
-		mainMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.20, 0),CEGUI::UDim(0.25, 0)));
-		mainMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenu); //Attach to current (inGameMenuRoot) GUI sheet
-		
+		mainMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","MainMenu" );
+		mainMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		mainMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		mainMenu->setProperty("Image","set:Splash image:SplashBack");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenu); //Attach to current (inGameMenuRoot) GUI sheet		
+
 		//Menu Buttons
 		CEGUI::System::getSingleton().setGUISheet(mainMenu); //Change GUI sheet to the 'visible' Taharez window
-		
+
 		CEGUI::Window *newGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainNewGameBtn");  // Create Window
-		newGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.2,0)));
+		newGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.2,0)));
 		newGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		newGameBtn->setText("New Game");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(newGameBtn);  //Buttons are now added to the window so they will move with it.
 
 		CEGUI::Window *loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainLoadLevelBtn");  // Create Window
-		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.35,0)));
+		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.35,0)));
 		loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadLevelBtn->setText("Load Level");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
 
 		CEGUI::Window *loadUserLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainLoadUserLevelBtn");  // Create Window
-		loadUserLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.5,0)));
+		loadUserLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.5,0)));
 		loadUserLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadUserLevelBtn->setText("Load Custom Level");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadUserLevelBtn);  //Buttons are now added to the window so they will move with it.
 
 		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainExitGameBtn");  // Create Window
-		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.65,0)));
+		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.65,0)));
 		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		exitGameBtn->setText("Exit Game");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
@@ -2153,40 +2158,41 @@ void PGFrameListener::loadInGameMenu() {
 		CEGUI::System::getSingleton().setGUISheet(inGameMenuRoot);
 		
 		//Create new, inner window, set position, size and attach to root.
-		inGameMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","InGameMenu" );
-		inGameMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.2, 0),CEGUI::UDim(0.25, 0)));
-		inGameMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
+		inGameMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","InGameMainMenu" );
+		inGameMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		inGameMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		inGameMenu->setProperty("Image","set:Splash image:SplashBack");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(inGameMenu); //Attach to current (inGameMenuRoot) GUI sheet
 		
 		//Menu Buttons
 		CEGUI::System::getSingleton().setGUISheet(inGameMenu); //Change GUI sheet to the 'visible' Taharez window
 		
+		CEGUI::Window *resumeGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameResumeGameBtn");  // Create Window
+		resumeGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.2,0)));
+		resumeGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
+		resumeGameBtn->setText("Resume");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn);
+
 		CEGUI::Window *loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameLoadLevelBtn");  // Create Window
-		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.2,0)));
+		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.35,0)));
 		loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadLevelBtn->setText("Load Level");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);  //Buttons are now added to the window so they will move with it.
 
 		CEGUI::Window *loadUserLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameLoadUserLevelBtn");  // Create Window
-		loadUserLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.35,0)));
+		loadUserLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.5,0)));
 		loadUserLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadUserLevelBtn->setText("Load Custom Level");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadUserLevelBtn);  //Buttons are now added to the window so they will move with it.
 
 		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameExitGameBtn");  // Create Window
-		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.5,0)));
+		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.65,0)));
 		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		exitGameBtn->setText("Exit Game");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
 
-		CEGUI::Window *resumeGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameResumeGameBtn");  // Create Window
-		resumeGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.55,0),CEGUI::UDim(0.80,0)));
-		resumeGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
-		resumeGameBtn->setText("Resume");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn);
-
 		CEGUI::Window *mainMenuBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameMainMenuBtn");  // Create Window
-		mainMenuBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.05,0),CEGUI::UDim(0.80,0)));
+		mainMenuBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.1,0),CEGUI::UDim(0.85,0)));
 		mainMenuBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
 		mainMenuBtn->setText("Main Menu");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenuBtn);
@@ -2213,11 +2219,12 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		//Create root window
 		levelMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_LevelRoot" );
 		CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
-		
+
 		//Create new, inner window, set position, size and attach to root.
-		levelMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","levelMenu" );
-		levelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.2, 0),CEGUI::UDim(0.25, 0)));
-		levelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
+		levelMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","levelMenu" );
+		levelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		levelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		levelMenu->setProperty("Image","set:Splash image:SplashBack");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(levelMenu); //Attach to current (inGameMenuRoot) GUI sheet
 		
 		//Menu Buttons
@@ -2226,7 +2233,7 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		/* ScrollablePane */		
 		CEGUI::Window* scroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "levelScroll");
 		scroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.2, 0)));
-		scroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.5, 0)));
+		scroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.6, 0)));
 		((CEGUI::ScrollablePane*)scroll)->setContentPaneAutoSized(true);
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scroll);
 		
@@ -2234,13 +2241,13 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		CEGUI::System::getSingleton().setGUISheet(scroll);
 
 		CEGUI::Window *loadLevel1Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel1Btn");  // Create Window
-		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,0)));
+		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0,0)));
 		loadLevel1Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadLevel1Btn->setText("Level 1");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel1Btn);  //Buttons are now added to the window so they will move with it.
 
 		CEGUI::Window *loadLevel2Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel2Btn");  // Create Window
-		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0.3,0)));
+		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6,0),CEGUI::UDim(0.15,0)));
 		loadLevel2Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 		loadLevel2Btn->setText("Level 2");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
@@ -2249,7 +2256,7 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		CEGUI::System::getSingleton().setGUISheet(levelMenu);
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.05,0),CEGUI::UDim(0.80,0)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.1,0),CEGUI::UDim(0.85,0)));
 		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
 		backBtn->setText("Back");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
@@ -2273,9 +2280,10 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 		CEGUI::System::getSingleton().setGUISheet(userLevelMenuRoot);
 		
 		//Create new, inner window, set position, size and attach to root.
-		userLevelMenu = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/FrameWindow","userLevelMenu" );
-		userLevelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.2, 0),CEGUI::UDim(0.25, 0)));
-		userLevelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, 800), CEGUI::UDim(0, 600)));
+		userLevelMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","userLevelMenu" );
+		userLevelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		userLevelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		userLevelMenu->setProperty("Image","set:Splash image:SplashBack");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(userLevelMenu); //Attach to current (inGameMenuRoot) GUI sheet
 		
 		//Menu Buttons
@@ -2284,7 +2292,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 		/* ScrollablePane */		
 		mScroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "userLevelScroll");
 		mScroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.2, 0)));
-		mScroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.5, 0)));
+		mScroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.6, 0)));
 		((CEGUI::ScrollablePane*)mScroll)->setContentPaneAutoSized(true);
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mScroll);
 		
@@ -2297,7 +2305,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 			std::string buttonName = "userLoadLevel"+StringConverter::toString(i)+"Btn";
 
 			loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
-			loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.25, 0), CEGUI::UDim((0.3*(i-1)),0)));
+			loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6, 0), CEGUI::UDim((0.15*(i-1)),0)));
 			loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,390),CEGUI::UDim(0,70)));
 			loadLevelBtn->setText("Custom Level "+StringConverter::toString(i));
 			CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
@@ -2310,7 +2318,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 		CEGUI::System::getSingleton().setGUISheet(userLevelMenu);
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","userLoadLvlResumeGameBtn");  // Create Window
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.05,0),CEGUI::UDim(0.80,0)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.1,0),CEGUI::UDim(0.85,0)));
 		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0,320),CEGUI::UDim(0,70)));
 		backBtn->setText("Back");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
@@ -2619,8 +2627,21 @@ int PGFrameListener::findUniqueName(void) {
 
 void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!
 {
-	std::cout << "remove things" << std::endl;
-	
+	std::cout << "remove things" << std::endl;	
+	clearLevel();
+
+	//Then go through the new level's file and call placeNewObject() for each line
+	currentLevel = levelNo;
+	levelComplete = false;
+	loadObjectFile(levelNo, false);
+	if(levelNo == 1) {
+		spinTime = 0;
+	}
+
+}
+
+void PGFrameListener::clearLevel(void) 
+{
 	//Remove current level objects (bodies, coconuts, targets) by going through the lists and removing each
 	clearObjects(levelBodies);
 	std::cout << "remove coconuts" << std::endl;
@@ -2631,15 +2652,6 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 	clearTargets(levelTargets);
 	std::cout << "remove palms" << std::endl;
 	clearObjects(levelPalms);
-
-	//Then go through the new level's file and call placeNewObject() for each line
-	currentLevel = levelNo;
-	levelComplete = false;
-	loadObjectFile(levelNo, false);
-	if(levelNo == 1) {
-		spinTime = 0;
-	}
-
 }
 
 void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue) {
@@ -2737,69 +2749,6 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	}
 
 	mNumEntitiesInstanced++;				
-}
-
-void PGFrameListener::loadPalmFile(int levelNo) {
-	std::cout << "load palm file" << std::endl;
-	std::string object[10];
-
-	std::ifstream objects("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Palms.txt");
-	std::string line;
-	
-	int i=0;
-	while(std::getline(objects, line)) {
-		if(line.substr(0, 1) != "#") { //Ignore comments in file
-			std::stringstream lineStream(line);
-			std::string cell;
-			while(std::getline(lineStream, cell, ',')) {
-				object[i] = cell;
-				i++;
-			}
-			i = 0;
-			for(int i=0; i<10; i++) {
-				std::cout << object[i] << std::endl;
-			}
-			loadLevelPalms(object);
-		}
-	}
-}
-
-void PGFrameListener::loadLevelPalms(std::string object[10]) {
-	std::string name = object[0];
-	std::string mesh = object[1];
-	float posX = atof(object[2].c_str());
-	float posY = atof(object[3].c_str());
-	float posZ = atof(object[4].c_str());
-	float roll = atof(object[5].c_str());
-	float pitch = atof(object[6].c_str());
-	float scaleX = atof(object[7].c_str());
-	float scaleY = atof(object[8].c_str());
-	float scaleZ = atof(object[9].c_str());
-	Ogre::Vector3 position = Ogre::Vector3(posX, posY, posZ);
-
-	Ogre::Entity* palmEntity = mSceneMgr->createEntity(name + StringConverter::toString(mNumEntitiesInstanced), mesh);
-	
-	Ogre::SceneNode* palmNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
-	palmNode->attachObject(palmEntity);
-	palmNode->setPosition(position);
-	palmNode->roll(Ogre::Radian(Degree(roll)));
-	palmNode->pitch(Ogre::Radian(Degree(pitch)));
-	palmNode->setScale(scaleX, scaleY, scaleZ);
-	
-	Ogre::Quaternion quat = palmNode->getOrientation();
-	
-	OgreBulletDynamics::RigidBody* body = new OgreBulletDynamics::RigidBody(name + StringConverter::toString(mNumEntitiesInstanced), mWorld);
-	OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(palmEntity);
-	OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
-	OgreBulletCollisions::CollisionShape* f = (OgreBulletCollisions::CollisionShape*) ccs;
-	
-	Ogre::Vector3 scale = palmNode->getScale();
-	btVector3 scale2(scale.x, scale.y, scale.z);
-	f->getBulletShape()->setLocalScaling(scale2);
-	body->setShape(palmNode, (OgreBulletCollisions::CollisionShape*) ccs, 0.6f, 0.93f, 0.0f, position, quat);
-	
-	mNumEntitiesInstanced++;
-	levelPalms.push_back(body);
 }
 
 void PGFrameListener::createTerrain()

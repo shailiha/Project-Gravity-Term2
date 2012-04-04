@@ -294,9 +294,8 @@ public:
 	int findUniqueName(void);
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo, bool userLevel);
-	void loadPalmFile(int levelNo);
 	void loadLevelObjects(std::string object[24]);
-	void loadLevelPalms(std::string object[10]);
+	void clearLevel(void) ;
 	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
 	void clearTargets(std::deque<Target *> &queue);
 	void clearPalms(std::deque<SceneNode *> &queue);
