@@ -119,7 +119,7 @@ void Project_Gravity::createFrameListener(void)
   									Ogre::Vector3 (10000,  10000,  10000)),
 									mHydrax, mSkyX, playerNode, playerNodeHeight);
 
-    mRoot->addFrameListener(mFrameListener);
+	mRoot->addFrameListener(mFrameListener);
 }
 
 void Project_Gravity::createViewports(void)
@@ -196,8 +196,6 @@ void Project_Gravity::go(void)
     if (!setup())
         return;
 
-	SplashScreen *splashScreen = new SplashScreen(mWindow);
-	splashScreen->show();
 	
 	std::cout<<"Mass loading done"<<std::endl;
 
@@ -205,6 +203,7 @@ void Project_Gravity::go(void)
 	int frameCount = 0;
 	float secondTester = 0;
 	float nextFrame = 0;
+	bool resourcesLoaded = false;
 	
 	while(true)
 	{
@@ -222,8 +221,6 @@ void Project_Gravity::go(void)
 		
 		if (nextFrame > 1000/60)
 		{
-		
-			//cout << "frames " << frames << endl;
 			if (secondTester > 1000)
 			{
 				lastSecond = GetTickCount();
@@ -232,24 +229,29 @@ void Project_Gravity::go(void)
 			}
 
 			nextFrame = lastSecond;
-			//mHydrax->getTextureManager()->remove();
-			//mHydrax->setComponents(Hydrax::HYDRAX_COMPONENTS_NONE);
 			if (!mRoot->renderOneFrame()) {	
 				return;
 			}
 
-			if (frameCount == 10)
+			if (!resourcesLoaded)
 			{
-				
+				// Load resources
+				loadResources();
+
+				// Create the scene
+				createScene();
+
+				// Create the frame listener
+				createFrameListener();
+
+				resourcesLoaded = true;
 			}
 			frameCount++;
+			
 			// Render a frame
-			//mHydrax->getRttManager()->getrt
 			mCamera->disableReflection();
 		}
 	}
-
-    //mRoot->startRendering();
 
     // clean up
     destroyScene();
@@ -272,19 +274,14 @@ bool Project_Gravity::setup(void)
     createCamera();
     createViewports();
 
+	initCEGUI();
+	
+	SplashScreen *splashScreen = new SplashScreen(mWindow);
+	splashScreen->show();
+
+
     // Set default mipmap level (NB some APIs ignore this)
     Ogre::TextureManager::getSingleton().setDefaultNumMipmaps(5);
-
-    // Load resources
-    loadResources();
-
-    // Create the scene
-    createScene();
-
-	initCEGUI();
-
-	// Create the frame listener
-    createFrameListener();
 
 	return true;
 }
