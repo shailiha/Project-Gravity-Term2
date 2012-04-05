@@ -208,16 +208,18 @@ private:
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
-	std::deque<OgreBulletDynamics::RigidBody *> levelBodies;
-	std::deque<OgreBulletDynamics::RigidBody *> levelCoconuts;
+	std::deque<Target *> levelBodies;
+	std::deque<Target *> levelCoconuts;
 	std::deque<Target *> levelTargets;
-	std::deque<OgreBulletDynamics::RigidBody *> levelBlocks;
-	std::deque<OgreBulletDynamics::RigidBody *> levelPalms;
+	std::deque<Target *> levelBlocks;
+	std::deque<Target *> levelPalms;
 	//preview objects
 	Ogre::Entity *boxEntity;
 	Ogre::Entity *coconutEntity;
 	Ogre::Entity *targetEntity;
 	Ogre::Entity *blockEntity;
+	Ogre::Entity *palm1Entity;
+	Ogre::Entity *palm2Entity;
 	SceneNode* billNodes[6];
 	MovableText* targetText[6];
 	double targetTextAnim[6];
@@ -299,6 +301,7 @@ public:
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
+	std::stringstream generateObjectStringForSaving(std::deque<Target *> queue);
 	int findUniqueName(void);
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo, bool userLevel);

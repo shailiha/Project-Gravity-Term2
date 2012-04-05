@@ -9,6 +9,9 @@ class PGFrameListener;
 class Target {
 
 private:
+	
+
+public:
 	OgreBulletDynamics::RigidBody* mBody;
 	String mName;
 	String mMesh;
@@ -36,8 +39,6 @@ private:
 	Vector3 mTextPos;
 	
 	static OgreBulletCollisions::CompoundCollisionShape* mPalmCollisionShape;
-
-public:
 
 	//Target(PGFrameListener* frameListener, Vector3 position, Quaternion orientation, int animationType, float x, float y, float z, float speed, float rotation);
 	Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld *mWorld, int mNumEntitiesInstanced, SceneManager* mSceneMgr, std::string object[24]);

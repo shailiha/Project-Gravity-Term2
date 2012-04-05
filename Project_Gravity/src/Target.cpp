@@ -38,6 +38,7 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	
 	mBody = new OgreBulletDynamics::RigidBody(mName + StringConverter::toString(mNumEntitiesInstanced), mWorld);
 
+	//Different objects require different collision shapes
 	if(mName == "Target") {
 		OgreBulletCollisions::CylinderCollisionShape* ccs = new OgreBulletCollisions::CylinderCollisionShape(size, Ogre::Vector3(0,0,1));	
 		mBody->setShape(objectNode, ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
@@ -66,9 +67,11 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	else {
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
 		mBody->setShape(objectNode, sceneBoxShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
-		mBody->setCastShadows(true);
 	}
 
+	mBody->setCastShadows(true);
+
+	//Add a billboard for scores if necessary
 	if(mBillBoard != 0) {
 		mText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "100", "000_@KaiTi_33", 17.0f);
 		mText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
