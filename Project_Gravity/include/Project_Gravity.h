@@ -23,8 +23,7 @@ public:
     void loadResources(void);
 	void createResourceListener(void);
     bool quit(const CEGUI::EventArgs &e);
-	void createWindows(void);
-	//void setupPSSMShadows();
+	void initCEGUI(void);
 	void setupLiSpSMShadows();
 
 private:

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Project_Gravity.h"
 #include "SplashScreen.h"
+#include "Scene.h"
 
 #include <iostream>
 
@@ -67,42 +68,9 @@ void Project_Gravity::createScene(void)
 {		
 	std::cout<<"create scene"<<std::endl;
 
-	// Create Hydrax ocean
-	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
-
-	Hydrax::Module::ProjectedGrid *mModule 
-      = new Hydrax::Module::ProjectedGrid(// Hydrax parent pointer
-      mHydrax,
-      // Noise module
-      new Hydrax::Noise::Perlin(/*Generic one*/),
-      // Base plane
-      Ogre::Plane(Ogre::Vector3::UNIT_Y, Ogre::Real(0.0f)),
-      // Normal mode
-      Hydrax::MaterialManager::NM_VERTEX,
-      // Projected grid options
-      Hydrax::Module::ProjectedGrid::Options(/*264 /*Generic one*/));
-
-	// Set our module
-	mHydrax->setModule(static_cast<Hydrax::Module::Module*>(mModule));
-
-	// Load all parameters from config file
-	mHydrax->loadCfg("PGOcean.hdx");
-
-	// Create water
-	mHydrax->create();
-	mHydrax->update(0);
-	
-	// Shadows
-	mSceneMgr->setShadowCameraSetup(Ogre::ShadowCameraSetupPtr(new Ogre::FocusedShadowCameraSetup()));
-	mSceneMgr->setShadowTextureCasterMaterial("ShadowCaster");
-	
-	mSceneMgr->setShadowTechnique(Ogre::SHADOWTYPE_TEXTURE_MODULATIVE_INTEGRATED);
-	mSceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_FLOAT32_R);
-	//mSceneMgr->setShadowTextureSelfShadow(true);
-	//mSceneMgr->setShadowCasterRenderBackFaces(false);
-	
-	// Initializes the second camera window in the top right
-	this->createWindows();
+	Scene *scene = new Scene();
+	scene->create(mSceneMgr, mCamera, mWindow);
+	mHydrax = scene->mHydrax;
 }
 
 void Project_Gravity::setupLiSpSMShadows()
@@ -166,7 +134,7 @@ void Project_Gravity::createViewports(void)
         Real(vp->getActualWidth()) / Real(vp->getActualHeight()));
 }
 
-void Project_Gravity::createWindows(void)
+void Project_Gravity::initCEGUI(void)
 {	
 	std::cout<<"init cegui"<<std::endl;
 	// Initializes CEGUI
@@ -312,6 +280,8 @@ bool Project_Gravity::setup(void)
 
     // Create the scene
     createScene();
+
+	initCEGUI();
 
 	// Create the frame listener
     createFrameListener();

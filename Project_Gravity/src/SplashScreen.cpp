@@ -18,6 +18,7 @@ SplashScreen::SplashScreen(Ogre::RenderWindow *window)
 	mImageWindow->setProperty("Image","set:splashscreenSet image:splashscreenImage");
 
 	mRootWindow->addChildWindow(mImageWindow);
+	
 }
 
 
