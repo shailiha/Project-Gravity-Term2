@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Project_Gravity.h"
+#include "SplashScreen.h"
 
 #include <iostream>
 
@@ -227,6 +228,9 @@ void Project_Gravity::go(void)
     if (!setup())
         return;
 
+	SplashScreen *splashScreen = new SplashScreen(mWindow);
+	splashScreen->show();
+	
 	std::cout<<"Mass loading done"<<std::endl;
 
 	float lastSecond = 0;
@@ -286,6 +290,7 @@ void Project_Gravity::go(void)
 bool Project_Gravity::setup(void)
 {
 	std::cout<<"setup"<<std::endl;
+	
 	// Setup resources
     mRoot = new Ogre::Root(mPluginsCfg);
     setupResources();
