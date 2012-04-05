@@ -317,7 +317,8 @@ public:
 	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
 	void loadUserLevelSelectorMenu(void);
-	bool newGame(const CEGUI::EventArgs& e); //temp
+	bool newGame(const CEGUI::EventArgs& e);
+	bool launchEditMode(const CEGUI::EventArgs& e);
 	bool loadLevelPressed(const CEGUI::EventArgs& e);
 	bool loadUserLevelPressed(const CEGUI::EventArgs& e);
 	bool levelBackPressed(const CEGUI::EventArgs& e);
@@ -335,6 +336,9 @@ public:
     void initBlendMaps(Ogre::Terrain* terrain);
     void configureTerrainDefaults(Ogre::Light* light);
 	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img);
+
+	//Loading screen tests
+	double mFrameCount;
 };
 
 #endif

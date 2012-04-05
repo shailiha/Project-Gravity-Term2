@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Target.h"
 
+OgreBulletCollisions::CompoundCollisionShape* Target::mPalmCollisionShape = NULL;
+
 Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld *mWorld, int mNumEntitiesInstanced, SceneManager* mSceneMgr, std::string object[24])
 {
 	std::cout << "loading object" << std::endl;
@@ -43,19 +45,23 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 	} 
 	else if(mName == "Palm") {
-		//if(!(frameListener->mPalmShapeCreated)) {
-			std::cout << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" << std::endl;
+		OgreBulletCollisions::CompoundCollisionShape *copyOfPalmShape;
+		//if(mPalmCollisionShape == NULL) {
+			//std::cout << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" << std::endl;
 			OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(entity);
 			OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
-			mPalmCollisionShape = ((OgreBulletCollisions::CollisionShape*) ccs);
+			mPalmCollisionShape = ccs;
+			copyOfPalmShape = mPalmCollisionShape;
 			
-			frameListener->mPalmShapeCreated = true;
+		//} else {
+		//	btCompoundShape *underlyingShapeCopy = new btCompoundShape(*dynamic_cast<btCompoundShape *>(mPalmCollisionShape->getBulletShape()));
+		//	copyOfPalmShape = new OgreBulletCollisions::CompoundCollisionShape(underlyingShapeCopy);
 		//}
 	
 		Ogre::Vector3 scale = objectNode->getScale();
 		btVector3 scale2(scale.x, scale.y, scale.z);
-		mPalmCollisionShape->getBulletShape()->setLocalScaling(scale2);
-		mBody->setShape(objectNode, mPalmCollisionShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
+		copyOfPalmShape->getBulletShape()->setLocalScaling(scale2);
+		mBody->setShape(objectNode, copyOfPalmShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
 	}
 	else {
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);

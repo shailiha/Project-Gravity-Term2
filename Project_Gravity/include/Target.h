@@ -35,7 +35,7 @@ private:
 	bool mTextBool;
 	Vector3 mTextPos;
 	
-	OgreBulletCollisions::CollisionShape* mPalmCollisionShape;
+	static OgreBulletCollisions::CompoundCollisionShape* mPalmCollisionShape;
 
 public:
 
