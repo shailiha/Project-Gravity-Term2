@@ -66,6 +66,7 @@ private:
 	//Menu flags
 	bool mMainMenu;
 	bool mMainMenuCreated;
+	bool mInLoadingScreen;
 	bool mInGameMenu;
 	bool mInGameMenuCreated;
 	bool mInLevelMenu;
@@ -83,6 +84,7 @@ private:
 	CEGUI::Window* inGameMenuRoot;
 	CEGUI::Window* levelMenuRoot;
 	CEGUI::Window* userLevelMenuRoot;
+	CEGUI::Window* loadingScreen;
 	CEGUI::Window* inGame;
 	CEGUI::Window* mainMenu;
 	CEGUI::Window* inGameMenu;
@@ -256,6 +258,10 @@ public:
 
 	//Variable required to prevent palm tree collision shape being re-created
 	bool mPalmShapeCreated;
+	
+	//Required public to show loading screen when loading custom levels
+	bool mLoadingScreenCreated;
+	CEGUI::Window* loadingScreenRoot;
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -316,6 +322,7 @@ public:
 	void animatePalms(const Ogre::FrameEvent& evt);
 
 	//Menu-related
+	void loadLoadingScreen(void);
 	void loadMainMenu(void);
 	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 

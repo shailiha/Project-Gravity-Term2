@@ -113,7 +113,7 @@ PGFrameListener::PGFrameListener (
 			mVelocity(Ogre::Vector3::ZERO), mGoingForward(false), mGoingBack(false), mGoingLeft(false), 
 			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false),
 			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
-			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), 
+			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
 			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
@@ -1259,7 +1259,13 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	if (mShutDown)
 		return false;
 	
-	if(mMainMenu) {
+	if(mInLoadingScreen) {
+		loadLoadingScreen();
+		loadLevel(1);
+		loadingScreenRoot->setVisible(false);
+		mInLoadingScreen = false;
+	}
+	else if(mMainMenu) {
 		loadMainMenu();
 	} 
 	else {
@@ -1274,7 +1280,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			else {
 				loadInGameMenu();
 			}
-		}
+		} 
 		//Else, update the world
 		else {
 			worldUpdates(evt); // Cam, caelum etc.
@@ -2356,6 +2362,44 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 	CEGUI::System::getSingleton().setGUISheet(userLevelMenuRoot);
 }
 
+void PGFrameListener::loadLoadingScreen() {
+	CEGUI::Window *loadingScreen;
+	if(!mLoadingScreenCreated) {
+		//Create root window
+		loadingScreenRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_loadingRoot" );
+		CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
+		
+		// Creating Imagesets and define images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("loadingBackground","loading.jpg");
+		imgs->defineImage("loadingBackgroundImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		loadingScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","LoadingScreen" );
+		loadingScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		loadingScreen->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		loadingScreen->setProperty("Image","set:loadingBackground image:loadingBackgroundImage");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadingScreen); //Attach to current (inGameMenuRoot) GUI sheet		
+
+		//Menu Buttons
+		CEGUI::System::getSingleton().setGUISheet(loadingScreen); //Change GUI sheet to the 'visible' Taharez window
+
+		/*CEGUI::Window *newGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainNewGameBtn");  // Create Window
+		newGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		newGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-newGameBtn->getWidth(),CEGUI::UDim(0.1,0)));
+		newGameBtn->setText("New Game");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(newGameBtn);  //Buttons are now added to the window so they will move with it.
+
+		//Register events
+		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::newGame, this));
+		*/
+		mLoadingScreenCreated=true;
+	}
+	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
+	CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
+	mInLoadingScreen = true;
+	
+}
+
 bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
 	mBackPressedFromMainMenu = false;
 	loadLevel1(e);
@@ -2443,15 +2487,23 @@ bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
 
 bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
 	std::cout << "loadlevel1" << std::endl;
-	loadLevel(1);
 	closeMenus();
+	if(mLoadingScreenCreated) {
+		loadingScreenRoot->setVisible(true);
+	} else {
+		loadLoadingScreen();
+	}
 	return 1;
 }
 
 bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 	std::cout << "loadlevel2" << std::endl;
-	loadLevel(2);
 	closeMenus();
+	if(mLoadingScreenCreated) {
+		loadingScreenRoot->setVisible(true);
+	} else {
+		loadLoadingScreen();
+	}
 	return 1;
 }
 
