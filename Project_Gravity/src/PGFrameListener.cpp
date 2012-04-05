@@ -1261,7 +1261,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	
 	if(mInLoadingScreen) {
 		loadLoadingScreen();
-		loadLevel(1);
+		loadLevel(mLevelToLoad);
 		loadingScreenRoot->setVisible(false);
 		mInLoadingScreen = false;
 	}
@@ -2383,21 +2383,8 @@ void PGFrameListener::loadLoadingScreen() {
 		//Menu Buttons
 		CEGUI::System::getSingleton().setGUISheet(loadingScreen); //Change GUI sheet to the 'visible' Taharez window
 
-		/*CEGUI::Window *newGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainNewGameBtn");  // Create Window
-		newGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		newGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-newGameBtn->getWidth(),CEGUI::UDim(0.1,0)));
-		newGameBtn->setText("New Game");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(newGameBtn);  //Buttons are now added to the window so they will move with it.
-
-		//Register events
-		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::newGame, this));
-		*/
 		mLoadingScreenCreated=true;
-	}
-	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
-	CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
-	mInLoadingScreen = true;
-	
+	}	
 }
 
 bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
@@ -2487,24 +2474,26 @@ bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
 
 bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
 	std::cout << "loadlevel1" << std::endl;
-	closeMenus();
-	if(mLoadingScreenCreated) {
-		loadingScreenRoot->setVisible(true);
-	} else {
-		loadLoadingScreen();
-	}
+	setLevelLoading(1);
 	return 1;
 }
 
 bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 	std::cout << "loadlevel2" << std::endl;
+	setLevelLoading(2);
+	return 1;
+}
+
+void PGFrameListener::setLevelLoading(int levelNumber) {
 	closeMenus();
-	if(mLoadingScreenCreated) {
-		loadingScreenRoot->setVisible(true);
-	} else {
+	if(!mLoadingScreenCreated) {
 		loadLoadingScreen();
 	}
-	return 1;
+	
+	loadingScreenRoot->setVisible(true);
+	mInLoadingScreen = true;
+	mLevelToLoad = levelNumber;
+	CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
 }
 
 void PGFrameListener::closeMenus(void) {

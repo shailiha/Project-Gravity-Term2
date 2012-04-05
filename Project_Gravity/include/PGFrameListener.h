@@ -78,6 +78,7 @@ private:
 	CEGUI::Window* mScroll;
 	int mNumberOfCustomLevels;
 	int mNewLevelsMade;
+	int mLevelToLoad;
 	
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
@@ -338,6 +339,7 @@ public:
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
+	void setLevelLoading(int levelNumber);
 	void closeMenus(void);
 
 	// New Terrain
