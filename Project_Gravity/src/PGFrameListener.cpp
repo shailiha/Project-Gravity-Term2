@@ -114,7 +114,7 @@ PGFrameListener::PGFrameListener (
 			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false),
 			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
 			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
-			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false),
+			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), mUserLevelLoader(NULL),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
 {
@@ -1260,8 +1260,13 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 		return false;
 	
 	if(mInLoadingScreen) {
-		loadLoadingScreen();
-		loadLevel(mLevelToLoad);
+		if(mUserLevelLoader != NULL) {
+			mUserLevelLoader->load();
+			mUserLevelLoader = NULL;
+		} 
+		else {
+			loadLevel(mLevelToLoad);
+		}
 		loadingScreenRoot->setVisible(false);
 		mInLoadingScreen = false;
 	}
@@ -2318,7 +2323,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 			CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
 
 			LevelLoad *level = new LevelLoad(this, StringConverter::toString(i));
-			loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::load, level));
+			loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::preLoad, level));
 		}
 
 		//Set buttons outside of scroll-able area
@@ -2353,7 +2358,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 				CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
 
 				LevelLoad *level = new LevelLoad(this, StringConverter::toString((i+mNumberOfCustomLevels)));
-				loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::load, level));
+				loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::preLoad, level));
 			}
 			mNewLevelsMade = 0;
 			mNumberOfCustomLevels = newNumberOfLevels;
@@ -2484,16 +2489,21 @@ bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 	return 1;
 }
 
-void PGFrameListener::setLevelLoading(int levelNumber) {
+void PGFrameListener::showLoadingScreen(void) {
 	closeMenus();
 	if(!mLoadingScreenCreated) {
 		loadLoadingScreen();
 	}
 	
 	loadingScreenRoot->setVisible(true);
-	mInLoadingScreen = true;
-	mLevelToLoad = levelNumber;
 	CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
+
+	mInLoadingScreen = true;
+}
+
+void PGFrameListener::setLevelLoading(int levelNumber) {
+	showLoadingScreen();
+	mLevelToLoad = levelNumber;
 }
 
 void PGFrameListener::closeMenus(void) {

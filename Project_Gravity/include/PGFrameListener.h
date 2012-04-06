@@ -7,6 +7,7 @@
 #include "LevelLoad.h"
 
 class Target;
+class LevelLoad;
 #define WIN32_LEAN_AND_MEAN
 const int NUM_FISH = 60;
 
@@ -263,6 +264,7 @@ public:
 	//Required public to show loading screen when loading custom levels
 	bool mLoadingScreenCreated;
 	CEGUI::Window* loadingScreenRoot;
+	LevelLoad* mUserLevelLoader;
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -339,6 +341,7 @@ public:
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
+	void showLoadingScreen(void);
 	void setLevelLoading(int levelNumber);
 	void closeMenus(void);
 
