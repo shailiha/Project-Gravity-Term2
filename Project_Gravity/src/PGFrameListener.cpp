@@ -848,6 +848,9 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 				closeMenus();
 			}
 			else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
+				if(editMode) {
+					mSpawnObject->detachAllObjects();
+				}
 				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
 				loadInGameMenu();
 				inGameMenuRoot->setVisible(true);
@@ -906,6 +909,8 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			objSpawnType = 6;
 			mSpawnObject->detachAllObjects();
 			mSpawnObject->attachObject(palm2Entity);
+		} else if(evt.key == OIS::KC_0) {
+			mSpawnObject->detachAllObjects();
 		}
 		//Rotation of object to spawn
 		else if (evt.key == OIS::KC_NUMPAD0)
@@ -1181,7 +1186,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 		case 1: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
 		case 2: name = "Coconut"; mesh = "Coco.mesh"; mass = 0; break;
 		case 3: name = "Target"; mesh = "Target.mesh"; mass = 0; break;
-		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 50; break;
+		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; break;
 		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; break;
 		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; break;
 		default: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
@@ -1213,9 +1218,8 @@ void PGFrameListener::placeNewObject(int objectType) {
 	object[22] = "0"; //rotation in z
 	object[23] = "0"; //has billboard?
 
-	mNumEntitiesInstanced++;
 	Target* newObject = new Target(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
-	
+		
 	//We want our collision callback function to work with all level objects
 	newObject->getBody()->getBulletRigidBody()->setCollisionFlags(playerBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
@@ -1230,6 +1234,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 		default: levelBodies.push_back(newObject);
 	}
 	mBodies.push_back(newObject->getBody());
+	mNumEntitiesInstanced++;
 }
 
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)

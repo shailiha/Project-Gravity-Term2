@@ -28,7 +28,7 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	Entity* entity = mSceneMgr->createEntity(mName + StringConverter::toString(mNumEntitiesInstanced), mMesh);
 	
 	AxisAlignedBox boundingB = entity->getBoundingBox();
-	Vector3 size = boundingB.getSize() * mScale.x;
+	Vector3 size = boundingB.getSize() * mScale;
 	size /= 2.0f;
 	size *= 0.95f;
 		
@@ -47,17 +47,10 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	} 
 	else if(mName == "Palm") {
 		OgreBulletCollisions::CompoundCollisionShape *copyOfPalmShape;
-		//if(mPalmCollisionShape == NULL) {
-			//std::cout << "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH" << std::endl;
 			OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(entity);
 			OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
 			mPalmCollisionShape = ccs;
 			copyOfPalmShape = mPalmCollisionShape;
-			
-		//} else {
-		//	btCompoundShape *underlyingShapeCopy = new btCompoundShape(*dynamic_cast<btCompoundShape *>(mPalmCollisionShape->getBulletShape()));
-		//	copyOfPalmShape = new OgreBulletCollisions::CompoundCollisionShape(underlyingShapeCopy);
-		//}
 	
 		Ogre::Vector3 scale = objectNode->getScale();
 		btVector3 scale2(scale.x, scale.y, scale.z);
@@ -71,7 +64,7 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 
 	mBody->setCastShadows(true);
 
-	//Add a billboard for scores if necessary
+	//Add a billboard for scores if necessary+
 	if(mBillBoard != 0) {
 		mText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "100", "000_@KaiTi_33", 17.0f);
 		mText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
