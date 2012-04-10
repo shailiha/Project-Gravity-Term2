@@ -72,8 +72,10 @@ private:
 	bool mInGameMenuCreated;
 	bool mInLevelMenu;
 	bool mInUserLevelMenu;
+	bool mInControlMenu;
 	bool mLevelMenuCreated;
 	bool mUserLevelMenuCreated;
+	bool mControlScreenCreated;
 	bool mBackPressedFromMainMenu;
 	//For updating Custom Level loader menu when new levels made
 	CEGUI::Window* mScroll;
@@ -86,6 +88,8 @@ private:
 	CEGUI::Window* inGameMenuRoot;
 	CEGUI::Window* levelMenuRoot;
 	CEGUI::Window* userLevelMenuRoot;
+	CEGUI::Window* controlScreenRoot;
+	CEGUI::Window* controlsScreen;
 	CEGUI::Window* loadingScreen;
 	CEGUI::Window* inGame;
 	CEGUI::Window* mainMenu;
@@ -330,6 +334,7 @@ public:
 	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
 	void loadUserLevelSelectorMenu(void);
+	void loadControlsScreen(void);
 	bool newGame(const CEGUI::EventArgs& e);
 	bool launchEditMode(const CEGUI::EventArgs& e);
 	bool loadLevelPressed(const CEGUI::EventArgs& e);
@@ -342,6 +347,7 @@ public:
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
 	void showLoadingScreen(void);
+	bool showControlScreen(const CEGUI::EventArgs& e);
 	void setLevelLoading(int levelNumber);
 	void closeMenus(void);
 
