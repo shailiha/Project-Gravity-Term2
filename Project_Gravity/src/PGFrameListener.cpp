@@ -1387,11 +1387,38 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 
 void PGFrameListener::moveTargets(double evtTime){
 	spinTime += evtTime;
-	auto targetIt = levelTargets.begin();
 
+	auto targetIt = levelBodies.begin();
+	while(targetIt != levelBodies.end()) {
+		Target *target = *targetIt;
+		if(target->mAnimated) {
+			target->move(spinTime, evtTime);
+		}
+		targetIt++;
+	}
+
+	targetIt = levelCoconuts.begin();
+	while(targetIt != levelCoconuts.end()) {
+		Target *target = *targetIt;
+		if(target->mAnimated) {
+			target->move(spinTime, evtTime);
+		}
+		targetIt++;
+	}
+	targetIt = levelTargets.begin();
 	while(targetIt != levelTargets.end()) {
 		Target *target = *targetIt;
-		target->move(spinTime, evtTime);
+		if(target->mAnimated) {
+			target->move(spinTime, evtTime);
+		}
+		targetIt++;
+	}
+	targetIt = levelBlocks.begin();
+	while(targetIt != levelBlocks.end()) {
+		Target *target = *targetIt;
+		if(target->mAnimated) {
+			target->move(spinTime, evtTime);
+		}
 		targetIt++;
 	}
 }
