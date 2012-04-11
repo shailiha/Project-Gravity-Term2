@@ -170,7 +170,7 @@
 	<Image Name="MultiLineEditboxBackdrop" XPos="52" YPos="89" Width="6" Height="6" />
 	<Image Name="MultiLineEditboxSelectionBrush" XPos="9" YPos="71" Width="14" Height="14" />
 	<Image Name="MouseTarget" XPos="182" YPos="127" Width="17" Height="17" XOffset="-8" YOffset="-8" />
-	<Image Name="MouseArrow" XPos="138" YPos="127" Width="31" Height="25" XOffset="0" YOffset="0" />
+	<Image Name="MouseArrow" XPos="48" YPos="198" Width="64" Height="58" XOffset="0" YOffset="0" />
 	<Image Name="MouseMoveCursor" XPos="201" YPos="127" Width="18" Height="18" XOffset="-8" YOffset="-8" />
 	<Image Name="MouseNoSoCursor" XPos="221" YPos="127" Width="8" Height="18" XOffset="-3" YOffset="-8" />
 	<Image Name="MouseEsWeCursor" XPos="182" YPos="150" Width="18" Height="8" XOffset="-8" YOffset="-3" />
