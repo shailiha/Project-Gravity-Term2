@@ -23,13 +23,13 @@ material ShadowCaster
       {
          lighting off
          
-         cull_software none
-         cull_hardware none
+         //cull_software none
+         //cull_hardware none
          
          alpha_rejection greater 150
          
-         depth_check on
-         depth_write on
+         //depth_check on
+         //depth_write on
          
          // Vertex program reference
          vertex_program_ref ShadowCaster/VP

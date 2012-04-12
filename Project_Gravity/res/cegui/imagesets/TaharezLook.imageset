@@ -75,10 +75,10 @@
 	<Image Name="MiniVertScrollThumbMiddleHover" XPos="223" YPos="65" Width="7" Height="5" />
 	<Image Name="MiniVertScrollThumbBottomHover" XPos="223" YPos="76" Width="7" Height="5" />
 	<Image Name="MiniVertScrollThumbHover" XPos="223" YPos="59" Width="7" Height="22" />
-	<Image Name="MiniVertScrollUpNormal" XPos="194" YPos="60" Width="10" Height="9" />
-	<Image Name="MiniVertScrollDownNormal" XPos="182" YPos="59" Width="10" Height="9" />
-	<Image Name="MiniVertScrollUpHover" XPos="194" YPos="70" Width="10" Height="9" />
-	<Image Name="MiniVertScrollDownHover" XPos="182" YPos="69" Width="10" Height="9" />
+	<Image Name="MiniVertScrollUpNormal" XPos="120" YPos="168" Width="25" Height="14" />
+	<Image Name="MiniVertScrollDownNormal" XPos="93" YPos="168" Width="25" Height="14" />
+	<Image Name="MiniVertScrollUpHover" XPos="120" YPos="184" Width="25" Height="14" />
+	<Image Name="MiniVertScrollDownHover" XPos="93" YPos="184" Width="25" Height="14" />
 	<Image Name="VertSliderBody" XPos="234" YPos="2" Width="9" Height="48" />
 	<Image Name="VertSliderThumbNormal" XPos="217" YPos="28" Width="15" Height="6" />
 	<Image Name="VertSliderThumbHover" XPos="217" YPos="36" Width="15" Height="6" />
@@ -170,7 +170,7 @@
 	<Image Name="MultiLineEditboxBackdrop" XPos="52" YPos="89" Width="6" Height="6" />
 	<Image Name="MultiLineEditboxSelectionBrush" XPos="9" YPos="71" Width="14" Height="14" />
 	<Image Name="MouseTarget" XPos="182" YPos="127" Width="17" Height="17" XOffset="-8" YOffset="-8" />
-	<Image Name="MouseArrow" XPos="138" YPos="127" Width="31" Height="25" XOffset="0" YOffset="0" />
+	<Image Name="MouseArrow" XPos="48" YPos="198" Width="64" Height="58" XOffset="0" YOffset="0" />
 	<Image Name="MouseMoveCursor" XPos="201" YPos="127" Width="18" Height="18" XOffset="-8" YOffset="-8" />
 	<Image Name="MouseNoSoCursor" XPos="221" YPos="127" Width="8" Height="18" XOffset="-3" YOffset="-8" />
 	<Image Name="MouseEsWeCursor" XPos="182" YPos="150" Width="18" Height="8" XOffset="-8" YOffset="-3" />

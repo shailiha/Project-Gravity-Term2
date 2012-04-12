@@ -7,6 +7,7 @@
 #include "LevelLoad.h"
 
 class Target;
+class LevelLoad;
 #define WIN32_LEAN_AND_MEAN
 const int NUM_FISH = 60;
 
@@ -66,23 +67,30 @@ private:
 	//Menu flags
 	bool mMainMenu;
 	bool mMainMenuCreated;
+	bool mInLoadingScreen;
 	bool mInGameMenu;
 	bool mInGameMenuCreated;
 	bool mInLevelMenu;
 	bool mInUserLevelMenu;
+	bool mInControlMenu;
 	bool mLevelMenuCreated;
 	bool mUserLevelMenuCreated;
+	bool mControlScreenCreated;
 	bool mBackPressedFromMainMenu;
 	//For updating Custom Level loader menu when new levels made
 	CEGUI::Window* mScroll;
 	int mNumberOfCustomLevels;
 	int mNewLevelsMade;
-
+	int mLevelToLoad;
+	
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
 	CEGUI::Window* inGameMenuRoot;
 	CEGUI::Window* levelMenuRoot;
 	CEGUI::Window* userLevelMenuRoot;
+	CEGUI::Window* controlScreenRoot;
+	CEGUI::Window* controlsScreen;
+	CEGUI::Window* loadingScreen;
 	CEGUI::Window* inGame;
 	CEGUI::Window* mainMenu;
 	CEGUI::Window* inGameMenu;
@@ -136,6 +144,7 @@ private:
 	Vector3												mFishLastDirection[NUM_FISH];
 	Ogre::AnimationState*								mFishAnim[NUM_FISH];
 	int													mFishAlive;
+	int													mFishNumber;
 	OgreBulletCollisions::HeightmapCollisionShape *mTerrainShape;
 
 	// Gravity gun object selection
@@ -208,16 +217,19 @@ private:
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
-	std::deque<OgreBulletDynamics::RigidBody *> levelBodies;
-	std::deque<OgreBulletDynamics::RigidBody *> levelCoconuts;
+	std::deque<Target *> levelBodies;
+	std::deque<Target *> levelCoconuts;
 	std::deque<Target *> levelTargets;
-	std::deque<OgreBulletDynamics::RigidBody *> levelBlocks;
-	std::deque<OgreBulletDynamics::RigidBody *> levelPalms;
+	std::deque<Target *> levelBlocks;
+	std::deque<Target *> levelPalms;
+	std::deque<AnimationState *> levelPalmAnims;
 	//preview objects
 	Ogre::Entity *boxEntity;
 	Ogre::Entity *coconutEntity;
 	Ogre::Entity *targetEntity;
 	Ogre::Entity *blockEntity;
+	Ogre::Entity *palm1Entity;
+	Ogre::Entity *palm2Entity;
 	SceneNode* billNodes[6];
 	MovableText* targetText[6];
 	double targetTextAnim[6];
@@ -234,10 +246,28 @@ private:
 						mAmbientGradient;
 
 	bool weatherSystem;
-
+	
+	Ogre::SceneNode* pTerrainNode;
+	OgreBulletDynamics::RigidBody *defaultTerrainBody;
 	Ogre::TerrainGlobalOptions* mTerrainGlobals;
     Ogre::TerrainGroup* mTerrainGroup;
     bool mTerrainsImported;
+	Ogre::Light* light;
+	Ogre::Vector3 lightdir;
+	bool reloadTerrainShape;
+
+    OgreBulletDynamics::RigidBody *platformBody;
+	SceneNode *platformNode;
+	Entity *platformEntity;
+	Ogre::MaterialPtr platformMat;
+	bool beginJenga;
+	bool newPlatformShape;
+	Quaternion platformOr;
+	bool platformGoingUp;
+	bool platformGoingDown;
+	Vector3 platformContact;
+	String scheme;
+	bool spawnedPlatform;
 
 public:
     PGFrameListener(
@@ -251,6 +281,14 @@ public:
 		SceneNode *pNode,
 		SceneNode *pNodeHeight);
 	~PGFrameListener();
+
+	//Variable required to prevent palm tree collision shape being re-created
+	bool mPalmShapeCreated;
+	
+	//Required public to show loading screen when loading custom levels
+	bool mLoadingScreenCreated;
+	CEGUI::Window* loadingScreenRoot;
+	LevelLoad* mUserLevelLoader;
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -278,6 +316,7 @@ public:
 	void UpdateSpeedFactor(double factor);
 	void spawnBox(void);
 	void createBulletTerrain(void);
+	void changeBulletTerrain(void);
 	void createRobot(void);
 	void createCaelumSystem(void);
 	void createCubeMap();
@@ -292,16 +331,17 @@ public:
 	void moveFish(double timeSinceLastFrame);
 	void moveTargets(double evtTime);
 	void spawnFish(void);
+	void changeLevelFish();
 
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
+	std::stringstream generateObjectStringForSaving(std::deque<Target *> queue);
 	int findUniqueName(void);
 	void loadLevel(int levelNo);
 	void loadObjectFile(int levelNo, bool userLevel);
-	void loadPalmFile(int levelNo);
 	void loadLevelObjects(std::string object[24]);
-	void loadLevelPalms(std::string object[12]);
+	void clearLevel(void) ;
 	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
 	void clearTargets(std::deque<Target *> &queue);
 	void clearPalms(std::deque<SceneNode *> &queue);
@@ -311,11 +351,14 @@ public:
 	void animatePalms(const Ogre::FrameEvent& evt);
 
 	//Menu-related
+	void loadLoadingScreen(void);
 	void loadMainMenu(void);
 	void loadInGameMenu(void);
 	void loadLevelSelectorMenu(void); 
 	void loadUserLevelSelectorMenu(void);
-	bool newGame(const CEGUI::EventArgs& e); //temp
+	void loadControlsScreen(void);
+	bool newGame(const CEGUI::EventArgs& e);
+	bool launchEditMode(const CEGUI::EventArgs& e);
 	bool loadLevelPressed(const CEGUI::EventArgs& e);
 	bool loadUserLevelPressed(const CEGUI::EventArgs& e);
 	bool levelBackPressed(const CEGUI::EventArgs& e);
@@ -325,6 +368,9 @@ public:
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
+	void showLoadingScreen(void);
+	bool showControlScreen(const CEGUI::EventArgs& e);
+	void setLevelLoading(int levelNumber);
 	void closeMenus(void);
 
 	// New Terrain
@@ -333,6 +379,12 @@ public:
     void initBlendMaps(Ogre::Terrain* terrain);
     void configureTerrainDefaults(Ogre::Light* light);
 	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img);
+	void createJengaPlatform();
+	void destroyJengaPlatform();
+	void moveJengaPlatform(double timeSinceLastFrame);
+
+	//Loading screen tests
+	double mFrameCount;
 };
 
 #endif

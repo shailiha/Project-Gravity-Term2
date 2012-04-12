@@ -30,6 +30,7 @@ fragment_program Jenga_Shadows/FP hlsl
 
 material Jenga
 {
+
    technique
    {	  
       pass

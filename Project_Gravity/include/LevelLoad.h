@@ -12,7 +12,8 @@ public:
 	std::string mLevelName;
 
 	LevelLoad(PGFrameListener* frameListener, const std::string &levelName);
-	bool load(const CEGUI::EventArgs& e);
+	bool preLoad(const CEGUI::EventArgs& e);
+	void load(void);
 	~LevelLoad();
 };
 

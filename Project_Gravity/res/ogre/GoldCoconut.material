@@ -1,0 +1,117 @@
+// Bump map vertex program, support for this is required
+vertex_program BumpMapVP cg
+{
+	source Example_BumpMapping.cg
+	entry_point main_vp
+	profiles vs_1_1 arbvp1
+}
+
+// Bump map vertex program, with tangent parity support for this is required
+vertex_program BumpMapVPTangentParity cg
+{
+	source Example_BumpMapping.cg
+	entry_point main_vp
+	profiles vs_1_1 arbvp1
+	compile_arguments -DTANGENTS_HAVE_PARITY=1
+}
+
+// Bump map fragment program, support for this is optional
+fragment_program BumpMapFP cg
+{
+	source Example_BumpMapping.cg
+	entry_point main_fp
+	profiles ps_2_0 arbfp1
+}
+
+// Bump map vertex program shadow receiver
+vertex_program BumpMapVPShadowRcv cg
+{
+	source Example_BumpMapping.cg
+	entry_point main_shadowreceiver_vp
+	profiles vs_1_1 arbvp1
+}
+// Bump map fragment program shadow receiver, support for this is optional
+fragment_program BumpMapFPShadowRcv cg
+{
+	source Example_BumpMapping.cg
+	entry_point main_shadowreceiver_fp
+	profiles ps_2_0 arbfp1
+}
+
+
+// Bump map with specular vertex program, support for this is required
+vertex_program BumpMapVPSpecular cg
+{
+	source Example_BumpMapping.cg
+	entry_point specular_vp
+	profiles vs_1_1 arbvp1
+}
+
+// Bump map fragment program, support for this is optional
+fragment_program BumpMapFPSpecular cg
+{
+	source Example_BumpMapping.cg
+	entry_point specular_fp
+	profiles ps_2_0 arbfp1
+}
+
+// Any number of lights, diffuse
+material GoldCoconut
+{
+	receive_shadows off
+	// This is the preferred technique which uses both vertex and
+	// fragment programs, supports coloured lights
+	technique
+	{
+
+		// Decal pass
+		pass decal
+		{
+            	 shading gouraud
+
+			scene_blend alpha_blend
+
+			// Vertex program reference
+			vertex_program_ref BumpMapVP
+			{
+				param_named_auto lightPosition light_position_object_space 0
+				param_named_auto worldViewProj worldviewproj_matrix
+			}
+
+			// Fragment program
+			fragment_program_ref BumpMapFP
+			{
+				param_named_auto lightDiffuse light_diffuse_colour 0 
+				param_named_auto ambient ambient_light_colour
+			}
+
+			// texture shadow receiver program
+			shadow_receiver_vertex_program_ref Examples/BumpMapVPShadowRcv
+			{
+				param_named_auto lightPosition light_position_object_space 0
+				param_named_auto worldViewProj worldviewproj_matrix
+				param_named_auto worldMatrix world_matrix
+				param_named_auto texViewProj texture_viewproj_matrix
+			}
+			// Additive texture shadow receiver program
+			shadow_receiver_fragment_program_ref Examples/BumpMapFPShadowRcv
+			{
+				param_named_auto lightDiffuse light_diffuse_colour 0 
+			}
+			// Base bump map
+			texture_unit normalMap
+			{
+				texture GoldCoconutNormal.jpg
+				tex_coord_set 0
+				colour_op replace
+
+			}
+			texture_unit alphaMap
+			{
+				texture GoldCoconut.png
+				tex_coord_set 1
+				colour_op add
+			}
+		}
+	}
+}

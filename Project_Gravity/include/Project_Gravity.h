@@ -23,8 +23,7 @@ public:
     void loadResources(void);
 	void createResourceListener(void);
     bool quit(const CEGUI::EventArgs &e);
-	void createWindows(void);
-	//void setupPSSMShadows();
+	void initCEGUI(void);
 	void setupLiSpSMShadows();
 
 private:
@@ -46,7 +45,8 @@ private:
     Ogre::TerrainGroup* mTerrainGroup;
     bool mTerrainsImported;
  
-	CEGUI::OgreRenderer* mRenderer;	
+	CEGUI::OgreRenderer* mRenderer;
+
 	Ogre::SceneNode* playerNode;
 	Ogre::SceneNode* playerNodeHeight;
 	Ogre::SceneNode* gravityGun;

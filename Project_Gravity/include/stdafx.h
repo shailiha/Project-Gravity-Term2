@@ -14,6 +14,7 @@
 #include "Shapes/OgreBulletCollisionsTerrainShape.h"	 // for the terrain
 #include "Shapes/OgreBulletCollisionsCapsuleShape.h"	// for player capsule
 #include "Shapes/OgreBulletCollisionsTrimeshShape.h"
+#include "Shapes/OgreBulletCollisionsCompoundShape.h"
 #include "Utils\OgreBulletCollisionsMeshToShapeConverter.h"
 #include "Shapes\OgreBulletCollisionsCylinderShape.h"
 #include "OgreSceneManager.h"

@@ -7,10 +7,15 @@ LevelLoad::LevelLoad(PGFrameListener* frameListener, const std::string &levelNam
 
 }
 
-bool LevelLoad::load(const CEGUI::EventArgs& e) {
-	mFrameListener->closeMenus();
-	mFrameListener->loadObjectFile(atoi(mLevelName.c_str()), true);
+bool LevelLoad::preLoad(const CEGUI::EventArgs& e) {
+	mFrameListener->showLoadingScreen();
+	mFrameListener->mUserLevelLoader = this;
 	return true;
+}
+
+void LevelLoad::load() {
+	mFrameListener->clearLevel();
+	mFrameListener->loadObjectFile(atoi(mLevelName.c_str()), true);
 }
 
 LevelLoad::~LevelLoad() {

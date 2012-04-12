@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Target.h"
 
+OgreBulletCollisions::CompoundCollisionShape* Target::mPalmCollisionShape = NULL;
+
 Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld *mWorld, int mNumEntitiesInstanced, SceneManager* mSceneMgr, std::string object[24])
 {
 	std::cout << "loading object" << std::endl;
@@ -26,7 +28,7 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	Entity* entity = mSceneMgr->createEntity(mName + StringConverter::toString(mNumEntitiesInstanced), mMesh);
 	
 	AxisAlignedBox boundingB = entity->getBoundingBox();
-	Vector3 size = boundingB.getSize() * mScale.x;
+	Vector3 size = boundingB.getSize() * mScale;
 	size /= 2.0f;
 	size *= 0.95f;
 		
@@ -36,6 +38,7 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	
 	mBody = new OgreBulletDynamics::RigidBody(mName + StringConverter::toString(mNumEntitiesInstanced), mWorld);
 
+	//Different objects require different collision shapes
 	if(mName == "Target") {
 		OgreBulletCollisions::CylinderCollisionShape* ccs = new OgreBulletCollisions::CylinderCollisionShape(size, Ogre::Vector3(0,0,1));	
 		mBody->setShape(objectNode, ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
@@ -43,21 +46,42 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 	} 
 	else if(mName == "Palm") {
-		OgreBulletCollisions::AnimatedMeshToShapeConverter* acs = new OgreBulletCollisions::AnimatedMeshToShapeConverter(entity);
-		OgreBulletCollisions::CompoundCollisionShape* ccs = acs->createConvexDecomposition();
+		//OgreBulletCollisions::CompoundCollisionShape *copyOfPalmShape;
+		OgreBulletCollisions::StaticMeshToShapeConverter* acs = new OgreBulletCollisions::StaticMeshToShapeConverter(entity);
+		OgreBulletCollisions::TriangleMeshCollisionShape* ccs = acs->createTrimesh();
 		OgreBulletCollisions::CollisionShape* f = (OgreBulletCollisions::CollisionShape*) ccs;
 	
 		Ogre::Vector3 scale = objectNode->getScale();
 		btVector3 scale2(scale.x, scale.y, scale.z);
 		f->getBulletShape()->setLocalScaling(scale2);
 		mBody->setShape(objectNode, (OgreBulletCollisions::CollisionShape*) ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
+
+		palmAnimation = entity->getAnimationState("my_animation");
+	}
+	else if(mName == "GoldCoconut") {
+
+		float biggestSize = 0;
+		if (size.x > biggestSize)
+			biggestSize = size.x;
+		if (size.y > biggestSize)
+			biggestSize = size.y;
+		if (size.z > biggestSize)
+			biggestSize = size.z;
+
+		entity->setMaterialName("GoldCoconut");
+		OgreBulletCollisions::CollisionShape *sceneSphereShape = new OgreBulletCollisions::SphereCollisionShape(biggestSize);
+ 		mBody->setShape(objectNode, sceneSphereShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
+		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+
 	}
 	else {
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
 		mBody->setShape(objectNode, sceneBoxShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
-		mBody->setCastShadows(true);
 	}
 
+	mBody->setCastShadows(true);
+
+	//Add a billboard for scores if necessary+
 	if(mBillBoard != 0) {
 		mText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "100", "000_@KaiTi_33", 17.0f);
 		mText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
@@ -144,6 +168,11 @@ bool Target::targetHit()
 OgreBulletDynamics::RigidBody* Target::getBody()
 {
 	return mBody;
+}
+
+AnimationState *Target::getPalmAnimation()
+{
+	return palmAnimation;
 }
 
 Target::~Target() 

@@ -110,7 +110,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
@@ -130,10 +130,13 @@
     <ResourceCompile Include="res\Project_Gravity.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\GlowMaterialListener.h" />
     <ClInclude Include="include\LevelLoad.h" />
     <ClInclude Include="include\MovableText.h" />
     <ClInclude Include="include\PGFrameListener.h" />
     <ClInclude Include="include\Project_Gravity.h" />
+    <ClInclude Include="include\Scene.h" />
+    <ClInclude Include="include\SplashScreen.h" />
     <ClInclude Include="include\stdafx.h" />
     <ClInclude Include="include\Target.h" />
     <ClInclude Include="res\Resource.h" />
@@ -144,6 +147,8 @@
     <ClCompile Include="src\MovableText.cpp" />
     <ClCompile Include="src\PGFrameListener.cpp" />
     <ClCompile Include="src\Project_Gravity.cpp" />
+    <ClCompile Include="src\Scene.cpp" />
+    <ClCompile Include="src\SplashScreen.cpp" />
     <ClCompile Include="src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
