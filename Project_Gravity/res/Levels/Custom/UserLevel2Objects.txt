@@ -1,7 +1,9 @@
-# Name, mesh, posX, posY, posZ, orientationX, orientationY, orientationZ, orientationW,
-# scaleX, scaleY, scaleZ, restitution, friction, mass,
-# animate, xMovement, yMovement, zMovement, speed, rotationX, rotationY, rotationZ, billboard
-# Note: Do not leave spaces between commas and values
-#		animate and billboard are boolean values (0, 1)
-Box,cube.mesh,1550,300,850,0,0,0,1,2,2,2,0.6,0.93,1.0,0,50,50,0,0,0,0,0,1
-Box,cube.mesh,1640,220,2175,1,0,0,0,3,3,3,0.6,0.93,1.0,0,0,50,0,0,0,0,0,1
+Crate,Crate.mesh,663,221,1859,1,0,0,0,15,15,15,0.1,0.93,0,0,0,0,0,1,0,0,0,0,
+Crate,Crate.mesh,871,143,1703,1,0,0,0,15,15,15,0.1,0.93,0,0,0,0,0,1,0,0,0,0,
+Coconut,Coco.mesh,559,143,2353,0.608761,0.793353,0,0,15,15,15,0.1,0.93,0,0,0,0,0,1,0,0,0,0,
+Coconut,Coco.mesh,663,117,2535,0.608761,0.793353,0,0,15,15,15,0.1,0.93,0,0,0,0,0,1,0,0,0,0,
+Target,Target.mesh,845,143,2327,0.608761,0.793353,0,0,15,15,15,0.1,0.93,0,0,0,0,0,1,0,0,0,0,
+Target,Target.mesh,455,143,2197,0.608761,0.793353,0,0,15,15,15,0.1,0.93,0,0,0,0,0,1,0,0,0,0,
+DynBlock,Jenga.mesh,948.604,122.96,1753.72,0.649353,0.758218,0.0258421,0.0527073,15,15,15,0.1,0.93,50,0,0,0,0,1,0,0,0,0,
+DynBlock,Jenga.mesh,789.505,138.379,1516.92,0.672984,0.718321,0.00165914,0.176365,15,15,15,0.1,0.93,50,0,0,0,0,1,0,0,0,0,
+DynBlock,Jenga.mesh,1130.13,109.711,1910.03,0.649936,0.758786,0.00973973,0.0416263,15,15,15,0.1,0.93,50,0,0,0,0,1,0,0,0,0,
