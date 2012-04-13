@@ -404,6 +404,11 @@ PGFrameListener::PGFrameListener (
 	gravityGun->attachObject(gunParticle2);
 	gunParticle->setEmitting(false);
 	gunParticle2->setEmitting(false);
+	//Sun :D
+	sunParticle = mSceneMgr->createParticleSystem("Sun", "Sun");
+	sunNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("SunNode");
+	sunNode->attachObject(sunParticle);
+	sunParticle->setEmitting(true);
 }
 
 void PGFrameListener::setupPSSMShadows()
@@ -668,6 +673,10 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 					p2p->setPivotB (newPos);   
 				}
 			}
+			//Set sun particle
+			Ogre::Vector3 sunPosition = mCaelumSystem->getSun()->getMainLight()->getDerivedDirection() * -80000;
+			sunNode->setPosition(sunPosition);
+			//std::cout << sunPosition << std::endl;
 		} //End of non-menu specifics
 
 		//Keep player upright

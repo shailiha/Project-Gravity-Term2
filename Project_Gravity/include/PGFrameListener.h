@@ -34,6 +34,8 @@ private:
 	bool hideHydrax;
 	ParticleSystem* gunParticle; //For particles
 	ParticleSystem* gunParticle2;
+	ParticleSystem* sunParticle; //For the Sun :D
+	SceneNode *sunNode;
 	float stepTime;
 	
 	//Is level complete?
