@@ -84,6 +84,12 @@ private:
 	int mNumberOfCustomLevels;
 	int mNewLevelsMade;
 	int mLevelToLoad;
+
+	//Level Aims flags
+	CEGUI::Window* level1AimsRoot;
+	bool mLevel1AimsCreated;
+	bool mLevel1AimsOpen;
+
 	
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
@@ -374,6 +380,9 @@ public:
 	bool showControlScreen(const CEGUI::EventArgs& e);
 	void setLevelLoading(int levelNumber);
 	void closeMenus(void);
+
+	//Level Aims
+	void loadLevel1Aims(void);
 
 	// New Terrain
 	void createTerrain();
