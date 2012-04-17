@@ -912,7 +912,8 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     }
     else if (evt.key == OIS::KC_ESCAPE)
     {
-        if(!mMainMenu && !mBackPressedFromMainMenu && !mLevel1AimsOpen && !mLevel2AimsOpen) {
+        if(!mMainMenu && !mBackPressedFromMainMenu && !mLevel1AimsOpen && !mLevel2AimsOpen
+			 && !mLevel1CompleteOpen && !mLevelFailedOpen) {
 			mInGameMenu = !mInGameMenu; //Toggle menu
 			freeRoam = !freeRoam;
 			if(!mInGameMenu) {//If no longer in in-game menu then close menus
@@ -929,7 +930,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		}
     }
 	else if(evt.key == (OIS::KC_TAB)) {
-		if(!mInGameMenu && !mMainMenu) {
+		if(!mInGameMenu && !mMainMenu && !mLevel1CompleteOpen && !mLevelFailedOpen) {
 			if(currentLevel == 1) {
 				mLevel1AimsOpen = !mLevel1AimsOpen;
 				freeRoam = !freeRoam;
@@ -2848,12 +2849,6 @@ void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, 
 		completeScreen->setProperty("Image","set:level1complete image:level1CompleteImage");
 		completeScreen->setProperty( "BackgroundEnabled", "False" );
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeScreen); //Attach to current (inGameMenuRoot) GUI sheet	
-
-		CEGUI::Window* completeTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1completeText");
-		completeTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
-		completeTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.2,0)));
-		completeTxt->setText("Level Complete!");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeTxt);
 		
 		CEGUI::Window* timeTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1TimerText");
 		timeTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
