@@ -2292,7 +2292,8 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
 			{
 				//update score
-				levelScore += 100;
+				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 10000);
+				std::cout << "Score: " << levelScore << std::endl;
 				(*itLevelTargets)->counted = true;
 			}
 
