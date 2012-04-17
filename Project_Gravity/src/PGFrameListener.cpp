@@ -164,7 +164,7 @@ PGFrameListener::PGFrameListener (
 			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
 			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
 			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), mUserLevelLoader(NULL), 
-			mControlScreenCreated(false), mInControlMenu(false), mLevel1AimsCreated(false), mLevel1AimsOpen(false),
+			mControlScreenCreated(false), mInControlMenu(false), mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
 {
@@ -911,7 +911,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     }
     else if (evt.key == OIS::KC_ESCAPE)
     {
-        if(!mMainMenu && !mBackPressedFromMainMenu && !mLevel1AimsOpen) {
+        if(!mMainMenu && !mBackPressedFromMainMenu && !mLevel1AimsOpen && !mLevel2AimsOpen) {
 			mInGameMenu = !mInGameMenu; //Toggle menu
 			freeRoam = !freeRoam;
 			if(!mInGameMenu) {//If no longer in in-game menu then close menus
@@ -931,6 +931,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		if(!mInGameMenu && !mMainMenu) {
 			if(currentLevel == 1) {
 				mLevel1AimsOpen = !mLevel1AimsOpen;
+				freeRoam = !freeRoam;
 				if(mLevel1AimsOpen) {
 					CEGUI::MouseCursor::getSingleton().setVisible(false);
 					if(!mLevel1AimsCreated) {
@@ -940,6 +941,23 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 				}
 				else {
 					level1AimsRoot->setVisible(false);
+					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+					CEGUI::MouseCursor::getSingleton().setVisible(true);
+				}
+			}
+			else if(currentLevel == 2) {
+				mLevel2AimsOpen = !mLevel2AimsOpen;
+				freeRoam = !freeRoam;
+				if(mLevel2AimsOpen) {
+					CEGUI::MouseCursor::getSingleton().setVisible(false);
+					if(!mLevel2AimsCreated) {
+						loadLevel2Aims();
+					}
+					level2AimsRoot->setVisible(true);
+				}
+				else {
+					level2AimsRoot->setVisible(false);
+					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
 					CEGUI::MouseCursor::getSingleton().setVisible(true);
 				}
 			}
@@ -1404,6 +1422,9 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	
 	if(mLevel1AimsOpen) {
 		loadLevel1Aims();
+	}
+	else if(mLevel2AimsOpen) {
+		loadLevel2Aims();
 	}
 	else if(mInLoadingScreen) {
 		if(mUserLevelLoader != NULL) {
@@ -2750,7 +2771,7 @@ void PGFrameListener::loadLevel1Aims() {
 		CEGUI::System::getSingleton().setGUISheet(level1AimsRoot);
 		
 		// Creating Imagesets and define images
-		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("level1aims","Level1Aims.jpg");
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("level1aims","Level1Aims.png");
 		imgs->defineImage("level1AimsImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
 
 		//Create new, inner window, set position, size and attach to root.
@@ -2758,11 +2779,35 @@ void PGFrameListener::loadLevel1Aims() {
 		aimsScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
 		aimsScreen->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
 		aimsScreen->setProperty("Image","set:level1aims image:level1AimsImage");
+		aimsScreen->setProperty( "BackgroundEnabled", "False" );
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(aimsScreen); //Attach to current (inGameMenuRoot) GUI sheet	
 		mLevel1AimsCreated = true;
 	}	
 	CEGUI::System::getSingleton().setGUISheet(level1AimsRoot);
 	level1AimsRoot->setVisible(true);
+}
+
+void PGFrameListener::loadLevel2Aims() {
+	if(!mLevel2AimsCreated) {
+		//Create root window
+		level2AimsRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_level2AimsRoot" );
+		CEGUI::System::getSingleton().setGUISheet(level2AimsRoot);
+		
+		// Creating Imagesets and define images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("level2aims","Level2Aims.png");
+		imgs->defineImage("level2AimsImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* aimsScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","Level2AimsScreen" );
+		aimsScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		aimsScreen->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		aimsScreen->setProperty("Image","set:level2aims image:level2AimsImage");
+		aimsScreen->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(aimsScreen); //Attach to current (inGameMenuRoot) GUI sheet	
+		mLevel2AimsCreated = true;
+	}	
+	CEGUI::System::getSingleton().setGUISheet(level2AimsRoot);
+	level2AimsRoot->setVisible(true);
 }
 
 bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {

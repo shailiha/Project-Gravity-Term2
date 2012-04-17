@@ -90,6 +90,9 @@ private:
 	CEGUI::Window* level1AimsRoot;
 	bool mLevel1AimsCreated;
 	bool mLevel1AimsOpen;
+	CEGUI::Window* level2AimsRoot;
+	bool mLevel2AimsCreated;
+	bool mLevel2AimsOpen;
 
 	
 	//Menu windows
@@ -390,6 +393,7 @@ public:
 
 	//Level Aims
 	void loadLevel1Aims(void);
+	void loadLevel2Aims(void);
 
 	// New Terrain
 	void createTerrain();
