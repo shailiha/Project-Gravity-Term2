@@ -468,6 +468,14 @@ PGFrameListener::PGFrameListener (
 	sunNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("SunNode");
 	sunNode->attachObject(sunParticle);
 	sunParticle->setEmitting(true);
+	//HUD
+	HUDText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 5.0f);
+	HUDText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDText->showOnTop();
+	HUDNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("HUDNode");
+	HUDNode2 = HUDNode->createChildSceneNode("HUDNode2");
+	HUDNode2->attachObject(HUDText);
+	HUDNode2->setPosition(-26,-20,0);
 }
 
 void PGFrameListener::setupPSSMShadows()
@@ -729,13 +737,15 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 					const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
 					Ogre::Vector3 dir = rayTo.getDirection () * mOldPickingDist;
 					const Ogre::Vector3 newPos (eyePos + dir);
-					p2p->setPivotB (newPos);   
+					p2p->setPivotB (newPos);  
 				}
 			}
 			//Set sun particle
 			Ogre::Vector3 sunPosition = mCaelumSystem->getSun()->getMainLight()->getDerivedDirection() * -80000;
 			sunNode->setPosition(sunPosition);
-			//std::cout << sunPosition << std::endl;
+			//Position HUD
+			HUDNode->setOrientation(mCamera->getDerivedOrientation());
+			HUDNode->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 60);
 		} //End of non-menu specifics
 
 		//Keep player upright
@@ -1472,7 +1482,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 }
 
 void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) 
-{
+{	
 	if (currentLevel == 2)
 		moveJengaPlatform(evt.timeSinceLastFrame);
 
@@ -2316,6 +2326,9 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 10000);
 				std::cout << "Score: " << levelScore << std::endl;
 				(*itLevelTargets)->counted = true;
+				targetCount++;
+				String text = String("Targets hit: "+ (StringConverter::toString(targetCount)));
+				HUDText->setCaption(text);
 			}
 
 			if ((*itLevelTargets)->targetHit() == false)
@@ -2331,6 +2344,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
 			coconutCount = 0;
+			targetCount = 0;
 		}
 	}
 	if ((currentLevel ==2) && (levelComplete ==false))

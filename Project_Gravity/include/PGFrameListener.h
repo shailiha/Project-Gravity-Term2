@@ -257,6 +257,9 @@ private:
 	Real mLastPositionLength;
 	Ogre::Real mTimeMultiplier;
 	bool mForceDisableShadows;
+	MovableText* HUDText;
+	SceneNode* HUDNode;
+	SceneNode* HUDNode2;
 
 	// Color gradients
 	SkyX::ColorGradient mWaterGradient, 
