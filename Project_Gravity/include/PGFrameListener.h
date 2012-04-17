@@ -40,6 +40,7 @@ private:
 	
 	//Is level complete?
 	bool levelComplete;
+	int levelScore;
 	
     //OIS Input devices
     OIS::InputManager* mInputManager;
@@ -224,6 +225,9 @@ private:
 	std::deque<Target *> levelTargets;
 	std::deque<Target *> levelBlocks;
 	std::deque<Target *> levelPalms;
+	std::deque<Target *> levelOrange;
+	std::deque<Target *> levelBlue;
+	std::deque<Target *> levelRed;
 	std::deque<AnimationState *> levelPalmAnims;
 	//preview objects
 	Ogre::Entity *boxEntity;
@@ -232,6 +236,9 @@ private:
 	Ogre::Entity *blockEntity;
 	Ogre::Entity *palm1Entity;
 	Ogre::Entity *palm2Entity;
+	Ogre::Entity *orangeEntity;
+	Ogre::Entity *blueEntity;
+	Ogre::Entity *redEntity;
 	SceneNode* billNodes[6];
 	MovableText* targetText[6];
 	double targetTextAnim[6];

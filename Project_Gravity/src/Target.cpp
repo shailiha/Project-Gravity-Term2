@@ -25,12 +25,14 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 	mRotationZ = atof(object[22].c_str());
 	mBillBoard = atoi(object[23].c_str());
 
+	counted = false;
+
 	Entity* entity = mSceneMgr->createEntity(mName + StringConverter::toString(mNumEntitiesInstanced), mMesh);
 	
 	AxisAlignedBox boundingB = entity->getBoundingBox();
 	Vector3 size = boundingB.getSize() * mScale;
 	size /= 2.0f;
-	size *= 0.95f;
+	size *= 0.97f;
 		
 	SceneNode* objectNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
  	objectNode->attachObject(entity);
@@ -163,6 +165,11 @@ bool Target::targetHit()
 		return false;
 	else
 		return true;
+}
+
+bool Target::targetCounted()
+{
+	return counted;
 }
 
 OgreBulletDynamics::RigidBody* Target::getBody()

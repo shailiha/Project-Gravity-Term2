@@ -91,6 +91,55 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			coconut->setFriction(0.94f);
 		}
 	}
+
+	//Collisions between coconuts and red blocks
+	if (((obj0Friction==0.61f) && (obj1Friction==0.72f))
+		||((obj0Friction==0.72f) && (obj1Friction==0.61f)))
+	{
+		if (obj0Friction==0.61f)
+		{
+			btRigidBody* red = (btRigidBody*)obj1;
+			red->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* red = (btRigidBody*)obj0;
+			red->setFriction(0.94f);
+		}
+		std::cout << "Fail - you hit a red block with a coconut D:" << std::endl;
+	}
+	//Collisions between orange blocks and the ground (ground has friction of 0.8)
+	if (((obj0Friction==0.8f) && (obj1Friction==0.7f))
+		||((obj0Friction==0.7f) && (obj1Friction==0.8f)))
+	{
+		if (obj0Friction==0.8f)
+		{
+			btRigidBody* orange = (btRigidBody*)obj1;
+			orange->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* orange = (btRigidBody*)obj0;
+			orange->setFriction(0.94f);
+		}
+		std::cout << "Orange block" << std::endl;
+	}
+	//Collisions between blue blocks and the ground
+	if (((obj0Friction==0.8f) && (obj1Friction==0.71f))
+		||((obj0Friction==0.71f) && (obj1Friction==0.8f)))
+	{
+		if (obj0Friction==0.8f)
+		{
+			btRigidBody* blue = (btRigidBody*)obj1;
+			blue->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* blue = (btRigidBody*)obj0;
+			blue->setFriction(0.94f);
+		}
+		std::cout << "Fail - you let a blue block touch the ground D:" << std::endl;
+	}
 	return true;
 }
 
@@ -169,6 +218,7 @@ PGFrameListener::PGFrameListener (
 	spawnDistance = 500;
 	currentLevel = 1;
 	levelComplete = false;
+	levelScore = 0;
 
 	// Start Bullet
 	mNumEntitiesInstanced = 0; // how many shapes are created
@@ -302,6 +352,15 @@ PGFrameListener::PGFrameListener (
 	palm2Entity = mSceneMgr->createEntity(
 			"Palm2Default",
 			"Palm2.mesh");
+	orangeEntity = mSceneMgr->createEntity(
+		"orangeDefault",
+		"Jenga.mesh");
+	blueEntity = mSceneMgr->createEntity(
+		"blueDefault",
+		"Jenga.mesh");
+	redEntity = mSceneMgr->createEntity(
+		"redDefault",
+		"Jenga.mesh");
  	boxEntity->setCastShadows(true);
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
     mSpawnObject->attachObject(boxEntity);
@@ -921,7 +980,33 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			objSpawnType = 6;
 			mSpawnObject->detachAllObjects();
 			mSpawnObject->attachObject(palm2Entity);
-		} else if(evt.key == OIS::KC_0) {
+		}
+		else if (evt.key == OIS::KC_7) // Press 7 multiple times to toggle coloured blocks
+		{
+			if (objSpawnType!=7 && objSpawnType!=8 && objSpawnType!=9)
+			{
+				objSpawnType=7;
+			} else if (objSpawnType==7)
+			{
+				objSpawnType = 8;
+			}
+			else if (objSpawnType==8)
+			{
+				objSpawnType = 9;
+			}
+			else if (objSpawnType==9)
+			{
+				objSpawnType = 7;
+			}
+			mSpawnObject->detachAllObjects();
+			switch (objSpawnType)
+			{
+				case 7: mSpawnObject->attachObject(orangeEntity); break;
+				case 8: mSpawnObject->attachObject(blueEntity); break;
+				default: mSpawnObject->attachObject(redEntity);
+			}
+		}
+		else if(evt.key == OIS::KC_0) {
 			mSpawnObject->detachAllObjects();
 		}
 		//Rotation of object to spawn
@@ -1097,6 +1182,9 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 				}
 				else if (body->getBulletRigidBody()->getFriction() == 0.11f)
 				{}
+				else if (body->getBulletRigidBody()->getFriction() == 0.7f){}
+				else if (body->getBulletRigidBody()->getFriction() == 0.71f){}
+				else if (body->getBulletRigidBody()->getFriction() == 0.72f){}
 				else if(editMode) {
 					placeNewObject(objSpawnType);
 				}
@@ -1217,6 +1305,9 @@ void PGFrameListener::placeNewObject(int objectType) {
 		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; break;
 		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; break;
 		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; break;
+		case 7: name = "Orange"; mesh = "Jenga.mesh"; mass - 0; break;
+		case 8: name = "Blue"; mesh = "Jenga.mesh"; mass - 0; break;
+		case 9: name = "Red"; mesh = "Jenga.mesh"; mass - 0; break;
 		default: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
 	}
 	
@@ -1259,6 +1350,9 @@ void PGFrameListener::placeNewObject(int objectType) {
 		case 4: newObject->getBody()->getBulletRigidBody()->setFriction(0.80f); levelBlocks.push_back(newObject); break;
 		case 5: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelPalms.push_back(newObject); break;
 		case 6: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelPalms.push_back(newObject); break;
+		case 7: newObject->getBody()->getBulletRigidBody()->setFriction(0.70f); levelOrange.push_back(newObject); break;
+		case 8: newObject->getBody()->getBulletRigidBody()->setFriction(0.71f); levelBlue.push_back(newObject); break;
+		case 9: newObject->getBody()->getBulletRigidBody()->setFriction(0.72f); levelRed.push_back(newObject); break;
 		default: levelBodies.push_back(newObject);
 	}
 	mBodies.push_back(newObject->getBody());
@@ -1481,6 +1575,7 @@ void PGFrameListener::checkObjectsForRemoval() {
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody()); // Removes the physics box
 			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			++coconutCount;
+			levelScore += 100;
 			std::cout << "Coconut get!:\tTotal: " << coconutCount << std::endl;
 		}
 		++itLevelCoconuts;
@@ -2185,20 +2280,108 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 {
 	if ((currentLevel ==1) && (levelComplete ==false))
 	{
-		//level one ends either when the fishies get hit or when you kill all the targets
+		//level one ends when you kill all the targets
 		bool winning = true;
  		std::deque<Target *>::iterator itLevelTargets = levelTargets.begin();
  		while (levelTargets.end() != itLevelTargets)
  		{
-			winning = (*itLevelTargets)->targetHit();
-			if (winning)
-				break;
+			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
+			{
+				//update score
+				levelScore += 100;
+				(*itLevelTargets)->counted = true;
+			}
+
+			if ((*itLevelTargets)->targetHit() == false)
+			{
+				winning = false;
+			}
 			++itLevelTargets;
  		}
 		if (winning)
 		{
+			levelScore += (coconutCount*1000);
 			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
+			coconutCount = 0;
+		}
+	}
+	if ((currentLevel ==2) && (levelComplete ==false))
+	{
+		//Check for Jenga block above certain height
+		std::deque<Target *>::iterator itLevelBlocks = levelBlocks.begin();
+		while (levelTargets.end() != itLevelBlocks)
+		{
+			if ((*itLevelBlocks)->mPosition.y > 1000)
+			{
+				levelScore += 10000;
+				levelComplete = true;
+				break;
+			}
+			++itLevelBlocks;
+		}
+	}
+	if ((currentLevel ==3) && (levelComplete ==false))
+	{
+		bool winning = true;
+
+		//Check if blue blocks hit ground
+		std::deque<Target *>::iterator itLevelBlue = levelBlue.begin();
+		while (levelBlue.end() != itLevelBlue)
+		{
+			if ((*itLevelBlue)->targetHit())
+			{
+				levelComplete = true;
+				levelScore = 0;
+				std::cout << "LEVEL FAILED" << std::endl;
+				levelComplete = false;
+				coconutCount = 0;
+				break;
+			}
+			++itLevelBlue;
+		}
+
+		//Check if coconut hit red block
+		std::deque<Target *>::iterator itLevelRed = levelRed.begin();
+		while (levelRed.end() != itLevelRed)
+		{
+			if ((*itLevelRed)->targetHit())
+			{
+				levelComplete = true;
+				levelScore = 0;
+				std::cout << "LEVEL FAILED" << std::endl;
+				levelComplete = false;
+				coconutCount = 0;
+				break;
+			}
+			++itLevelBlue;
+		}
+
+		//Check orange blocks
+		std::deque<Target *>::iterator itLevelOrange = levelOrange.begin();
+		while (levelTargets.end() != itLevelOrange)
+		{
+			if (((*itLevelOrange)->targetCounted()==false) && ((*itLevelOrange)->targetHit()))
+			{
+				//update score
+				levelScore += 1000;
+				(*itLevelOrange)->counted = true;
+				std::cout << "Orange block knocked down!" << std::endl;
+			}
+			if ((*itLevelOrange)->targetHit() == false)
+			{
+				winning = false;
+			}
+			++itLevelOrange;
+		}
+		if (winning)
+		{
+			levelScore += (coconutCount*1000);
+			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Score: " << levelScore << std::endl;
+			levelComplete = true;
+			coconutCount = 0;
 		}
 	}
 }
@@ -2741,6 +2924,9 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	std::stringstream targets;
 	std::stringstream blocks;
 	std::stringstream palms;
+	std::stringstream oranges;
+	std::stringstream blues;
+	std::stringstream reds;
 	String mesh;
 	ofstream outputToFile;
 	
@@ -2756,8 +2942,11 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	targets = generateObjectStringForSaving(levelTargets);
 	blocks = generateObjectStringForSaving(levelBlocks);
 	palms = generateObjectStringForSaving(levelPalms);
+	oranges = generateObjectStringForSaving(levelOrange);
+	blues = generateObjectStringForSaving(levelBlue);
+	reds = generateObjectStringForSaving(levelRed);
 
-	objects << bodies.str() << coconuts.str() << targets.str() << blocks.str() << palms.str();
+	objects << bodies.str() << coconuts.str() << targets.str() << blocks.str() << palms.str() << oranges.str() << blues.str() << reds.str();
  	
 	std::string objectsString = objects.str();
 	std::cout << objectsString << std::endl;
@@ -2889,6 +3078,12 @@ void PGFrameListener::clearLevel(void)
 	std::cout << "remove palms" << std::endl;
 	clearTargets(levelPalms);	
 	levelPalmAnims.clear();
+	clearTargets(levelOrange);
+	std::cout << "remove orange blocks" << std::endl;
+	clearTargets(levelBlue);
+	std::cout << "remove blue blocks" << std::endl;
+	clearTargets(levelRed);
+	std::cout << "remove red blocks" << std::endl;
 	
 	mTerrainGroup->removeAllTerrains();
 	if (spawnedPlatform)
@@ -2987,6 +3182,15 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	else if (name == "Palm") {
 		levelPalms.push_back(newObject);
 		levelPalmAnims.push_back(newObject->getPalmAnimation());
+	}
+	else if (name == "Orange") {
+		levelOrange.push_back(newObject);
+	}
+	else if (name == "Blue") {
+		levelBlue.push_back(newObject);
+	}
+	else if (name == "Red") {
+		levelRed.push_back(newObject);
 	}
 	else {
 		levelBodies.push_back(newObject);

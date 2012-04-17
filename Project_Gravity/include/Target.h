@@ -37,6 +37,8 @@ public:
 	double mTextAnim;
 	bool mTextBool;
 	Vector3 mTextPos;
+
+	bool counted;
 	
 	static OgreBulletCollisions::CompoundCollisionShape* mPalmCollisionShape;
 
@@ -45,6 +47,7 @@ public:
 	~Target();
 	void move(float spinTime, double evtTime);
 	bool targetHit();
+	bool targetCounted();
 	OgreBulletDynamics::RigidBody *getBody();
 	AnimationState* getPalmAnimation();
 };
