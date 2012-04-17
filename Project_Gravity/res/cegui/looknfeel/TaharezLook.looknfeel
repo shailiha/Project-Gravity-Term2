@@ -2420,10 +2420,11 @@
     ***************************************************
     -->
     <WidgetLook name="TaharezLook/StaticText">
-		<PropertyDefinition name="FrameColours" initialValue="tl:FFFFFFFF tr:FFFFFFFF bl:FFFFFFFF br:FFFFFFFF" redrawOnWrite="true" />
-		<PropertyDefinition name="BackgroundColours" initialValue="tl:FFFFFFFF tr:FFFFFFFF bl:FFFFFFFF br:FFFFFFFF" redrawOnWrite="true" />
-        <Property name="FrameEnabled" value="True" />
-        <Property name="BackgroundEnabled" value="True" />
+		<PropertyDefinition name="FrameColours" initialValue="tl:FF000000 tr:FF000000 bl:FF000000 br:FF000000" redrawOnWrite="true" />
+		<PropertyDefinition name="BackgroundColours" initialValue="tl:FF000000 tr:FF000000 bl:FF000000 br:FF000000" redrawOnWrite="true" />
+        <Property name="FrameEnabled" value="False" />
+        <Property name="BackgroundEnabled" value="False" />
+		<Property name="TextColours" value="tl:FF000000 tr:FF000000 bl:FF000000 br:FF000000" />
         <NamedArea name="WithFrameTextRenderArea">
             <Area>
                 <Dim type="LeftEdge" ><ImageDim imageset="TaharezLook" image="StaticLeft" dimension="Width" /></Dim>

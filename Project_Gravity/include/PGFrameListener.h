@@ -94,6 +94,13 @@ private:
 	bool mLevel2AimsCreated;
 	bool mLevel2AimsOpen;
 
+	//Level completion flags
+	CEGUI::Window* level1CompleteRoot;
+	bool mLevel1CompleteCreated;
+	bool mLevel1CompleteOpen;
+	CEGUI::Window* levelFailedRoot;
+	bool mLevelFailedCreated;
+	bool mLevelFailedOpen;
 	
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
@@ -394,6 +401,8 @@ public:
 	//Level Aims
 	void loadLevel1Aims(void);
 	void loadLevel2Aims(void);
+	void loadLevel1Complete(float time, int coconuts, float score, int level);
+	void loadLevelFailed(int level);
 
 	// New Terrain
 	void createTerrain();

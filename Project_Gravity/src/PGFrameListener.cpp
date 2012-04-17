@@ -165,6 +165,7 @@ PGFrameListener::PGFrameListener (
 			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
 			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), mUserLevelLoader(NULL), 
 			mControlScreenCreated(false), mInControlMenu(false), mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false),
+			mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
 {
@@ -1426,6 +1427,14 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	else if(mLevel2AimsOpen) {
 		loadLevel2Aims();
 	}
+	else if(mLevel1CompleteOpen) {
+		CEGUI::System::getSingleton().setGUISheet(level1CompleteRoot);
+		level1CompleteRoot->setVisible(true);
+	}
+	else if(mLevelFailedOpen) {
+		CEGUI::System::getSingleton().setGUISheet(levelFailedRoot);
+		levelFailedRoot->setVisible(true);
+	}
 	else if(mInLoadingScreen) {
 		if(mUserLevelLoader != NULL) {
 			mUserLevelLoader->load();
@@ -2329,6 +2338,9 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "You're Winner!" << std::endl;
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
+			loadLevel1Complete(0, coconutCount, levelScore, currentLevel);
+			mLevel1CompleteOpen = true;
+			freeRoam = false;
 			coconutCount = 0;
 		}
 	}
@@ -2362,6 +2374,9 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				std::cout << "LEVEL FAILED" << std::endl;
 				levelComplete = false;
 				coconutCount = 0;
+				freeRoam = false;
+				loadLevelFailed(currentLevel);
+				mLevelFailedOpen = true;
 				break;
 			}
 			++itLevelBlue;
@@ -2378,6 +2393,9 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				std::cout << "LEVEL FAILED" << std::endl;
 				levelComplete = false;
 				coconutCount = 0;
+				freeRoam = false;
+				loadLevelFailed(currentLevel);
+				mLevelFailedOpen = true;
 				break;
 			}
 			++itLevelBlue;
@@ -2406,6 +2424,9 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "You're Winner!" << std::endl;
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
+			freeRoam = false;
+			loadLevel1Complete(0, coconutCount, levelScore, currentLevel);
+			mLevel1CompleteOpen = true;
 			coconutCount = 0;
 		}
 	}
@@ -2809,6 +2830,131 @@ void PGFrameListener::loadLevel2Aims() {
 	level2AimsRoot->setVisible(true);
 }
 
+void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, int level) {
+	if(!mLevel1CompleteCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		//Create root window
+		level1CompleteRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_level1CompleteRoot" );
+		CEGUI::System::getSingleton().setGUISheet(level1CompleteRoot);
+		
+		// Creating Imagesets and define images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("level1complete","LevelCompleted.png");
+		imgs->defineImage("level1CompleteImage", CEGUI::Point(0,0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* completeScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","Level1CompleteScreen" );
+		completeScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0), CEGUI::UDim(0, 0)));
+		completeScreen->setProperty("Image","set:level1complete image:level1CompleteImage");
+		completeScreen->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeScreen); //Attach to current (inGameMenuRoot) GUI sheet	
+
+		CEGUI::Window* completeTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1completeText");
+		completeTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
+		completeTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.2,0)));
+		completeTxt->setText("Level Complete!");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeTxt);
+		
+		CEGUI::Window* timeTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1TimerText");
+		timeTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
+		timeTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.35,0)));
+		timeTxt->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(timeTxt);
+		
+		CEGUI::Window* coconutsTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1CocoText");
+		coconutsTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
+		coconutsTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.45,0)));
+		coconutsTxt->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(coconutsTxt);
+		
+		CEGUI::Window* scoreTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1ScoreText");
+		scoreTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
+		scoreTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.55,0)));
+		scoreTxt->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scoreTxt);
+
+		
+		CEGUI::Window* continueBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","levelCompleteContBtn");  // Create Window
+		continueBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.2,0),CEGUI::UDim(0,70)));
+		continueBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.5,0),CEGUI::UDim(0.7,0)));
+		continueBtn->setText("Continue");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(continueBtn);
+		//Register events
+		if(level == 1) {
+			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel2, this));
+		} else if (level == 2) {
+
+		}
+		
+		mLevel1CompleteCreated = true;
+	}	
+	CEGUI::Window* button = level1CompleteRoot->getChild("level1TimerText");
+	button->setText("Time taken: "+to_string(time));
+	button = level1CompleteRoot->getChild("level1CocoText");
+	button->setText("Coconuts found: "+to_string(coconuts));
+	button = level1CompleteRoot->getChild("level1ScoreText");
+	button->setText("Score: "+to_string(score));
+	button = level1CompleteRoot->getChild("levelCompleteContBtn");
+	button->removeAllEvents();
+	//Re-register events
+	if(level == 1) {
+		button->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel2, this));
+	} else if (level == 2) {
+
+	}
+	CEGUI::System::getSingleton().setGUISheet(level1CompleteRoot);
+	level1CompleteRoot->setVisible(true);
+}
+
+void PGFrameListener::loadLevelFailed(int level) {
+	CEGUI::Window* continueBtn;
+	if(!mLevelFailedCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		//Create root window
+		levelFailedRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_levelFailedRoot" );
+		CEGUI::System::getSingleton().setGUISheet(levelFailedRoot);
+		
+		// Creating Imagesets and define images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("level1failed","LevelFailed.png");
+		imgs->defineImage("level1FailedImage", CEGUI::Point(0,0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* completeScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","LevelFailedScreen" );
+		completeScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0), CEGUI::UDim(0, 0)));
+		completeScreen->setProperty("Image","set:level1failed image:level1FailedImage");
+		completeScreen->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeScreen); //Attach to current (inGameMenuRoot) GUI sheet	
+		
+		CEGUI::Window* continueBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","levelFailedContBtn");  // Create Window
+		continueBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.2,0),CEGUI::UDim(0,70)));
+		continueBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.5,0),CEGUI::UDim(0.7,0)));
+		continueBtn->setText("Retry");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(continueBtn);
+
+		//Register events
+		if(level == 1) {
+			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel1, this));
+		} else if (level == 2) {
+			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel2, this));
+		} else if (level == 3) {
+
+		}
+		
+		mLevelFailedCreated = true;
+	}		
+	continueBtn = levelFailedRoot->getChild("levelFailedContBtn");
+	continueBtn->removeAllEvents();
+	//Re-register events
+	if(level == 1) {
+		continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel1, this));
+	} else if (level == 2) {
+		continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel2, this));
+	}
+	CEGUI::System::getSingleton().setGUISheet(levelFailedRoot);
+	levelFailedRoot->setVisible(true);
+}
+
 bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
 	mBackPressedFromMainMenu = false;
 	loadLevel1(e);
@@ -2900,6 +3046,7 @@ bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
 	playerBody->setLinearVelocity(0, 0, 0);
 	mCamera->setOrientation(Quaternion(0.9262, 0, -0.377, 0));
 	
+	mLevelFailedOpen = false;
 	setLevelLoading(1);
 	return 1;
 }
@@ -2911,6 +3058,9 @@ bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 	playerBody->setLinearVelocity(0, 0, 0);
 	mCamera->setOrientation(Quaternion(0.793087, 0, -0.609109, 0));
 
+	//For when level completed and loading new level
+	mLevel1CompleteOpen = false;
+	mLevelFailedOpen = false;
 	setLevelLoading(2);
 	return 1;
 }
