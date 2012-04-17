@@ -374,6 +374,8 @@ public:
 	void clearTargets(std::deque<Target *> &queue);
 	void clearPalms(std::deque<SceneNode *> &queue);
 	void checkLevelEndCondition(void);
+	float getOldHighScore(int level);
+	void saveNewHighScore(int level, float levelScore);
 	void updateShadowFarDistance();
 	void updateEnvironmentLighting();
 	void animatePalms(const Ogre::FrameEvent& evt);
@@ -404,7 +406,7 @@ public:
 	//Level Aims
 	void loadLevel1Aims(void);
 	void loadLevel2Aims(void);
-	void loadLevel1Complete(float time, int coconuts, float score, int level);
+	void loadLevel1Complete(float time, int coconuts, float score, int level, bool highScore);
 	void loadLevelFailed(int level);
 
 	// New Terrain

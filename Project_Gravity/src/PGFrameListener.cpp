@@ -2352,12 +2352,20 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			levelScore += (coconutCount*1000);
 			std::cout << "You're Winner!" << std::endl;
 			std::cout << "Score: " << levelScore << std::endl;
+			float oldHighScore = getOldHighScore(currentLevel);
+			if(levelScore >= oldHighScore) {
+				loadLevel1Complete(0, coconutCount, levelScore, currentLevel, true);
+				saveNewHighScore(currentLevel, levelScore);
+			} 
+			else {
+				loadLevel1Complete(0, coconutCount, levelScore, currentLevel, false);
+			}
 			levelComplete = true;
-			loadLevel1Complete(0, coconutCount, levelScore, currentLevel);
 			mLevel1CompleteOpen = true;
 			freeRoam = false;
 			coconutCount = 0;
 			targetCount = 0;
+			levelScore = 0;
 		}
 	}
 	if ((currentLevel ==2) && (levelComplete ==false))
@@ -2441,11 +2449,34 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
 			freeRoam = false;
-			loadLevel1Complete(0, coconutCount, levelScore, currentLevel);
+			loadLevel1Complete(0, coconutCount, levelScore, currentLevel, true);
 			mLevel1CompleteOpen = true;
 			coconutCount = 0;
 		}
 	}
+}
+
+float PGFrameListener::getOldHighScore(int level) {
+	float oldHighScore;
+
+	std::ifstream objects("../../res/Levels/Level"+to_string(level)+"HighScore.txt");
+	std::string line;
+	int i=0;
+
+	while(std::getline(objects, line)) {
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			oldHighScore = atoi(line.c_str());
+		}
+	}
+
+	return oldHighScore;
+}
+
+void PGFrameListener::saveNewHighScore(int level, float levelScore) {
+	ofstream outputToHighScoreFile;
+	outputToHighScoreFile.open("../../res/Levels/Level"+to_string(level)+"HighScore.txt");
+	outputToHighScoreFile << StringConverter::toString(levelScore) << "\n";
+	outputToHighScoreFile.close();
 }
 
 void PGFrameListener::loadMainMenu() {
@@ -2846,7 +2877,7 @@ void PGFrameListener::loadLevel2Aims() {
 	level2AimsRoot->setVisible(true);
 }
 
-void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, int level) {
+void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, int level, bool highScore) {
 	if(!mLevel1CompleteCreated) {
 		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
@@ -2865,6 +2896,19 @@ void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, 
 		completeScreen->setProperty( "BackgroundEnabled", "False" );
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeScreen); //Attach to current (inGameMenuRoot) GUI sheet	
 		
+		// Creating Imagesets and define images
+		CEGUI::Imageset* star = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("highscore","Star.png");
+		star->defineImage("highScoreImage", CEGUI::Point(0,0), CEGUI::Size(128,128), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* highScoreImg = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","HighScoreImage" );
+		highScoreImg->setSize(CEGUI::UVector2(CEGUI::UDim(0,128),CEGUI::UDim(0,128)));
+		highScoreImg->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6, 0), CEGUI::UDim(0.3, 0)));
+		highScoreImg->setProperty("Image","set:highscore image:highScoreImage");
+		highScoreImg->setProperty( "BackgroundEnabled", "False" );
+		highScoreImg->setProperty( "FrameEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(highScoreImg); //Attach to current (inGameMenuRoot) GUI sheet	
+
 		CEGUI::Window* timeTxt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1TimerText");
 		timeTxt->setSize(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0,70)));
 		timeTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.35,0)));
@@ -2882,11 +2926,10 @@ void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, 
 		scoreTxt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0.55,0)));
 		scoreTxt->setProperty( "BackgroundEnabled", "False" );
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scoreTxt);
-
 		
 		CEGUI::Window* continueBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","levelCompleteContBtn");  // Create Window
 		continueBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.2,0),CEGUI::UDim(0,70)));
-		continueBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.5,0),CEGUI::UDim(0.7,0)));
+		continueBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.50,0),CEGUI::UDim(0.7,0)));
 		continueBtn->setText("Continue");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(continueBtn);
 		//Register events
@@ -2897,7 +2940,13 @@ void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, 
 		}
 		
 		mLevel1CompleteCreated = true;
-	}	
+	}
+	CEGUI::Window* star = level1CompleteRoot->getChild("HighScoreImage");
+	if(highScore) {
+		star->setVisible(true);
+	} else {
+		star->setVisible(false);
+	}
 	CEGUI::Window* button = level1CompleteRoot->getChild("level1TimerText");
 	button->setText("Time taken: "+to_string(time));
 	button = level1CompleteRoot->getChild("level1CocoText");
@@ -3159,6 +3208,7 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	ofstream outputToLevelTrackingFile;
 	outputToLevelTrackingFile.open("../../res/Levels/Custom/UserGeneratedLevels.txt");
 	outputToLevelTrackingFile << StringConverter::toString(number) << "\n";
+	outputToLevelTrackingFile.close();
 
 	bodies = generateObjectStringForSaving(levelBodies);
 	coconuts = generateObjectStringForSaving(levelCoconuts);

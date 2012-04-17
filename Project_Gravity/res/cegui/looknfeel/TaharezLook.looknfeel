@@ -2328,8 +2328,8 @@
 		<PropertyDefinition name="BackgroundColours" initialValue="tl:FFFFFFFF tr:FFFFFFFF bl:FFFFFFFF br:FFFFFFFF" redrawOnWrite="true" />
         <PropertyDefinition name="VertFormatting" initialValue="Stretched" redrawOnWrite="true" />
         <PropertyDefinition name="HorzFormatting" initialValue="Stretched" redrawOnWrite="true" />
-        <Property name="BackgroundEnabled" value="True" />
-        <Property name="FrameEnabled" value="True" />
+        <Property name="BackgroundEnabled" value="False" />
+        <Property name="FrameEnabled" value="False" />
         <ImagerySection name="image_withframe">
             <ImageryComponent>
                 <Area>
