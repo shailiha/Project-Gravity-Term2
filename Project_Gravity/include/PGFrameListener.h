@@ -79,6 +79,8 @@ private:
 	bool mLevelMenuCreated;
 	bool mUserLevelMenuCreated;
 	bool mControlScreenCreated;
+	bool mHighScoresCreated;
+	bool mHighScoresOpen;
 	bool mBackPressedFromMainMenu;
 	//For updating Custom Level loader menu when new levels made
 	CEGUI::Window* mScroll;
@@ -115,6 +117,7 @@ private:
 	CEGUI::Window* inGameMenu;
 	CEGUI::Window* levelMenu;
 	CEGUI::Window* userLevelMenu;
+	CEGUI::Window* highScoresRoot;
 
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -387,6 +390,7 @@ public:
 	void loadLevelSelectorMenu(void); 
 	void loadUserLevelSelectorMenu(void);
 	void loadControlsScreen(void);
+	void loadHighScoresScreen(void);
 	bool newGame(const CEGUI::EventArgs& e);
 	bool launchEditMode(const CEGUI::EventArgs& e);
 	bool loadLevelPressed(const CEGUI::EventArgs& e);
@@ -396,6 +400,7 @@ public:
 	bool inGameResumePressed(const CEGUI::EventArgs& e);
 	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
+	bool loadHighScoresPressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
 	void showLoadingScreen(void);

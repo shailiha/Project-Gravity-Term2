@@ -165,7 +165,7 @@ PGFrameListener::PGFrameListener (
 			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
 			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), mUserLevelLoader(NULL), 
 			mControlScreenCreated(false), mInControlMenu(false), mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false),
-			mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false),
+			mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false),mHighScoresCreated(false), mHighScoresOpen(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
 {
@@ -1472,6 +1472,9 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			else if(mInControlMenu) {
 				loadControlsScreen();
 			}
+			else if(mHighScoresOpen) {
+				loadHighScoresScreen();
+			}
 			else {
 				loadInGameMenu();
 			}
@@ -2532,9 +2535,15 @@ void PGFrameListener::loadMainMenu() {
 		loadControlsBtn->setText("Controls");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadControlsBtn);  //Buttons are now added to the window so they will move with it.
 
+		CEGUI::Window *highScoresBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainHighScoresBtn");  // Create Window
+		highScoresBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		highScoresBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadUserLevelBtn->getWidth(),CEGUI::UDim(0.70,0)));
+		highScoresBtn->setText("High Scores");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(highScoresBtn);  //Buttons are now added to the window so they will move with it.
+
 		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainExitGameBtn");  // Create Window
 		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-exitGameBtn->getWidth(),CEGUI::UDim(0.8,0)));
+		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-exitGameBtn->getWidth(),CEGUI::UDim(0.82,0)));
 		exitGameBtn->setText("Exit Game");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
 
@@ -2544,6 +2553,7 @@ void PGFrameListener::loadMainMenu() {
 		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevelPressed, this));
 		loadUserLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadUserLevelPressed, this));
 		loadControlsBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::showControlScreen, this));
+		highScoresBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadHighScoresPressed, this));
 		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::exitGamePressed, this));
 		mMainMenuCreated=true;
 	}
@@ -2599,21 +2609,22 @@ void PGFrameListener::loadInGameMenu() {
 
 		CEGUI::Window *loadControlsBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameControlsBtn");  // Create Window
 		loadControlsBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadControlsBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadUserLevelBtn->getWidth(),CEGUI::UDim(0.58,0)));
+		loadControlsBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadControlsBtn->getWidth(),CEGUI::UDim(0.58,0)));
 		loadControlsBtn->setText("Controls");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadControlsBtn);  //Buttons are now added to the window so they will move with it.
 
+		CEGUI::Window *highScoresBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameHighScoresBtn");  // Create Window
+		highScoresBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		highScoresBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-highScoresBtn->getWidth(),CEGUI::UDim(0.7,0)));
+		highScoresBtn->setText("High Scores");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(highScoresBtn);
+
 		CEGUI::Window *mainMenuBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameMainMenuBtn");  // Create Window
 		mainMenuBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		mainMenuBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-mainMenuBtn->getWidth(), CEGUI::UDim(0.7,0)));
+		mainMenuBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-mainMenuBtn->getWidth(), CEGUI::UDim(0.82,0)));
 		mainMenuBtn->setText("Main Menu");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenuBtn);
 
-		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameExitGameBtn");  // Create Window
-		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-exitGameBtn->getWidth(),CEGUI::UDim(0.82,0)));
-		exitGameBtn->setText("Exit Game");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
 
 		//Register events
 		resumeGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
@@ -2621,7 +2632,7 @@ void PGFrameListener::loadInGameMenu() {
 		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevelPressed, this));
 		loadUserLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadUserLevelPressed, this));
 		loadControlsBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::showControlScreen, this));
-		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::exitGamePressed, this));
+		highScoresBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadHighScoresPressed, this));
 		mainMenuBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameMainMenuPressed, this));
 		mInGameMenuCreated=true;
 	}
@@ -2677,7 +2688,7 @@ void PGFrameListener::loadLevelSelectorMenu() {
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
 		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.8,0)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.82,0)));
 		backBtn->setText("Back");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
 
@@ -2739,7 +2750,7 @@ void PGFrameListener::loadUserLevelSelectorMenu() {
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","userLoadLvlBackBtn");  // Create Window
 		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.8,0)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.82,0)));
 		backBtn->setText("Back");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
 
@@ -2821,7 +2832,7 @@ void PGFrameListener::loadControlsScreen() {
 
 		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","controlBackGameBtn");  // Create Window
 		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.8,0)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.82,0)));
 		backBtn->setText("Back");
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
 
@@ -2829,6 +2840,65 @@ void PGFrameListener::loadControlsScreen() {
 
 		mControlScreenCreated=true;
 	}	
+}
+
+void PGFrameListener::loadHighScoresScreen() {
+	if(!mHighScoresCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		//Create root window
+		highScoresRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_highScoresRoot" );
+		CEGUI::System::getSingleton().setGUISheet(highScoresRoot);
+
+		// Creating Imagesets and define images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("highscorebg","HighScores.jpg");
+		imgs->defineImage("highScoreBGImage", CEGUI::Point(0,0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* highScoreScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","HighScoreBG" );
+		highScoreScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0), CEGUI::UDim(0, 0)));
+		highScoreScreen->setProperty("Image","set:highscorebg image:highScoreBGImage");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(highScoreScreen); //Attach to current (inGameMenuRoot) GUI sheet	
+
+		CEGUI::Window* level1Txt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level1HighScoreText");
+		level1Txt->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		level1Txt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0.22,0)));
+		level1Txt->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(level1Txt);
+
+		CEGUI::Window* level2Txt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level2HighScoreText");
+		level2Txt->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		level2Txt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0.34,0)));
+		level2Txt->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(level2Txt);
+
+		CEGUI::Window* level3Txt = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/StaticText", "level3HighScoreText");
+		level3Txt->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		level3Txt->setPosition(CEGUI::UVector2(CEGUI::UDim(0.4,0),CEGUI::UDim(0.46,0)));
+		level3Txt->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(level3Txt);
+
+		CEGUI::Window* backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","highScoresBackBtn");  // Create Window
+		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.82,0))));
+		backBtn->setText("Back");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
+
+		//Register events
+		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::levelBackPressed, this));
+		
+		mHighScoresCreated = true;
+	}
+
+	CEGUI::Window* button = highScoresRoot->getChild("level1HighScoreText");
+	button->setText("Level 1: "+to_string(getOldHighScore(1)));
+	button = highScoresRoot->getChild("level2HighScoreText");
+	button->setText("Level 2: "+to_string(getOldHighScore(2)));
+	button = highScoresRoot->getChild("level3HighScoreText");
+	button->setText("Level 3: "+to_string(getOldHighScore(3)));
+
+	CEGUI::System::getSingleton().setGUISheet(highScoresRoot);
+	highScoresRoot->setVisible(true);
 }
 
 void PGFrameListener::loadLevel1Aims() {
@@ -2897,14 +2967,14 @@ void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, 
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeScreen); //Attach to current (inGameMenuRoot) GUI sheet	
 		
 		// Creating Imagesets and define images
-		CEGUI::Imageset* star = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("highscore","Star.png");
-		star->defineImage("highScoreImage", CEGUI::Point(0,0), CEGUI::Size(128,128), CEGUI::Point(0.0,0.0));
+		CEGUI::Imageset* star = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("highscorestar","Star.png");
+		star->defineImage("highScoreStarImage", CEGUI::Point(0,0), CEGUI::Size(128,128), CEGUI::Point(0.0,0.0));
 
 		//Create new, inner window, set position, size and attach to root.
-		CEGUI::Window* highScoreImg = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","HighScoreImage" );
+		CEGUI::Window* highScoreImg = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","HighScoreStarImage" );
 		highScoreImg->setSize(CEGUI::UVector2(CEGUI::UDim(0,128),CEGUI::UDim(0,128)));
 		highScoreImg->setPosition(CEGUI::UVector2(CEGUI::UDim(0.6, 0), CEGUI::UDim(0.3, 0)));
-		highScoreImg->setProperty("Image","set:highscore image:highScoreImage");
+		highScoreImg->setProperty("Image","set:highscorestar image:highScoreStarImage");
 		highScoreImg->setProperty( "BackgroundEnabled", "False" );
 		highScoreImg->setProperty( "FrameEnabled", "False" );
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(highScoreImg); //Attach to current (inGameMenuRoot) GUI sheet	
@@ -2941,7 +3011,7 @@ void PGFrameListener::loadLevel1Complete(float time, int coconuts, float score, 
 		
 		mLevel1CompleteCreated = true;
 	}
-	CEGUI::Window* star = level1CompleteRoot->getChild("HighScoreImage");
+	CEGUI::Window* star = level1CompleteRoot->getChild("HighScoreStarImage");
 	if(highScore) {
 		star->setVisible(true);
 	} else {
@@ -3054,6 +3124,18 @@ bool PGFrameListener::loadUserLevelPressed(const CEGUI::EventArgs& e) {
 	return 1;
 }
 
+bool PGFrameListener::loadHighScoresPressed(const CEGUI::EventArgs& e) {
+	mMainMenu=false;
+	mInGameMenu = true;
+	mInLevelMenu = false;
+	mInUserLevelMenu = false;
+	mHighScoresOpen = true;
+
+	loadHighScoresScreen();
+
+	return 1;
+}
+
 bool PGFrameListener::inGameMainMenuPressed(const CEGUI::EventArgs& e) {
 	mMainMenu = true;
 	mInGameMenu = false;
@@ -3074,9 +3156,13 @@ bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
 	if(mControlScreenCreated) {
 		controlScreenRoot->setVisible(false);
 	}
+	if(mHighScoresCreated) {
+		highScoresRoot->setVisible(false);
+	}
 	mInLevelMenu = false;
 	mInUserLevelMenu = false;
 	mInControlMenu = false;
+	mHighScoresOpen = false;
 
 	if(mBackPressedFromMainMenu) {
 		mMainMenu = true;		
