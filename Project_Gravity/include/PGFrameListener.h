@@ -230,6 +230,7 @@ private:
 	
 	int currentLevel;
 	//For level editing
+	int editingLevel;
 	bool mScrollUp;
 	bool mScrollDown;
 	bool snap; //snap to grid
@@ -351,7 +352,7 @@ public:
 	void UpdateSpeedFactor(double factor);
 	void spawnBox(void);
 	void createBulletTerrain(void);
-	void changeBulletTerrain(void);
+	void changeBulletTerrain(int level);
 	void createRobot(void);
 	void createCaelumSystem(void);
 	void createCubeMap();
@@ -373,8 +374,9 @@ public:
 	void saveLevel(void);
 	std::stringstream generateObjectStringForSaving(std::deque<Target *> queue);
 	int findUniqueName(void);
-	void loadLevel(int levelNo);
+	void loadLevel(int levelNo, int islandNo, bool userLevel);
 	void setPlayerPosition(int level);
+	void loadLevelIslandAndWater(int levelNo);
 	void loadObjectFile(int levelNo, bool userLevel);
 	void loadLevelObjects(std::string object[24]);
 	void clearLevel(void) ;

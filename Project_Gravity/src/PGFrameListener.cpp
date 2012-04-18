@@ -1453,7 +1453,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			mUserLevelLoader = NULL;
 		} 
 		else {
-			loadLevel(mLevelToLoad);
+			loadLevel(currentLevel, currentLevel, false);
 		}
 		mInLoadingScreen = false;
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
@@ -2105,7 +2105,7 @@ void PGFrameListener::createBulletTerrain(void)
 	defaultTerrainBody = new OgreBulletDynamics::RigidBody("Terrain", mWorld);
 
 	pTerrainNode = mSceneMgr->getRootSceneNode ()->createChildSceneNode();
-	changeBulletTerrain();
+	changeBulletTerrain(currentLevel);
 
 	mBodies.push_back(defaultTerrainBody);
 	mShapes.push_back(mTerrainShape);
@@ -2120,7 +2120,7 @@ void PGFrameListener::createBulletTerrain(void)
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
 
-void PGFrameListener::changeBulletTerrain(void)
+void PGFrameListener::changeBulletTerrain(int level)
 {
 	try
 	{
@@ -2130,9 +2130,9 @@ void PGFrameListener::changeBulletTerrain(void)
 	{
 	}
 	Ogre::ConfigFile config;
-	if (currentLevel == 1)
+	if (level == 1)
 		config.loadFromResourceSystem("Island.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
-	else if (currentLevel == 2)
+	else if (level == 2)
 		config.loadFromResourceSystem("Island2.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
 
 	unsigned page_size = Ogre::StringConverter::parseUnsignedInt(config.getSetting( "PageSize" ));
@@ -2180,7 +2180,6 @@ void PGFrameListener::changeBulletTerrain(void)
 	terrainShiftPos.y = terrainScale.y / 2 * terrainScale.y;
 	defaultTerrainBody->setStaticShape (pTerrainNode, mTerrainShape, terrainBodyRestitution, terrainBodyFriction, terrainShiftPos);
 }
-
 
 void PGFrameListener::createCaelumSystem(void)
 {
@@ -3261,6 +3260,8 @@ bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
 	setPlayerPosition(1);
 	editMode = false;
 	mLevelFailedOpen = false;
+	currentLevel = 1;
+	editingLevel = 0;
 	setLevelLoading(1);
 	return 1;
 }
@@ -3271,6 +3272,8 @@ bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 	editMode = false;
 	mLevel1CompleteOpen = false;
 	mLevelFailedOpen = false;
+	currentLevel = 2;
+	editingLevel = 0;
 	setLevelLoading(2);
 	return 1;
 }
@@ -3278,18 +3281,24 @@ bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 bool PGFrameListener::editLevel1(const CEGUI::EventArgs& e) {
 	clearLevel();
 	editMode = true;
+	editingLevel = 1;
+	currentLevel = 0;
 
 	setPlayerPosition(1);
-	setLevelLoading(1);
+	showLoadingScreen();
+	//setLevelLoading(1);
 	return true;
 }
 
 bool PGFrameListener::editLevel2(const CEGUI::EventArgs& e) {
 	clearLevel();
 	editMode = true;
+	editingLevel = 2;
+	currentLevel = 0;
 
 	setPlayerPosition(2);
-	setLevelLoading(2);
+	showLoadingScreen();
+	//setLevelLoading(2);
 	return true;
 }
 
@@ -3374,9 +3383,14 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	std::stringstream reds;
 	String mesh;
 	ofstream outputToFile;
-	
+	ofstream outputToFileStoringTerrain;
+
 	int number = findUniqueName();
 	outputToFile.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(number)+"Objects.txt"); // Overwrites old level file when you save
+	
+	//Stores which island was used
+	outputToFileStoringTerrain.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(number)+"Island.txt");
+	outputToFileStoringTerrain << to_string(editingLevel) << "\n";
 
 	ofstream outputToLevelTrackingFile;
 	outputToLevelTrackingFile.open("../../res/Levels/Custom/UserGeneratedLevels.txt");
@@ -3455,11 +3469,30 @@ int PGFrameListener::findUniqueName(void) {
 	return uniqueNumber;
 }
 
-void PGFrameListener::loadLevel(int levelNo)
+void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 {
-	currentLevel = levelNo;
 	clearLevel();
 
+	loadLevelIslandAndWater(levelNo);
+	setPlayerPosition(levelNo);
+	levelComplete = false;
+
+	loadObjectFile(levelNo, userLevel);
+	changeLevelFish();
+
+	if(!userLevel) {
+		currentLevel = levelNo;
+		if(levelNo == 1)
+			spinTime = 0;
+		else if (levelNo == 2)
+			createJengaPlatform();
+	}
+	else {
+		currentLevel = 0;
+	}
+}
+
+void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
 
 	Hydrax::Module::ProjectedGrid *mModule 
@@ -3493,17 +3526,9 @@ void PGFrameListener::loadLevel(int levelNo)
 	caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
 	mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
 
-	//Then go through the new level's file and call placeNewObject() for each line
-	createTerrain();
-	changeBulletTerrain();
-	levelComplete = false;
-	loadObjectFile(levelNo, false);
-	changeLevelFish();
-
-	if(levelNo == 1)
-		spinTime = 0;
-	else if (levelNo == 2)
-		createJengaPlatform();
+	//Set up terrain
+	//createTerrain();
+	changeBulletTerrain(levelNo);
 }
 
 void PGFrameListener::setPlayerPosition(int level) {
@@ -3586,14 +3611,15 @@ void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
 void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
 	std::string object[24];
 	std::ifstream objects;
+	std::ifstream island;
+	std::string line;
 
 	if(!userLevel) {
 		objects.open("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Objects.txt");
 	} else {
 		objects.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(levelNo)+"Objects.txt");
-		currentLevel = 0;
 	}
-	std::string line;
+	
 	int i=0;
 
 	while(std::getline(objects, line)) {
