@@ -227,7 +227,6 @@ private:
 	
 	int currentLevel;
 	//For level editing
-	bool editMode;
 	bool mScrollUp;
 	bool mScrollDown;
 	bool snap; //snap to grid
@@ -320,6 +319,8 @@ public:
 	bool mLoadingScreenCreated;
 	CEGUI::Window* loadingScreenRoot;
 	LevelLoad* mUserLevelLoader;
+	//Required to exit edit mode when loading custom level
+	bool editMode;
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -370,6 +371,7 @@ public:
 	std::stringstream generateObjectStringForSaving(std::deque<Target *> queue);
 	int findUniqueName(void);
 	void loadLevel(int levelNo);
+	void setPlayerPosition(int level);
 	void loadObjectFile(int levelNo, bool userLevel);
 	void loadLevelObjects(std::string object[24]);
 	void clearLevel(void) ;
@@ -403,6 +405,7 @@ public:
 	bool loadHighScoresPressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
+	void editLevel1(void);
 	void showLoadingScreen(void);
 	bool showControlScreen(const CEGUI::EventArgs& e);
 	void setLevelLoading(int levelNumber);

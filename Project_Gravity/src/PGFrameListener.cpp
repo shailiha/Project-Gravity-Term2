@@ -1456,6 +1456,15 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 		}
 		mInLoadingScreen = false;
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		if(editMode) {
+			clearTargets(levelBodies);
+			clearTargets(levelCoconuts);
+			clearTargets(levelBlocks);
+			clearTargets(levelTargets);
+			clearTargets(levelPalms);
+			levelPalmAnims.clear();
+			currentLevel = 0;
+		}
 	}
 	else if(mMainMenu) {
 		loadMainMenu();
@@ -3093,7 +3102,7 @@ bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
 bool PGFrameListener::launchEditMode(const CEGUI::EventArgs& e) {
 	clearLevel();
 	editMode = true;
-	closeMenus();
+	editLevel1();
 	return true;
 }
 
@@ -3141,12 +3150,20 @@ bool PGFrameListener::inGameMainMenuPressed(const CEGUI::EventArgs& e) {
 	mInGameMenu = false;
 	mInLevelMenu = false;
 	
-	inGameMenuRoot->setVisible(false);
 	mainMenuRoot->setVisible(true);
+	inGameMenuRoot->setVisible(false);
 	return 1;
 }
 
 bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
+	if(mBackPressedFromMainMenu) {
+		mMainMenu = true;		
+		mainMenuRoot->setVisible(true);
+	} else {
+		mInGameMenu = true;
+		inGameMenuRoot->setVisible(true);
+	}
+
 	if(mLevelMenuCreated) {
 		levelMenuRoot->setVisible(false);
 	}
@@ -3164,13 +3181,6 @@ bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
 	mInControlMenu = false;
 	mHighScoresOpen = false;
 
-	if(mBackPressedFromMainMenu) {
-		mMainMenu = true;		
-		mainMenuRoot->setVisible(true);
-	} else {
-		mInGameMenu = true;
-		inGameMenuRoot->setVisible(true);
-	}
 	return 1;
 }
 
@@ -3185,29 +3195,28 @@ bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
 }
 
 bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
-	btTransform transform = playerBody->getCenterOfMassTransform();
-	transform.setOrigin(btVector3(413, 166, 2534));
-	playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
-	playerBody->setLinearVelocity(0, 0, 0);
-	mCamera->setOrientation(Quaternion(0.9262, 0, -0.377, 0));
-	
+	setPlayerPosition(1);
+	editMode = false;
 	mLevelFailedOpen = false;
 	setLevelLoading(1);
 	return 1;
 }
 
-bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
-	btTransform transform = playerBody->getCenterOfMassTransform();
-	transform.setOrigin(btVector3(354, 149, 2734));
-	playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
-	playerBody->setLinearVelocity(0, 0, 0);
-	mCamera->setOrientation(Quaternion(0.793087, 0, -0.609109, 0));
-
+bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {	
+	setPlayerPosition(2);
 	//For when level completed and loading new level
+	editMode = false;
 	mLevel1CompleteOpen = false;
 	mLevelFailedOpen = false;
 	setLevelLoading(2);
 	return 1;
+}
+
+void PGFrameListener::editLevel1() {
+	mLevel1CompleteOpen = false;
+	mLevelFailedOpen = false;
+	setPlayerPosition(1);
+	setLevelLoading(1);
 }
 
 void PGFrameListener::showLoadingScreen(void) {
@@ -3224,15 +3233,15 @@ void PGFrameListener::showLoadingScreen(void) {
 }
 
 bool PGFrameListener::showControlScreen(const CEGUI::EventArgs& e) {
-	mMainMenu=false;
-	mInGameMenu = true;
-	mInControlMenu = true;
-
 	if(!mControlScreenCreated) {
 		loadControlsScreen();
 	}
 	controlScreenRoot->setVisible(true);
 	CEGUI::System::getSingleton().setGUISheet(controlScreenRoot);
+
+	mMainMenu=false;
+	mInGameMenu = true;
+	mInControlMenu = true;
 
 	return 1;
 }
@@ -3417,6 +3426,22 @@ void PGFrameListener::loadLevel(int levelNo)
 		spinTime = 0;
 	else if (levelNo == 2)
 		createJengaPlatform();
+}
+
+void PGFrameListener::setPlayerPosition(int level) {
+	if(level == 1) {
+		btTransform transform = playerBody->getCenterOfMassTransform();
+		transform.setOrigin(btVector3(413, 166, 2534));
+		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		playerBody->setLinearVelocity(0, 0, 0);
+		mCamera->setOrientation(Quaternion(0.9262, 0, -0.377, 0));
+	} else if(level == 2) {
+		btTransform transform = playerBody->getCenterOfMassTransform();
+		transform.setOrigin(btVector3(354, 149, 2734));
+		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		playerBody->setLinearVelocity(0, 0, 0);
+		mCamera->setOrientation(Quaternion(0.793087, 0, -0.609109, 0));
+	}
 }
 
 void PGFrameListener::clearLevel(void) 
