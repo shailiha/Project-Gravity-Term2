@@ -452,7 +452,7 @@ PGFrameListener::PGFrameListener (
 	light = mSceneMgr->createLight("tstLight");
     mTerrainGlobals = OGRE_NEW Ogre::TerrainGlobalOptions();
     mTerrainGroup = OGRE_NEW Ogre::TerrainGroup(mSceneMgr, Ogre::Terrain::ALIGN_X_Z, 129, 3000.0f);
-	createTerrain();
+	createTerrain(currentLevel);
 
 	//How many custom levels have been generated so far
 	mNumberOfCustomLevels = findUniqueName()-1;
@@ -1453,7 +1453,12 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			mUserLevelLoader = NULL;
 		} 
 		else {
-			loadLevel(currentLevel, currentLevel, false);
+			if(currentLevel == 0) {
+				loadLevel(0, editingLevel, false);
+			}
+			else if(currentLevel > 0) {
+				loadLevel(currentLevel, currentLevel, false);
+			}
 		}
 		mInLoadingScreen = false;
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
@@ -3279,26 +3284,24 @@ bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 }
 
 bool PGFrameListener::editLevel1(const CEGUI::EventArgs& e) {
-	clearLevel();
 	editMode = true;
 	editingLevel = 1;
 	currentLevel = 0;
 
 	setPlayerPosition(1);
 	showLoadingScreen();
-	//setLevelLoading(1);
+	setLevelLoading(1);
 	return true;
 }
 
 bool PGFrameListener::editLevel2(const CEGUI::EventArgs& e) {
-	clearLevel();
 	editMode = true;
 	editingLevel = 2;
 	currentLevel = 0;
 
 	setPlayerPosition(2);
 	showLoadingScreen();
-	//setLevelLoading(2);
+	setLevelLoading(2);
 	return true;
 }
 
@@ -3473,7 +3476,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 {
 	clearLevel();
 
-	loadLevelIslandAndWater(levelNo);
+	loadLevelIslandAndWater(islandNo);
 	setPlayerPosition(levelNo);
 	levelComplete = false;
 
@@ -3527,7 +3530,7 @@ void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 	mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
 
 	//Set up terrain
-	//createTerrain();
+	createTerrain(levelNo);
 	changeBulletTerrain(levelNo);
 }
 
@@ -3564,6 +3567,7 @@ void PGFrameListener::clearLevel(void)
 	std::cout << "remove red blocks" << std::endl;
 	
 	mTerrainGroup->removeAllTerrains();
+
 	if (spawnedPlatform)
 		destroyJengaPlatform();
 
@@ -3677,8 +3681,9 @@ void PGFrameListener::loadLevelObjects(std::string object[24])
 	mNumEntitiesInstanced++;				
 }
 
-void PGFrameListener::createTerrain()
+void PGFrameListener::createTerrain(int levelNo)
 {
+	std::cout <<"create terrain" << std::endl;
 	lightdir = Vector3(0.0, -0.3, 0.75);
     lightdir.normalise();
 
@@ -3692,21 +3697,22 @@ void PGFrameListener::createTerrain()
  
     mTerrainGroup->setFilenameConvention(Ogre::String("BasicTutorial3Terrain"), Ogre::String("dat"));
     mTerrainGroup->setOrigin(Ogre::Vector3(1500, 0, 1500));
- 
+	std::cout <<"config terrain" << std::endl;
 	configureTerrainDefaults(light);
  
     for (long x = 0; x <= 0; ++x)
         for (long y = 0; y <= 0; ++y)
-            defineTerrain(x, y);
- 
+            defineTerrain(x, y, levelNo);
+	std::cout << "for loop done" <<std::endl;
     // sync load since we want everything in place when we start
     mTerrainGroup->loadAllTerrains(true);
- 
+	std::cout <<"if imported terrain" << std::endl;
     if (mTerrainsImported)
     {
         Ogre::TerrainGroup::TerrainIterator ti = mTerrainGroup->getTerrainIterator();
         while(ti.hasMoreElements())
         {
+			std::cout <<"while" << std::endl;
             Ogre::Terrain* t = ti.getNext()->instance;
             initBlendMaps(t);
         }
@@ -3748,33 +3754,42 @@ void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
     defaultimp.layerList[2].textureNames.push_back("grass_green-01_normalheight.dds");
 }
 
-void PGFrameListener::defineTerrain(long x, long y)
+void PGFrameListener::defineTerrain(long x, long y, int levelNo)
 {
-    Ogre::String filename = mTerrainGroup->generateFilename(x, y);
+    std::cout << "define terrain" <<std::endl;
+	Ogre::String filename = mTerrainGroup->generateFilename(x, y);
     if (Ogre::ResourceGroupManager::getSingleton().resourceExists(mTerrainGroup->getResourceGroup(), filename))
     {
-        mTerrainGroup->defineTerrain(x, y);
+        std::cout << "define terrain IF" <<std::endl;
+		mTerrainGroup->defineTerrain(x, y, levelNo);
     }
     else
     {
+		std::cout << "define terrain ELSE" <<std::endl;
         Ogre::Image img;
-        getTerrainImage(x % 2 != 0, y % 2 != 0, img);
+        getTerrainImage(x % 2 != 0, y % 2 != 0, img, levelNo);
         mTerrainGroup->defineTerrain(x, y, &img);
         mTerrainsImported = true;
+		std::cout << "define terrain ELSE done" <<std::endl;
     }
 }
 
-void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img)
+void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, int levelNo)
 {
-	if (currentLevel == 1)
+	std::cout << "get terrainimage " <<std::endl;
+	if (levelNo == 1) {
+		std::cout << "get terrainimage 1" <<std::endl;
 		img.load("terrain.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-	else if (currentLevel == 2)
+	}
+	else if (levelNo == 2) {
+		std::cout << "get terrainimage 2" <<std::endl;
 		img.load("terrain2.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+	}
     if (flipX)
         img.flipAroundY();
     if (flipY)
         img.flipAroundX();
- 
+	std::cout << "terrain image got" <<std::endl;
 }
 
 void PGFrameListener::initBlendMaps(Ogre::Terrain* terrain)

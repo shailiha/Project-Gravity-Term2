@@ -425,11 +425,11 @@ public:
 	void loadLevelFailed(int level);
 
 	// New Terrain
-	void createTerrain();
-	void defineTerrain(long x, long y);
+	void createTerrain(int levelNo);
+	void defineTerrain(long x, long y, int levelNo);
     void initBlendMaps(Ogre::Terrain* terrain);
     void configureTerrainDefaults(Ogre::Light* light);
-	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img);
+	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, int levelNo);
 	void createJengaPlatform();
 	void destroyJengaPlatform();
 	void moveJengaPlatform(double timeSinceLastFrame);
