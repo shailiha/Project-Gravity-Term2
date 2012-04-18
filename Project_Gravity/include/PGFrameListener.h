@@ -73,6 +73,8 @@ private:
 	bool mInLoadingScreen;
 	bool mInGameMenu;
 	bool mInGameMenuCreated;
+	bool mInEditorMenu;
+	bool mEditorMenuCreated;
 	bool mInLevelMenu;
 	bool mInUserLevelMenu;
 	bool mInControlMenu;
@@ -107,6 +109,7 @@ private:
 	//Menu windows
 	CEGUI::Window* mainMenuRoot;
 	CEGUI::Window* inGameMenuRoot;
+	CEGUI::Window* editorMenuRoot;
 	CEGUI::Window* levelMenuRoot;
 	CEGUI::Window* userLevelMenuRoot;
 	CEGUI::Window* controlScreenRoot;
@@ -389,6 +392,7 @@ public:
 	void loadLoadingScreen(void);
 	void loadMainMenu(void);
 	void loadInGameMenu(void);
+	void loadEditorSelectorMenu(void);
 	void loadLevelSelectorMenu(void); 
 	void loadUserLevelSelectorMenu(void);
 	void loadControlsScreen(void);
@@ -405,7 +409,8 @@ public:
 	bool loadHighScoresPressed(const CEGUI::EventArgs& e);
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
-	void editLevel1(void);
+	bool editLevel1(const CEGUI::EventArgs& e);
+	bool editLevel2(const CEGUI::EventArgs& e);
 	void showLoadingScreen(void);
 	bool showControlScreen(const CEGUI::EventArgs& e);
 	void setLevelLoading(int levelNumber);

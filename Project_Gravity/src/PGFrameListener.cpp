@@ -162,8 +162,9 @@ PGFrameListener::PGFrameListener (
 			mVelocity(Ogre::Vector3::ZERO), mGoingForward(false), mGoingBack(false), mGoingLeft(false), 
 			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false),
 			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
-			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
-			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), mUserLevelLoader(NULL), 
+			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mInEditorMenu(false), mEditorMenuCreated(false),
+			mLoadingScreenCreated(false), mInLoadingScreen(false), mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), 
+			mUserLevelLoader(NULL), 
 			mControlScreenCreated(false), mInControlMenu(false), mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false),
 			mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false),mHighScoresCreated(false), mHighScoresOpen(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
@@ -1177,7 +1178,7 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 
 bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
-	if(editMode) {
+	if(editMode && !mInGameMenu) {
 		if(id == (OIS::MB_Left)) 
 			placeNewObject(objSpawnType);
 	}
@@ -1483,6 +1484,9 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 			}
 			else if(mHighScoresOpen) {
 				loadHighScoresScreen();
+			}
+			else if(mInEditorMenu) {
+				loadEditorSelectorMenu();
 			}
 			else {
 				loadInGameMenu();
@@ -2651,6 +2655,59 @@ void PGFrameListener::loadInGameMenu() {
 	
 }
 
+void PGFrameListener::loadEditorSelectorMenu() {
+	if(!mEditorMenuCreated) {
+		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		//Create root window
+		editorMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_EditorLevelRoot" );
+		CEGUI::System::getSingleton().setGUISheet(editorMenuRoot);
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* editorlevelMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","editorlevelMenu" );
+		editorlevelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		editorlevelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
+		editorlevelMenu->setProperty("Image","set:menuBackground image:backgroundImage");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(editorlevelMenu); //Attach to current (inGameMenuRoot) GUI sheet
+		
+		//Menu Buttons
+		CEGUI::System::getSingleton().setGUISheet(editorlevelMenu); //Change GUI sheet to the 'visible' Taharez window
+
+		CEGUI::Window *loadLevel1Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","editorLoadLevel1Btn");  // Create Window
+		loadLevel1Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel1Btn->getWidth(),CEGUI::UDim(0.1,0)));
+		loadLevel1Btn->setText("Edit Level 1");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel1Btn);  //Buttons are now added to the window so they will move with it.
+
+		CEGUI::Window *loadLevel2Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","editorLoadLevel2Btn");  // Create Window
+		loadLevel2Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel2Btn->getWidth(),CEGUI::UDim(0.22,0)));
+		loadLevel2Btn->setText("Edit Level 2");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
+
+		CEGUI::Window *loadLevel3Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","editorLoadLevel3Btn");  // Create Window
+		loadLevel3Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		loadLevel3Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel3Btn->getWidth(),CEGUI::UDim(0.34,0)));
+		loadLevel3Btn->setText("Edit Level 3");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel3Btn);
+
+		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","editorBackBtn");  // Create Window
+		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
+		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.82,0)));
+		backBtn->setText("Back");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
+
+		//Register events
+		loadLevel1Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::editLevel1, this));
+		loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::editLevel2, this));
+		//loadLevel3Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel3, this));
+		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::levelBackPressed, this));
+		mEditorMenuCreated=true;
+	}
+	CEGUI::System::getSingleton().setGUISheet(editorMenuRoot);
+	editorMenuRoot->setVisible(true);
+}
+
 void PGFrameListener::loadLevelSelectorMenu() {
 	CEGUI::Window *levelMenu;
 	if(!mLevelMenuCreated) {
@@ -2708,6 +2765,7 @@ void PGFrameListener::loadLevelSelectorMenu() {
 		mLevelMenuCreated=true;
 	}
 	CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
+	levelMenuRoot->setVisible(true);
 }
 
 void PGFrameListener::loadUserLevelSelectorMenu() {
@@ -3100,9 +3158,10 @@ bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
 }
 
 bool PGFrameListener::launchEditMode(const CEGUI::EventArgs& e) {
-	clearLevel();
-	editMode = true;
-	editLevel1();
+	mMainMenu=false;
+	mInGameMenu = true;
+	mInEditorMenu = true;
+	loadEditorSelectorMenu();
 	return true;
 }
 
@@ -3164,6 +3223,9 @@ bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
 		inGameMenuRoot->setVisible(true);
 	}
 
+	if(mEditorMenuCreated) {
+		editorMenuRoot->setVisible(false);
+	}
 	if(mLevelMenuCreated) {
 		levelMenuRoot->setVisible(false);
 	}
@@ -3176,6 +3238,7 @@ bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
 	if(mHighScoresCreated) {
 		highScoresRoot->setVisible(false);
 	}
+	mInEditorMenu = false;
 	mInLevelMenu = false;
 	mInUserLevelMenu = false;
 	mInControlMenu = false;
@@ -3212,11 +3275,22 @@ bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
 	return 1;
 }
 
-void PGFrameListener::editLevel1() {
-	mLevel1CompleteOpen = false;
-	mLevelFailedOpen = false;
+bool PGFrameListener::editLevel1(const CEGUI::EventArgs& e) {
+	clearLevel();
+	editMode = true;
+
 	setPlayerPosition(1);
 	setLevelLoading(1);
+	return true;
+}
+
+bool PGFrameListener::editLevel2(const CEGUI::EventArgs& e) {
+	clearLevel();
+	editMode = true;
+
+	setPlayerPosition(2);
+	setLevelLoading(2);
+	return true;
 }
 
 void PGFrameListener::showLoadingScreen(void) {
@@ -3254,6 +3328,7 @@ void PGFrameListener::setLevelLoading(int levelNumber) {
 void PGFrameListener::closeMenus(void) {
 	mMainMenu = false;
  	mInGameMenu = false;
+	mInEditorMenu = false;
 	mInLevelMenu = false;
 	mInUserLevelMenu = false;
 	mInControlMenu = false;
@@ -3265,6 +3340,9 @@ void PGFrameListener::closeMenus(void) {
 	mainMenuRoot->setVisible(false);
 	if(mInGameMenuCreated) {
 		inGameMenuRoot->setVisible(false);
+	}
+	if(mEditorMenuCreated) {
+		editorMenuRoot->setVisible(false);
 	}
 	if(mLevelMenuCreated) {
 		levelMenuRoot->setVisible(false);
