@@ -350,7 +350,7 @@ public:
     bool quit(const CEGUI::EventArgs &e);
     bool nextLocation(void);
 	void UpdateSpeedFactor(double factor);
-	void spawnBox(void);
+	void spawnBox(Ogre::Vector3 spawnPosition);
 	void createBulletTerrain(void);
 	void changeBulletTerrain(int level);
 	void createRobot(void);

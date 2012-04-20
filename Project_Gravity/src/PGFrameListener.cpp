@@ -987,7 +987,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 	else if (evt.key == OIS::KC_PGUP) editMode = !editMode; //Toggle edit mode
 	else if(evt.key == OIS::KC_Q) {
 		if(!editMode) {
-			spawnBox(); 
+			spawnBox((mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100));
 		}
 	}
 
@@ -1209,8 +1209,20 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 				std::cout << "Collision found" << std::endl;
 				body = static_cast <OgreBulletDynamics::RigidBody *> 
 					(mCollisionClosestRayResultCallback->getCollidedObject());
-		
 				pickPos = body->getCenterOfMassPosition();//mCollisionClosestRayResultCallback->getCollisionPoint ();
+
+				//spawn Coconut if body is a tree
+				if (body->getBulletRigidBody()->getFriction()==0.93f)
+				{
+					if(Vector3(playerNode->getPosition().x,0,playerNode->getPosition().z).distance(Vector3(pickPos.x,0,pickPos.z))<200)
+					{
+						std::cout << "spawning coconut" << std::endl;
+						spawnBox(Vector3(playerNode->getPosition().x,playerNode->getPosition().y+80,playerNode->getPosition().z));
+					}
+					
+				}
+		
+		
 				if (body->getBulletRigidBody()->getFriction() == 0.12f)
 					platformContact = mCollisionClosestRayResultCallback->getCollisionPoint ();
 
@@ -1753,11 +1765,10 @@ void PGFrameListener::UpdateSpeedFactor(double factor)
 	mCaelumSystem->getUniversalClock ()->setTimeScale (mPaused ? 0 : mSpeedFactor);
 }
 
-void PGFrameListener::spawnBox(void)
+void PGFrameListener::spawnBox(Vector3 spawnPosition)
 {
 	Vector3 size = Vector3::ZERO;	// size of the box
- 	// starting position of the box
- 	Vector3 position = (mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100);
+ 	Vector3 position = spawnPosition; // starting position of the box
 	Quaternion orientation = mSpawnObject->getOrientation();
 	Vector3 scale = mSpawnObject->getScale();
 
