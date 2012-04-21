@@ -77,6 +77,10 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 
 	}
 	else {
+		if (mName=="Orange" ||mName=="Blue" || mName=="Red")
+		{
+			mMass=50;
+		}
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
 		mBody->setShape(objectNode, sceneBoxShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
 	}

@@ -37,6 +37,7 @@ private:
 	ParticleSystem* sunParticle; //For the Sun :D
 	SceneNode *sunNode;
 	float stepTime;
+	Ogre::Timer* timer;	//Timer
 	
 	//Is level complete?
 	bool levelComplete;
@@ -270,9 +271,16 @@ private:
 	Real mLastPositionLength;
 	Ogre::Real mTimeMultiplier;
 	bool mForceDisableShadows;
-	MovableText* HUDText;
+	MovableText* HUDTargetText;
+	MovableText* HUDCoconutText;
+	MovableText* HUDScoreText;
+	MovableText* timerText;
 	SceneNode* HUDNode;
 	SceneNode* HUDNode2;
+	SceneNode* HUDNode3;
+	SceneNode* HUDNode4;
+	SceneNode* timerNode;
+	double currentTime;
 
 	// Color gradients
 	SkyX::ColorGradient mWaterGradient, 

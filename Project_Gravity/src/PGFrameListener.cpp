@@ -372,7 +372,8 @@ PGFrameListener::PGFrameListener (
 	//Initialise number of coconuts collected and targets killed
 	coconutCount = 0;
 	targetCount = 0;
-	gridsize = 26;
+	//gridsize = 26;
+	gridsize = 3;
 	weatherSystem = 0;
 
 	for (int i = 0; i < NUM_FISH; i++)
@@ -471,13 +472,33 @@ PGFrameListener::PGFrameListener (
 	sunNode->attachObject(sunParticle);
 	sunParticle->setEmitting(true);
 	//HUD
-	HUDText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 5.0f);
-	HUDText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
-	HUDText->showOnTop();
+	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 2.0f);
+	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 2.0f);
+	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 2.0f);
+	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 2.0f);
+	HUDTargetText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDTargetText->showOnTop();
+	HUDCoconutText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDCoconutText->showOnTop();
+	HUDScoreText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDScoreText->showOnTop();
+	timerText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	timerText->showOnTop();
 	HUDNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("HUDNode");
 	HUDNode2 = HUDNode->createChildSceneNode("HUDNode2");
-	HUDNode2->attachObject(HUDText);
-	HUDNode2->setPosition(-26,-20,0);
+	HUDNode3 = HUDNode->createChildSceneNode("HUDNode3");
+	HUDNode4 = HUDNode->createChildSceneNode("HUDNode4");
+	timerNode = HUDNode->createChildSceneNode("timerNode");
+	HUDNode2->attachObject(HUDTargetText); //Targets killed
+	HUDNode2->setPosition(-40,-25,0);
+	HUDNode3->attachObject(HUDCoconutText); //Coconuts
+	HUDNode3->setPosition(-40, 25,0);
+	HUDNode4->attachObject(HUDScoreText); //Score
+	HUDNode4->setPosition(30, 25,0);
+	timerNode->attachObject(timerText);
+	timerNode->setPosition(0, 25,0);
+	timer = new Timer();
+	currentTime = 0;
 }
 
 void PGFrameListener::setupPSSMShadows()
@@ -747,7 +768,7 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 			sunNode->setPosition(sunPosition);
 			//Position HUD
 			HUDNode->setOrientation(mCamera->getDerivedOrientation());
-			HUDNode->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 60);
+			HUDNode->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 70);
 		} //End of non-menu specifics
 
 		//Keep player upright
@@ -757,6 +778,10 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 			gravityGun->setVisible(false);
 		else
 			gravityGun->setVisible(true);
+
+		//update timer text
+		currentTime = timer->getMilliseconds();
+		timerText->setCaption(StringConverter::toString((int)currentTime/60000)+":"+StringConverter::toString(((int)currentTime/1000)%60));
 	} else {
 
 	}
@@ -1355,18 +1380,19 @@ void PGFrameListener::placeNewObject(int objectType) {
 	Quaternion orientation = mSpawnObject->getOrientation();
 	Vector3 scale = mSpawnObject->getScale();
 	float mass;
+	double friction;
 
 	switch(objectType)
 	{
-		case 1: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
-		case 2: name = "Coconut"; mesh = "Coco.mesh"; mass = 0; break;
-		case 3: name = "Target"; mesh = "Target.mesh"; mass = 0; break;
-		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; break;
-		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; break;
-		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; break;
-		case 7: name = "Orange"; mesh = "Jenga.mesh"; mass - 0; break;
-		case 8: name = "Blue"; mesh = "Jenga.mesh"; mass - 0; break;
-		case 9: name = "Red"; mesh = "Jenga.mesh"; mass - 0; break;
+		case 1: name = "Crate"; mesh = "Crate.mesh"; mass = 0; friction = 0.9; break;
+		case 2: name = "Coconut"; mesh = "Coco.mesh"; mass = 0; friction = 0.92;break;
+		case 3: name = "Target"; mesh = "Target.mesh"; mass = 0; friction = 0.93; break;
+		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; friction = 0.6; break;
+		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; friction = 0.93; break;
+		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; friction = 0.93; break;
+		case 7: name = "Orange"; mesh = "Jenga.mesh"; mass = 0; friction = 0.7; break;
+		case 8: name = "Blue"; mesh = "Jenga.mesh"; mass = 0; friction = 0.71; break;
+		case 9: name = "Red"; mesh = "Jenga.mesh"; mass = 0; friction = 0.72; break;
 		default: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
 	}
 	
@@ -1384,7 +1410,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 	object[10] = to_string(scale.y);
 	object[11] = to_string(scale.z);
 	object[12] = "0.1"; //Restitution
-	object[13] = "0.93"; //Friction
+	object[13] = to_string(friction); //Friction
 	object[14] = to_string(mass);
 	object[15] = "0"; //is animated?
 	object[16] = "0"; //movement in x
@@ -1668,7 +1694,11 @@ void PGFrameListener::checkObjectsForRemoval() {
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody()); // Removes the physics box
 			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
 			++coconutCount;
+			String text = String("Coconuts: "+ (StringConverter::toString(coconutCount)));
+			HUDCoconutText->setCaption(text);
 			levelScore += 100;
+			text = String("Score: "+ (StringConverter::toString(levelScore)));
+			HUDScoreText->setCaption(text);
 			std::cout << "Coconut get!:\tTotal: " << coconutCount << std::endl;
 		}
 		++itLevelCoconuts;
@@ -2369,7 +2399,10 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				(*itLevelTargets)->counted = true;
 				targetCount++;
 				String text = String("Targets hit: "+ (StringConverter::toString(targetCount)));
-				HUDText->setCaption(text);
+				HUDTargetText->setCaption(text);
+
+				text = String("Score: "+ (StringConverter::toString(levelScore)));
+				HUDScoreText->setCaption(text);
 			}
 
 			if ((*itLevelTargets)->targetHit() == false)
@@ -3490,20 +3523,36 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	loadLevelIslandAndWater(islandNo);
 	setPlayerPosition(levelNo);
 	levelComplete = false;
+	levelScore = 0;
+	coconutCount = 0;
+	targetCount = 0;
 
 	loadObjectFile(levelNo, userLevel);
 	changeLevelFish();
+	HUDNode2->detachAllObjects();
+	//Reset GUI messages
+	HUDTargetText->setCaption("Targets killed: 0");
+	HUDCoconutText->setCaption("Coconuts: 0");
+	HUDScoreText->setCaption("Score: 0");
 
 	if(!userLevel) {
 		currentLevel = levelNo;
 		if(levelNo == 1)
+		{
+			HUDNode2->attachObject(HUDTargetText);
 			spinTime = 0;
+		}
 		else if (levelNo == 2)
+		{
 			createJengaPlatform();
+		}
 	}
 	else {
 		currentLevel = 0;
 	}
+
+	//Reset timer
+	timer->reset();
 }
 
 void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
