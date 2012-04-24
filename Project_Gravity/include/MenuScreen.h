@@ -76,7 +76,7 @@ public:
 	MenuScreen(PGFrameListener* frameListener);
 	~MenuScreen();
 
-	//Menu screens
+	//Generating menu screens
 	void loadLoadingScreen(void);
 	void loadMainMenu(void);
 	void loadInGameMenu(void);
@@ -86,7 +86,7 @@ public:
 	void loadControlsScreen(void);
 	void loadHighScoresScreen(void);
 
-	//Methods for buttons
+	//Methods for dealing with on-click button events
 	bool newGame(const CEGUI::EventArgs& e);
 	bool launchEditMode(const CEGUI::EventArgs& e);
 	bool loadLevelPressed(const CEGUI::EventArgs& e);
@@ -97,21 +97,30 @@ public:
 	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
 	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
 	bool loadHighScoresPressed(const CEGUI::EventArgs& e);
+	bool showControlScreen(const CEGUI::EventArgs& e);
+
+	//Load levels
 	bool loadLevel1(const CEGUI::EventArgs& e);
 	bool loadLevel2(const CEGUI::EventArgs& e);
+	bool loadLevel3(const CEGUI::EventArgs& e);
+
+	//Load levels for editing
 	bool editLevel1(const CEGUI::EventArgs& e);
 	bool editLevel2(const CEGUI::EventArgs& e);
-	void showLoadingScreen(void);
-	bool showControlScreen(const CEGUI::EventArgs& e);
+	bool editLevel3(const CEGUI::EventArgs& e);
+
+	//Start level loading process
 	void setLevelLoading(int levelNumber);
+	void showLoadingScreen(void);
 
 	//Close all of the menus
 	void closeMenus(void);
 
-	//Level Aims
+	//Level Aims and status
 	void loadLevel1Aims(void);
 	void loadLevel2Aims(void);
-	void loadLevel1Complete(float time, int coconuts, float score, int level, bool highScore);
+	void loadLevel3Aims(void);
+	void loadLevelComplete(float time, int coconuts, float score, int level, bool highScore);
 	void loadLevelFailed(int level);
 };
 

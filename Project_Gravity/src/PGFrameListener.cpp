@@ -2415,11 +2415,11 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			float oldHighScore = getOldHighScore(currentLevel);
 			if(levelScore >= oldHighScore) {
-				mMenus->loadLevel1Complete(0, coconutCount, levelScore, currentLevel, true);
+				mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
 				saveNewHighScore(currentLevel, levelScore);
 			} 
 			else {
-				mMenus->loadLevel1Complete(0, coconutCount, levelScore, currentLevel, false);
+				mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
 			mMenus->mLevel1CompleteOpen = true;
@@ -2510,7 +2510,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
 			freeRoam = false;
-			mMenus->loadLevel1Complete(0, coconutCount, levelScore, currentLevel, true);
+			mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
 			mMenus->mLevel1CompleteOpen = true;
 			coconutCount = 0;
 		}
