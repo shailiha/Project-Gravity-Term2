@@ -1,17 +1,19 @@
-#ifndef __TARGET_h_
-#define __TARGET_h_
+#ifndef __ENVIRONMENTOBJECT_h_
+#define __ENVIRONMENTOBJECT_h_
 
 #include "stdafx.h"
 #include "PGFrameListener.h"
 
 class PGFrameListener;
 
-class Target {
+class EnvironmentObject {
 
 private:
 	AnimationState *palmAnimation;
 
 public:
+	//All the class variables needed for storing data about each object
+	//Rigid-body specific variables
 	OgreBulletDynamics::RigidBody* mBody;
 	String mName;
 	String mMesh;
@@ -21,7 +23,7 @@ public:
 	float mRestitution;
 	float mFriction;
 	float mMass;
-
+	//Object animation variables
 	int mAnimated;
 	float mXMovement;
 	float mYMovement;
@@ -30,21 +32,19 @@ public:
 	float mRotationX;
 	float mRotationY;
 	float mRotationZ;
-
+	//Bill board variables
 	int mBillBoard;
 	SceneNode* mBillNode;
 	MovableText* mText;
 	double mTextAnim;
 	bool mTextBool;
 	Vector3 mTextPos;
-
+	//Whether a target has been hit
 	bool counted;
-	
-	static OgreBulletCollisions::CompoundCollisionShape* mPalmCollisionShape;
 
-	//Target(PGFrameListener* frameListener, Vector3 position, Quaternion orientation, int animationType, float x, float y, float z, float speed, float rotation);
-	Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld *mWorld, int mNumEntitiesInstanced, SceneManager* mSceneMgr, std::string object[24]);
-	~Target();
+	//Class methods
+	EnvironmentObject(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld *mWorld, int mNumEntitiesInstanced, SceneManager* mSceneMgr, std::string object[24]);
+	~EnvironmentObject();
 	void move(float spinTime, double evtTime);
 	bool targetHit();
 	bool targetCounted();

@@ -8,9 +8,13 @@
 class PGFrameListener;
 class LevelLoad;
 
+/* Header file for MenuScreen class. 
+ * Lists all class variables and methods */
+
 class MenuScreen {
 public:
-	//Required public to show loading screen when loading custom levels
+	PGFrameListener* mFrameListener;
+	//Required to show loading screen when loading custom levels
 	bool mLoadingScreenCreated;
 	CEGUI::Window* loadingScreenRoot;
 	LevelLoad* mUserLevelLoader;
@@ -32,7 +36,7 @@ public:
 	bool mHighScoresCreated;
 	bool mHighScoresOpen;
 	bool mBackPressedFromMainMenu;
-	//For updating Custom Level loader menu when new levels made
+	//For updating 'User Levels' loader menu when new levels made
 	CEGUI::Window* mScroll;
 	int mNumberOfCustomLevels;
 	int mNewLevelsMade;
@@ -70,9 +74,7 @@ public:
 	CEGUI::Window* userLevelMenu;
 	CEGUI::Window* highScoresRoot;
 
-
-	PGFrameListener* mFrameListener;
-
+	//Class methods
 	MenuScreen(PGFrameListener* frameListener);
 	~MenuScreen();
 

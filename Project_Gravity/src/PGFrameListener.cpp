@@ -1419,7 +1419,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 	object[22] = "0"; //rotation in z
 	object[23] = "0"; //has billboard?
 
-	Target* newObject = new Target(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
+	EnvironmentObject* newObject = new EnvironmentObject(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
 		
 	//We want our collision callback function to work with all level objects
 	newObject->getBody()->getBulletRigidBody()->setCollisionFlags(playerBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
@@ -1632,38 +1632,38 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 void PGFrameListener::moveTargets(double evtTime){
 	spinTime += evtTime;
 
-	auto targetIt = levelBodies.begin();
-	while(targetIt != levelBodies.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	auto objectIt = levelBodies.begin();
+	while(objectIt != levelBodies.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
 
-	targetIt = levelCoconuts.begin();
-	while(targetIt != levelCoconuts.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	objectIt = levelCoconuts.begin();
+	while(objectIt != levelCoconuts.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
-	targetIt = levelTargets.begin();
-	while(targetIt != levelTargets.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	objectIt = levelTargets.begin();
+	while(objectIt != levelTargets.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
-	targetIt = levelBlocks.begin();
-	while(targetIt != levelBlocks.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	objectIt = levelBlocks.begin();
+	while(objectIt != levelBlocks.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
 }
 
@@ -1677,11 +1677,11 @@ void PGFrameListener::animatePalms(const Ogre::FrameEvent& evt) {
 
 void PGFrameListener::checkObjectsForRemoval() {
 	//Here we check the status of collectable coconuts, and remove if necessary and update coconutCount
- 	std::deque<Target *>::iterator itLevelCoconuts = levelCoconuts.begin();
+ 	std::deque<EnvironmentObject *>::iterator itLevelCoconuts = levelCoconuts.begin();
  	while (levelCoconuts.end() != itLevelCoconuts)
  	{   
-		Target *target = *itLevelCoconuts;
-		OgreBulletDynamics::RigidBody* currentBody = target->getBody();
+		EnvironmentObject *object = *itLevelCoconuts;
+		OgreBulletDynamics::RigidBody* currentBody = object->getBody();
 		
 		if(currentBody->getBulletRigidBody()->getFriction()==0.94f)
 		{
@@ -2385,7 +2385,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 	{
 		//level one ends when you kill all the targets
 		bool winning = true;
- 		std::deque<Target *>::iterator itLevelTargets = levelTargets.begin();
+ 		std::deque<EnvironmentObject *>::iterator itLevelTargets = levelTargets.begin();
  		while (levelTargets.end() != itLevelTargets)
  		{
 			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
@@ -2432,7 +2432,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 	if ((currentLevel ==2) && (levelComplete ==false))
 	{
 		//Check for Jenga block above certain height
-		std::deque<Target *>::iterator itLevelBlocks = levelBlocks.begin();
+		std::deque<EnvironmentObject *>::iterator itLevelBlocks = levelBlocks.begin();
 		while (levelTargets.end() != itLevelBlocks)
 		{
 			if ((*itLevelBlocks)->mPosition.y > 1000)
@@ -2449,7 +2449,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 		bool winning = true;
 
 		//Check if blue blocks hit ground
-		std::deque<Target *>::iterator itLevelBlue = levelBlue.begin();
+		std::deque<EnvironmentObject *>::iterator itLevelBlue = levelBlue.begin();
 		while (levelBlue.end() != itLevelBlue)
 		{
 			if ((*itLevelBlue)->targetHit())
@@ -2468,7 +2468,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 		}
 
 		//Check if coconut hit red block
-		std::deque<Target *>::iterator itLevelRed = levelRed.begin();
+		std::deque<EnvironmentObject *>::iterator itLevelRed = levelRed.begin();
 		while (levelRed.end() != itLevelRed)
 		{
 			if ((*itLevelRed)->targetHit())
@@ -2487,7 +2487,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 		}
 
 		//Check orange blocks
-		std::deque<Target *>::iterator itLevelOrange = levelOrange.begin();
+		std::deque<EnvironmentObject *>::iterator itLevelOrange = levelOrange.begin();
 		while (levelTargets.end() != itLevelOrange)
 		{
 			if (((*itLevelOrange)->targetCounted()==false) && ((*itLevelOrange)->targetHit()))
@@ -2589,8 +2589,8 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	mMenus->mNewLevelsMade++;
 }
 
-std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<Target *> queue) {
-	std::deque<Target *>::iterator iterate = queue.begin();
+std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<EnvironmentObject *> queue) {
+	std::deque<EnvironmentObject *>::iterator iterate = queue.begin();
 	std::stringstream objectDetails;
  	while (queue.end() != iterate)
  	{   
@@ -2775,8 +2775,8 @@ void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &
 	queue.clear();
 }
 
-void PGFrameListener::clearTargets(std::deque<Target *> &queue) {
-	std::deque<Target *>::iterator iterator = queue.begin();
+void PGFrameListener::clearTargets(std::deque<EnvironmentObject *> &queue) {
+	std::deque<EnvironmentObject *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = (*iterator)->getBody();
@@ -2835,7 +2835,7 @@ void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
 void PGFrameListener::loadLevelObjects(std::string object[24]) 
 {
 	std::string name = object[0];
-	Target* newObject = new Target(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
+	EnvironmentObject* newObject = new EnvironmentObject(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
 
 	if (name == "Crate") {
 		levelBodies.push_back(newObject);

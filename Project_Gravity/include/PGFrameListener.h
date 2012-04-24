@@ -3,11 +3,11 @@
 
 #include "stdafx.h"
 #include "MovableText.h"
-#include "Target.h"
+#include "EnvironmentObject.h"
 #include "LevelLoad.h"
 #include "MenuScreen.h"
 
-class Target;
+class EnvironmentObject;
 class LevelLoad;
 class MenuScreen;
 
@@ -184,14 +184,14 @@ private:
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
-	std::deque<Target *> levelBodies;
-	std::deque<Target *> levelCoconuts;
-	std::deque<Target *> levelTargets;
-	std::deque<Target *> levelBlocks;
-	std::deque<Target *> levelPalms;
-	std::deque<Target *> levelOrange;
-	std::deque<Target *> levelBlue;
-	std::deque<Target *> levelRed;
+	std::deque<EnvironmentObject *> levelBodies;
+	std::deque<EnvironmentObject *> levelCoconuts;
+	std::deque<EnvironmentObject *> levelTargets;
+	std::deque<EnvironmentObject *> levelBlocks;
+	std::deque<EnvironmentObject *> levelPalms;
+	std::deque<EnvironmentObject *> levelOrange;
+	std::deque<EnvironmentObject *> levelBlue;
+	std::deque<EnvironmentObject *> levelRed;
 	std::deque<AnimationState *> levelPalmAnims;
 	//preview objects
 	Ogre::Entity *boxEntity;
@@ -324,7 +324,7 @@ public:
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
-	std::stringstream generateObjectStringForSaving(std::deque<Target *> queue);
+	std::stringstream generateObjectStringForSaving(std::deque<EnvironmentObject *> queue);
 	int findUniqueName(void);
 	void loadLevel(int levelNo, int islandNo, bool userLevel);
 	void setPlayerPosition(int level);
@@ -333,7 +333,7 @@ public:
 	void loadLevelObjects(std::string object[24]);
 	void clearLevel(void) ;
 	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
-	void clearTargets(std::deque<Target *> &queue);
+	void clearTargets(std::deque<EnvironmentObject *> &queue);
 	void clearPalms(std::deque<SceneNode *> &queue);
 	void checkLevelEndCondition(void);
 	float getOldHighScore(int level);
