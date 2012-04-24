@@ -1,11 +1,16 @@
 #include "StdAfx.h"
 #include "..\include\Scene.h"
 
-
+/* Class created to provide a more general level loading sequence.
+ * This class deals with setting up some of the environment variables 
+ * including the ocean using Hydrax
+ */
+//Constructor
 Scene::Scene()
 {
 }
 
+//Create the hydrax environment
 void Scene::create(Ogre::SceneManager *sceneMgr, Ogre::Camera *camera, Ogre::RenderWindow *window) {
 	mHydrax = new Hydrax::Hydrax(sceneMgr, camera, window->getViewport(0));
 
@@ -39,7 +44,7 @@ void Scene::create(Ogre::SceneManager *sceneMgr, Ogre::Camera *camera, Ogre::Ren
 	sceneMgr->setShadowTextureConfig(0, 2048, 2048, Ogre::PF_FLOAT32_R);
 }
 
-
+//Destructor
 Scene::~Scene(void)
 {
 }

@@ -14,15 +14,17 @@ class LevelLoad;
 class MenuScreen {
 public:
 	PGFrameListener* mFrameListener;
-	//Required to show loading screen when loading custom levels
-	bool mLoadingScreenCreated;
-	CEGUI::Window* loadingScreenRoot;
 	LevelLoad* mUserLevelLoader;
 
-	//Menu flags
+	//Required to show loading screen when loading custom levels
+	bool mLoadingScreenCreated;
+	bool mInLoadingScreen;
+	CEGUI::Window* loadingScreenRoot;
+
+	//Menu flags - both whether they are created and 
+	//whether they are currently being viewed
 	bool mMainMenu;
 	bool mMainMenuCreated;
-	bool mInLoadingScreen;
 	bool mInGameMenu;
 	bool mInGameMenuCreated;
 	bool mInEditorMenu;
@@ -36,6 +38,7 @@ public:
 	bool mHighScoresCreated;
 	bool mHighScoresOpen;
 	bool mBackPressedFromMainMenu;
+	
 	//For updating 'User Levels' loader menu when new levels made
 	CEGUI::Window* mScroll;
 	int mNumberOfCustomLevels;

@@ -399,7 +399,8 @@ void MenuScreen::loadUserLevelSelectorMenu() {
 			int newNumberOfLevels = mNumberOfCustomLevels + mNewLevelsMade;
 			//Iteratively add new buttons for new levels below previously existing buttons
 			for(i=1; i <= mNewLevelsMade; i++) {
-				std::string buttonName = "userLoadLevel"+StringConverter::toString((i+mNumberOfCustomLevels)+"Btn");
+				int buttonNumber = i+mNumberOfCustomLevels;
+				std::string buttonName = "userLoadLevel"+to_string(buttonNumber)+"Btn";
 
 				loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
 				loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
