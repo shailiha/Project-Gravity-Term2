@@ -9,8 +9,8 @@ LevelLoad::LevelLoad(PGFrameListener* frameListener, const std::string &levelNam
 
 bool LevelLoad::preLoad(const CEGUI::EventArgs& e) {
 	mFrameListener->editMode = false;
-	mFrameListener->showLoadingScreen();
-	mFrameListener->mUserLevelLoader = this;
+	mFrameListener->mMenus->showLoadingScreen();
+	mFrameListener->mMenus->mUserLevelLoader = this;
 	return true;
 }
 
@@ -33,7 +33,3 @@ void LevelLoad::load() {
 
 LevelLoad::~LevelLoad() {
 }
-
-/*
-
-		*/

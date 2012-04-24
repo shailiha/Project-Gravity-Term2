@@ -5,9 +5,12 @@
 #include "MovableText.h"
 #include "Target.h"
 #include "LevelLoad.h"
+#include "MenuScreen.h"
 
 class Target;
 class LevelLoad;
+class MenuScreen;
+
 #define WIN32_LEAN_AND_MEAN
 const int NUM_FISH = 60;
 
@@ -48,7 +51,6 @@ private:
     OIS::Mouse*    mMouse;
     OIS::Keyboard* mKeyboard;
 
-	RenderWindow* mWindow;
 	Camera* mCamera;
 	
 	Real mMoveSpeed;
@@ -66,62 +68,6 @@ private:
 	String mDebugText;
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
-    bool mShutDown;
-
-	//Menu flags
-	bool mMainMenu;
-	bool mMainMenuCreated;
-	bool mInLoadingScreen;
-	bool mInGameMenu;
-	bool mInGameMenuCreated;
-	bool mInEditorMenu;
-	bool mEditorMenuCreated;
-	bool mInLevelMenu;
-	bool mInUserLevelMenu;
-	bool mInControlMenu;
-	bool mLevelMenuCreated;
-	bool mUserLevelMenuCreated;
-	bool mControlScreenCreated;
-	bool mHighScoresCreated;
-	bool mHighScoresOpen;
-	bool mBackPressedFromMainMenu;
-	//For updating Custom Level loader menu when new levels made
-	CEGUI::Window* mScroll;
-	int mNumberOfCustomLevels;
-	int mNewLevelsMade;
-	int mLevelToLoad;
-
-	//Level Aims flags
-	CEGUI::Window* level1AimsRoot;
-	bool mLevel1AimsCreated;
-	bool mLevel1AimsOpen;
-	CEGUI::Window* level2AimsRoot;
-	bool mLevel2AimsCreated;
-	bool mLevel2AimsOpen;
-
-	//Level completion flags
-	CEGUI::Window* level1CompleteRoot;
-	bool mLevel1CompleteCreated;
-	bool mLevel1CompleteOpen;
-	CEGUI::Window* levelFailedRoot;
-	bool mLevelFailedCreated;
-	bool mLevelFailedOpen;
-	
-	//Menu windows
-	CEGUI::Window* mainMenuRoot;
-	CEGUI::Window* inGameMenuRoot;
-	CEGUI::Window* editorMenuRoot;
-	CEGUI::Window* levelMenuRoot;
-	CEGUI::Window* userLevelMenuRoot;
-	CEGUI::Window* controlScreenRoot;
-	CEGUI::Window* controlsScreen;
-	CEGUI::Window* loadingScreen;
-	CEGUI::Window* inGame;
-	CEGUI::Window* mainMenu;
-	CEGUI::Window* inGameMenu;
-	CEGUI::Window* levelMenu;
-	CEGUI::Window* userLevelMenu;
-	CEGUI::Window* highScoresRoot;
 
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -144,8 +90,6 @@ private:
     Ogre::Vector3 mDirection;              // The direction the object is moving
     Ogre::Vector3 mDestination;            // The destination the object is moving towards
     Ogre::Real mWalkSpeed;                 // The speed at which the object is moving
-
-	bool freeRoam;
 
     Ogre::RaySceneQuery *mRaySceneQuery;// The ray scene query pointer
     bool mRMouseDown;		// True if the mouse buttons are down
@@ -229,9 +173,6 @@ private:
 	double spinTime;
 	Entity *targetEnt[6];
 	
-	int currentLevel;
-	//For level editing
-	int editingLevel;
 	bool mScrollUp;
 	bool mScrollDown;
 	bool snap; //snap to grid
@@ -327,12 +268,15 @@ public:
 	//Variable required to prevent palm tree collision shape being re-created
 	bool mPalmShapeCreated;
 	
-	//Required public to show loading screen when loading custom levels
-	bool mLoadingScreenCreated;
-	CEGUI::Window* loadingScreenRoot;
-	LevelLoad* mUserLevelLoader;
 	//Required to exit edit mode when loading custom level
 	bool editMode;
+	//Required public for MenuScreen class
+	RenderWindow* mWindow;
+	MenuScreen* mMenus;
+	bool freeRoam;
+	int currentLevel; //What is the current level
+	int editingLevel; //Which level is being edited
+	bool mShutDown; //Determines whether game needs to be exited
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -397,40 +341,6 @@ public:
 	void updateShadowFarDistance();
 	void updateEnvironmentLighting();
 	void animatePalms(const Ogre::FrameEvent& evt);
-
-	//Menu-related
-	void loadLoadingScreen(void);
-	void loadMainMenu(void);
-	void loadInGameMenu(void);
-	void loadEditorSelectorMenu(void);
-	void loadLevelSelectorMenu(void); 
-	void loadUserLevelSelectorMenu(void);
-	void loadControlsScreen(void);
-	void loadHighScoresScreen(void);
-	bool newGame(const CEGUI::EventArgs& e);
-	bool launchEditMode(const CEGUI::EventArgs& e);
-	bool loadLevelPressed(const CEGUI::EventArgs& e);
-	bool loadUserLevelPressed(const CEGUI::EventArgs& e);
-	bool levelBackPressed(const CEGUI::EventArgs& e);
-	bool exitGamePressed(const CEGUI::EventArgs& e);
-	bool inGameResumePressed(const CEGUI::EventArgs& e);
-	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
-	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
-	bool loadHighScoresPressed(const CEGUI::EventArgs& e);
-	bool loadLevel1(const CEGUI::EventArgs& e);
-	bool loadLevel2(const CEGUI::EventArgs& e);
-	bool editLevel1(const CEGUI::EventArgs& e);
-	bool editLevel2(const CEGUI::EventArgs& e);
-	void showLoadingScreen(void);
-	bool showControlScreen(const CEGUI::EventArgs& e);
-	void setLevelLoading(int levelNumber);
-	void closeMenus(void);
-
-	//Level Aims
-	void loadLevel1Aims(void);
-	void loadLevel2Aims(void);
-	void loadLevel1Complete(float time, int coconuts, float score, int level, bool highScore);
-	void loadLevelFailed(int level);
 
 	// New Terrain
 	void createTerrain(int levelNo);
