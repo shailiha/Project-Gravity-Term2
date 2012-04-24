@@ -57,7 +57,8 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
 			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
 			target->setFriction(0.94f);
-			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
+			//target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
+			target->setRestitution((double) ((1050 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
 		else
 		{
@@ -68,7 +69,8 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
 			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
 			target->setFriction(0.94f);
-			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
+			//target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
+			target->setRestitution((double) ((1050 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
 	}
 
@@ -472,18 +474,23 @@ PGFrameListener::PGFrameListener (
 	sunNode->attachObject(sunParticle);
 	sunParticle->setEmitting(true);
 	//HUD
-	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 2.0f);
-	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 2.0f);
-	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 2.0f);
-	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 2.0f);
+	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 3.1f);
+	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 3.1f);
+	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 3.1f);
+	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 3.1f);
+	String timeString = "00:00";
 	HUDTargetText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
 	HUDTargetText->showOnTop();
+	HUDTargetText->setColor(Ogre::ColourValue(1,0,0,0.9));
 	HUDCoconutText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
 	HUDCoconutText->showOnTop();
+	HUDCoconutText->setColor(Ogre::ColourValue(1,0,0,0.9));
 	HUDScoreText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
 	HUDScoreText->showOnTop();
+	HUDScoreText->setColor(Ogre::ColourValue(1,0,0,0.9));
 	timerText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
 	timerText->showOnTop();
+	timerText->setColor(Ogre::ColourValue(1,0,0,0.9));
 	HUDNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("HUDNode");
 	HUDNode2 = HUDNode->createChildSceneNode("HUDNode2");
 	HUDNode3 = HUDNode->createChildSceneNode("HUDNode3");
@@ -499,6 +506,7 @@ PGFrameListener::PGFrameListener (
 	timerNode->setPosition(0, 25,0);
 	timer = new Timer();
 	currentTime = 0;
+	levelTime = 0; //Target time for level in seconds
 }
 
 void PGFrameListener::setupPSSMShadows()
@@ -747,7 +755,6 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 			if(mPickedBody != NULL && mPickedBody->getBulletRigidBody()->getFriction() != 0.12f){
 				if (mPickConstraint)
 				{
-					gunParticle->setEmitting(true);
 					// add a point to point constraint for picking
 					CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
 					//cout << mousePos.d_x << " " << mousePos.d_y << endl;
@@ -775,13 +782,31 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		playerBody->getBulletRigidBody()->setAngularFactor(0.0);
 
 		if (editMode)
+		{ //Update preview object location
+			mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
+			if (snap)
+			{
+				mSpawnLocation.x = floor(mSpawnLocation.x/gridsize) * gridsize + (gridsize/2);
+				mSpawnLocation.y = floor(mSpawnLocation.y/gridsize) * gridsize + (gridsize/2);
+				mSpawnLocation.z = floor(mSpawnLocation.z/gridsize) * gridsize + (gridsize/2);
+			}
+			mSpawnObject->setPosition(mSpawnLocation);
 			gravityGun->setVisible(false);
+		}
 		else
 			gravityGun->setVisible(true);
 
 		//update timer text
 		currentTime = timer->getMilliseconds();
-		timerText->setCaption(StringConverter::toString((int)currentTime/60000)+":"+StringConverter::toString(((int)currentTime/1000)%60));
+		if (((int)currentTime/1000)%60<10) //0 padding
+		{
+			timeString = StringConverter::toString((int)currentTime/60000)+":0"+StringConverter::toString(((int)currentTime/1000)%60);
+		}
+		else
+		{
+			timeString = StringConverter::toString((int)currentTime/60000)+":"+StringConverter::toString(((int)currentTime/1000)%60);
+		}
+		timerText->setCaption(timeString);
 	} else {
 
 	}
@@ -1162,24 +1187,8 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 		mCamera->pitch(Ogre::Degree(-evt.state.Y.rel * 0.15f));
 		if (editMode)
 		{
-			//Set object spawning distance
-			//std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
+			//Set object spawning distance from scrollwheel input
 			spawnDistance = spawnDistance + evt.state.Z.rel;
-			mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
-			if (snap)
-			{
-				mSpawnLocation.x = floor(mSpawnLocation.x/gridsize) * gridsize + (gridsize/2);
-				mSpawnLocation.y = floor(mSpawnLocation.y/gridsize) * gridsize + (gridsize/2);
-				mSpawnLocation.z = floor(mSpawnLocation.z/gridsize) * gridsize + (gridsize/2);
-			}
-			//std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
-			mSpawnObject->setPosition(mSpawnLocation);
-			cout << mSpawnObject->getPosition() << endl;
-			cout << mSpawnObject->getOrientation().w << endl;
-			cout << mSpawnObject->getOrientation().x << endl;
-			cout << mSpawnObject->getOrientation().y << endl;
-			cout << mSpawnObject->getOrientation().z << endl;
-			cout << mSpawnObject->getScale() << endl;
 		}
 		else
 		{
@@ -1282,7 +1291,10 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 
 					if ((body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) > 30) &&
 						(body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) < 500))
-						mWorld->addConstraint(p2pConstraint);					    
+					{
+						mWorld->addConstraint(p2pConstraint);
+						gunParticle->setEmitting(true);
+					}
 
 					//centre camera on object for moving blocks
 					if (body->getBulletRigidBody()->getFriction()==0.8f)
@@ -1330,6 +1342,7 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 {
 	// Left mouse button up
 	gunParticle2->setEmitting(false);
+	gunParticle->setEmitting(false);
 	if(editMode) {
 		if (id == OIS::MB_Middle)
 		{
@@ -1696,7 +1709,7 @@ void PGFrameListener::checkObjectsForRemoval() {
 			++coconutCount;
 			String text = String("Coconuts: "+ (StringConverter::toString(coconutCount)));
 			HUDCoconutText->setCaption(text);
-			levelScore += 100;
+			levelScore += 500;
 			text = String("Score: "+ (StringConverter::toString(levelScore)));
 			HUDScoreText->setCaption(text);
 			std::cout << "Coconut get!:\tTotal: " << coconutCount << std::endl;
@@ -1846,7 +1859,7 @@ void PGFrameListener::spawnBox(Vector3 spawnPosition)
  				mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
 	defaultBody->getBulletRigidBody()->setCollisionFlags(defaultBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
- 	// push the created objects to the dequese
+ 	// push the created objects to the deque
  	mShapes.push_back(sceneSphereShape);
  	mBodies.push_back(defaultBody);
 }
@@ -2394,7 +2407,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
 			{
 				//update score
-				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 10000);
+				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 1000);
 				std::cout << "Score: " << levelScore << std::endl;
 				(*itLevelTargets)->counted = true;
 				targetCount++;
@@ -2413,8 +2426,13 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
  		}
 		if (winning)
 		{
-			levelScore += (coconutCount*1000);
+			int timeBonus = ((levelTime*1000)-currentTime) *(10.0/(levelTime*1.0)); //normalise time taken to give max bonus of 10K
+			if (timeBonus<0) {
+				timeBonus=0;
+			}
+			levelScore += timeBonus;
 			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Time bonus " << timeBonus << std::endl;
 			std::cout << "Score: " << levelScore << std::endl;
 			float oldHighScore = getOldHighScore(currentLevel);
 			if(levelScore >= oldHighScore) {
@@ -2445,6 +2463,31 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				break;
 			}
 			++itLevelBlocks;
+		}
+		if (levelComplete)
+		{
+			int timeBonus = ((levelTime*1000)-currentTime) *(10.0/(levelTime*1.0)); //normalise time taken to give max bonus of 10K
+			if (timeBonus<0) {
+				timeBonus=0;
+			}
+			levelScore += timeBonus;
+			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Time bonus " << timeBonus << std::endl;
+			std::cout << "Score: " << levelScore << std::endl;
+			float oldHighScore = getOldHighScore(currentLevel);
+			if(levelScore >= oldHighScore) {
+				//loadLevel2Complete(0, coconutCount, levelScore, currentLevel, true);
+				saveNewHighScore(currentLevel, levelScore);
+			} 
+			else {
+				//loadLevel2Complete(0, coconutCount, levelScore, currentLevel, false);
+			}
+			levelComplete = true;
+			//mLevel2CompleteOpen = true;
+			freeRoam = false;
+			coconutCount = 0;
+			targetCount = 0;
+			levelScore = 0;
 		}
 	}
 	if ((currentLevel ==3) && (levelComplete ==false))
@@ -2508,7 +2551,11 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 		}
 		if (winning)
 		{
-			levelScore += (coconutCount*1000);
+			int timeBonus = ((levelTime*1000)-currentTime) *(10.0/(levelTime*1.0)); //normalise time taken to give max bonus of 10K
+			if (timeBonus<0) {
+				timeBonus=0;
+			}
+			levelScore += timeBonus;
 			std::cout << "You're Winner!" << std::endl;
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
@@ -3541,10 +3588,16 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 		{
 			HUDNode2->attachObject(HUDTargetText);
 			spinTime = 0;
+			levelTime = 300;
 		}
 		else if (levelNo == 2)
 		{
 			createJengaPlatform();
+			levelTime = 600;
+		}
+		else if (levelNo == 3)
+		{
+			levelTime = 300;
 		}
 	}
 	else {

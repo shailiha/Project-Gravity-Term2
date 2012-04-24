@@ -243,6 +243,7 @@ private:
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
+	int levelTime;
 	std::deque<Target *> levelBodies;
 	std::deque<Target *> levelCoconuts;
 	std::deque<Target *> levelTargets;
@@ -275,6 +276,7 @@ private:
 	MovableText* HUDCoconutText;
 	MovableText* HUDScoreText;
 	MovableText* timerText;
+	String timeString;
 	SceneNode* HUDNode;
 	SceneNode* HUDNode2;
 	SceneNode* HUDNode3;

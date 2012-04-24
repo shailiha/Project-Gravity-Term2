@@ -77,7 +77,20 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 
 	}
 	else {
-		if (mName=="Orange" ||mName=="Blue" || mName=="Red")
+		if (mName=="Orange")
+		{
+			mMass=50;
+			entity->setMaterialName("GoldCoconut");
+		}
+		if (mName=="Blue")
+		{
+			mMass=50;
+		}
+		if (mName=="Red")
+		{
+			mMass=50;
+		}
+		if (mName=="Block")
 		{
 			mMass=50;
 		}
@@ -87,7 +100,7 @@ Target::Target(PGFrameListener* frameListener, OgreBulletDynamics::DynamicsWorld
 
 	mBody->setCastShadows(true);
 
-	//Add a billboard for scores if necessary+
+	//Add a billboard for scores if necessary
 	if(mBillBoard != 0) {
 		mText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "100", "000_@KaiTi_33", 17.0f);
 		mText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE); // Center horizontally and display above the node
