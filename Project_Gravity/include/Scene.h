@@ -1,5 +1,9 @@
 #include "StdAfx.h"
 #pragma once
+
+/* Header file for Scene class. 
+ * Lists all class variables and methods */
+
 class Scene
 {
 public:
