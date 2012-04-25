@@ -469,10 +469,10 @@ PGFrameListener::PGFrameListener (
 	sunNode->attachObject(sunParticle);
 	sunParticle->setEmitting(true);
 	//HUD
-	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 3.1f);
-	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 3.1f);
-	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 3.1f);
-	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 3.1f);
+	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 3.3f);
+	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 3.3f);
+	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 3.3f);
+	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 3.3f);
 	String timeString = "00:00";
 	HUDTargetText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
 	HUDTargetText->showOnTop();
@@ -2453,6 +2453,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 		{
 			if ((*itLevelBlocks)->mPosition.y > 1000)
 			{
+				//(*itLevelBlocks)->getBody()->getBulletRigidBody()->check
 				levelScore += 10000;
 				levelComplete = true;
 				break;
