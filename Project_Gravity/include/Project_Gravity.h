@@ -4,6 +4,9 @@
 #include "stdafx.h"
 #include "PGFrameListener.h"
 
+/* Header file for Project_Gravity class. 
+ * Lists all class variables and methods */
+
 class Project_Gravity : public Ogre::WindowEventListener
 {
 public:
@@ -24,11 +27,11 @@ public:
 	void createResourceListener(void);
     bool quit(const CEGUI::EventArgs &e);
 	void initCEGUI(void);
-	void setupLiSpSMShadows();
 
 private:
 	PGFrameListener* mFrameListener;
 
+	//Basic scene variables
     Ogre::Root *mRoot;
     Ogre::Camera* mCamera;
     Ogre::Camera* mCubeCamera;
@@ -41,15 +44,21 @@ private:
     OgreBites::SdkCameraMan* mCameraMan;     // basic camera controller
     bool mCursorWasVisible;                  // was cursor visible before dialog appeared
 
+	//Terrain variables
     Ogre::TerrainGlobalOptions* mTerrainGlobals;
     Ogre::TerrainGroup* mTerrainGroup;
     bool mTerrainsImported;
  
 	CEGUI::OgreRenderer* mRenderer;
 
+	//Player variables
 	Ogre::SceneNode* playerNode;
 	Ogre::SceneNode* playerNodeHeight;
+	//Gravity gun scene node
 	Ogre::SceneNode* gravityGun;
+
+	//Variables for keeping track of and dealing with the 
+	//number of frames-per-second
 	double currentTicks;
 	double speedFactor;
 	double targetFPS;
@@ -61,4 +70,4 @@ private:
 	int weatherSystem;
 };
  
- #endif // #ifndef __Project_Gravity_h_
+ #endif

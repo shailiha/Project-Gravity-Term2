@@ -22,6 +22,7 @@
 #include "OgrePrerequisites.h"
 #include "OgreCompositorLogic.h"
 #include "OgreCompositorInstance.h"
+#include "OgreTimer.h"
 
 #include <OgreCamera.h>
 #include <OgreEntity.h>

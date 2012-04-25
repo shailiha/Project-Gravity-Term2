@@ -3,11 +3,14 @@
 
 #include "stdafx.h"
 #include "MovableText.h"
-#include "Target.h"
+#include "EnvironmentObject.h"
 #include "LevelLoad.h"
+#include "MenuScreen.h"
 
-class Target;
+class EnvironmentObject;
 class LevelLoad;
+class MenuScreen;
+
 #define WIN32_LEAN_AND_MEAN
 const int NUM_FISH = 60;
 
@@ -34,17 +37,21 @@ private:
 	bool hideHydrax;
 	ParticleSystem* gunParticle; //For particles
 	ParticleSystem* gunParticle2;
+	ParticleSystem* sunParticle; //For the Sun :D
+	SceneNode *sunNode;
 	float stepTime;
+	Ogre::Timer* timer;	//Timer
+	bool spotOn;
 	
 	//Is level complete?
 	bool levelComplete;
+	int levelScore;
 	
     //OIS Input devices
     OIS::InputManager* mInputManager;
     OIS::Mouse*    mMouse;
     OIS::Keyboard* mKeyboard;
 
-	RenderWindow* mWindow;
 	Camera* mCamera;
 	
 	Real mMoveSpeed;
@@ -62,40 +69,6 @@ private:
 	String mDebugText;
 	unsigned int mNumScreenShots;
 	int mSceneDetailIndex ;
-    bool mShutDown;
-
-	//Menu flags
-	bool mMainMenu;
-	bool mMainMenuCreated;
-	bool mInLoadingScreen;
-	bool mInGameMenu;
-	bool mInGameMenuCreated;
-	bool mInLevelMenu;
-	bool mInUserLevelMenu;
-	bool mInControlMenu;
-	bool mLevelMenuCreated;
-	bool mUserLevelMenuCreated;
-	bool mControlScreenCreated;
-	bool mBackPressedFromMainMenu;
-	//For updating Custom Level loader menu when new levels made
-	CEGUI::Window* mScroll;
-	int mNumberOfCustomLevels;
-	int mNewLevelsMade;
-	int mLevelToLoad;
-	
-	//Menu windows
-	CEGUI::Window* mainMenuRoot;
-	CEGUI::Window* inGameMenuRoot;
-	CEGUI::Window* levelMenuRoot;
-	CEGUI::Window* userLevelMenuRoot;
-	CEGUI::Window* controlScreenRoot;
-	CEGUI::Window* controlsScreen;
-	CEGUI::Window* loadingScreen;
-	CEGUI::Window* inGame;
-	CEGUI::Window* mainMenu;
-	CEGUI::Window* inGameMenu;
-	CEGUI::Window* levelMenu;
-	CEGUI::Window* userLevelMenu;
 
 	//Camera controls
 	Ogre::Real mTopSpeed;
@@ -118,8 +91,6 @@ private:
     Ogre::Vector3 mDirection;              // The direction the object is moving
     Ogre::Vector3 mDestination;            // The destination the object is moving towards
     Ogre::Real mWalkSpeed;                 // The speed at which the object is moving
-
-	bool freeRoam;
 
     Ogre::RaySceneQuery *mRaySceneQuery;// The ray scene query pointer
     bool mRMouseDown;		// True if the mouse buttons are down
@@ -203,9 +174,6 @@ private:
 	double spinTime;
 	Entity *targetEnt[6];
 	
-	int currentLevel;
-	//For level editing
-	bool editMode;
 	bool mScrollUp;
 	bool mScrollDown;
 	bool snap; //snap to grid
@@ -217,11 +185,15 @@ private:
 	//Stuff loaded from level
 	int coconutCount;
 	int targetCount;
-	std::deque<Target *> levelBodies;
-	std::deque<Target *> levelCoconuts;
-	std::deque<Target *> levelTargets;
-	std::deque<Target *> levelBlocks;
-	std::deque<Target *> levelPalms;
+	int levelTime;
+	std::deque<EnvironmentObject *> levelBodies;
+	std::deque<EnvironmentObject *> levelCoconuts;
+	std::deque<EnvironmentObject *> levelTargets;
+	std::deque<EnvironmentObject *> levelBlocks;
+	std::deque<EnvironmentObject *> levelPalms;
+	std::deque<EnvironmentObject *> levelOrange;
+	std::deque<EnvironmentObject *> levelBlue;
+	std::deque<EnvironmentObject *> levelRed;
 	std::deque<AnimationState *> levelPalmAnims;
 	//preview objects
 	Ogre::Entity *boxEntity;
@@ -230,6 +202,9 @@ private:
 	Ogre::Entity *blockEntity;
 	Ogre::Entity *palm1Entity;
 	Ogre::Entity *palm2Entity;
+	Ogre::Entity *orangeEntity;
+	Ogre::Entity *blueEntity;
+	Ogre::Entity *redEntity;
 	SceneNode* billNodes[6];
 	MovableText* targetText[6];
 	double targetTextAnim[6];
@@ -239,6 +214,17 @@ private:
 	Real mLastPositionLength;
 	Ogre::Real mTimeMultiplier;
 	bool mForceDisableShadows;
+	MovableText* HUDTargetText;
+	MovableText* HUDCoconutText;
+	MovableText* HUDScoreText;
+	MovableText* timerText;
+	String timeString;
+	SceneNode* HUDNode;
+	SceneNode* HUDNode2;
+	SceneNode* HUDNode3;
+	SceneNode* HUDNode4;
+	SceneNode* timerNode;
+	double currentTime;
 
 	// Color gradients
 	SkyX::ColorGradient mWaterGradient, 
@@ -285,10 +271,15 @@ public:
 	//Variable required to prevent palm tree collision shape being re-created
 	bool mPalmShapeCreated;
 	
-	//Required public to show loading screen when loading custom levels
-	bool mLoadingScreenCreated;
-	CEGUI::Window* loadingScreenRoot;
-	LevelLoad* mUserLevelLoader;
+	//Required to exit edit mode when loading custom level
+	bool editMode;
+	//Required public for MenuScreen class
+	RenderWindow* mWindow;
+	MenuScreen* mMenus;
+	bool freeRoam;
+	int currentLevel; //What is the current level
+	int editingLevel; //Which level is being edited
+	bool mShutDown; //Determines whether game needs to be exited
 
 	bool frameStarted(const FrameEvent& evt);
 	bool frameEnded(const FrameEvent& evt);
@@ -304,7 +295,6 @@ public:
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void worldUpdates(const Ogre::FrameEvent& evt);
 	void checkObjectsForRemoval();
-	void setupPSSMShadows();
 
 	void windowResized(Ogre::RenderWindow* rw);
 	void windowClosed(Ogre::RenderWindow* rw);
@@ -314,9 +304,9 @@ public:
     bool quit(const CEGUI::EventArgs &e);
     bool nextLocation(void);
 	void UpdateSpeedFactor(double factor);
-	void spawnBox(void);
+	void spawnBox(Ogre::Vector3 spawnPosition);
 	void createBulletTerrain(void);
-	void changeBulletTerrain(void);
+	void changeBulletTerrain(int level);
 	void createRobot(void);
 	void createCaelumSystem(void);
 	void createCubeMap();
@@ -336,49 +326,28 @@ public:
 	//Save and load objects
 	void placeNewObject(int objectType);
 	void saveLevel(void);
-	std::stringstream generateObjectStringForSaving(std::deque<Target *> queue);
+	std::stringstream generateObjectStringForSaving(std::deque<EnvironmentObject *> queue);
 	int findUniqueName(void);
-	void loadLevel(int levelNo);
+	void loadLevel(int levelNo, int islandNo, bool userLevel);
+	void setPlayerPosition(int level);
+	void loadLevelIslandAndWater(int levelNo);
 	void loadObjectFile(int levelNo, bool userLevel);
 	void loadLevelObjects(std::string object[24]);
 	void clearLevel(void) ;
 	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
-	void clearTargets(std::deque<Target *> &queue);
+	void clearTargets(std::deque<EnvironmentObject *> &queue);
 	void clearPalms(std::deque<SceneNode *> &queue);
 	void checkLevelEndCondition(void);
-	void updateShadowFarDistance();
-	void updateEnvironmentLighting();
+	float getOldHighScore(int level);
+	void saveNewHighScore(int level, float levelScore);
 	void animatePalms(const Ogre::FrameEvent& evt);
 
-	//Menu-related
-	void loadLoadingScreen(void);
-	void loadMainMenu(void);
-	void loadInGameMenu(void);
-	void loadLevelSelectorMenu(void); 
-	void loadUserLevelSelectorMenu(void);
-	void loadControlsScreen(void);
-	bool newGame(const CEGUI::EventArgs& e);
-	bool launchEditMode(const CEGUI::EventArgs& e);
-	bool loadLevelPressed(const CEGUI::EventArgs& e);
-	bool loadUserLevelPressed(const CEGUI::EventArgs& e);
-	bool levelBackPressed(const CEGUI::EventArgs& e);
-	bool exitGamePressed(const CEGUI::EventArgs& e);
-	bool inGameResumePressed(const CEGUI::EventArgs& e);
-	bool inGameMainMenuPressed(const CEGUI::EventArgs& e);
-	bool inGameLevelsResumePressed(const CEGUI::EventArgs& e);
-	bool loadLevel1(const CEGUI::EventArgs& e);
-	bool loadLevel2(const CEGUI::EventArgs& e);
-	void showLoadingScreen(void);
-	bool showControlScreen(const CEGUI::EventArgs& e);
-	void setLevelLoading(int levelNumber);
-	void closeMenus(void);
-
 	// New Terrain
-	void createTerrain();
-	void defineTerrain(long x, long y);
+	void createTerrain(int levelNo);
+	void defineTerrain(long x, long y, int levelNo);
     void initBlendMaps(Ogre::Terrain* terrain);
     void configureTerrainDefaults(Ogre::Light* light);
-	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img);
+	void getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, int levelNo);
 	void createJengaPlatform();
 	void destroyJengaPlatform();
 	void moveJengaPlatform(double timeSinceLastFrame);

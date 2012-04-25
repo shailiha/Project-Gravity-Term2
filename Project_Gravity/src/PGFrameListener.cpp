@@ -6,38 +6,6 @@ extern const int NUM_FISH;
 
 using namespace std;
 
-Hydrax::Hydrax *mHydraxPtr;
-int testing;
-
-// Shadow config struct
-struct ShadowConfig
-{
-	bool Enable;
-	int  Size;
-
-	ShadowConfig(const bool& Enable_, const int& Size_)
-		: Enable(Enable_)
-		, Size(Size_)
-	{
-	}
-};
-
-struct PGFrameListener::shadowListener : public Ogre::SceneManager::Listener
-{
-    // this is a callback we'll be using to set up our shadow camera
-    void shadowTextureCasterPreViewProj(Ogre::Light *light, Ogre::Camera *cam, size_t)
-    {
-		//cout << testing << endl;
-    }
-    void shadowTexturesUpdated(size_t) 
-	{
-		//cout << testing << endl;
-	}
-    void shadowTextureReceiverPreViewProj(Ogre::Light*, Ogre::Frustum* frustrum) {}
-    void preFindVisibleObjects(Ogre::SceneManager*, Ogre::SceneManager::IlluminationRenderStage, Ogre::Viewport*) {}
-    void postFindVisibleObjects(Ogre::SceneManager*, Ogre::SceneManager::IlluminationRenderStage, Ogre::Viewport*) {}
-} shadowCameraUpdater;
-
 //Custom Callback function
 bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
 {
@@ -91,6 +59,55 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			coconut->setFriction(0.94f);
 		}
 	}
+
+	//Collisions between coconuts and red blocks
+	if (((obj0Friction==0.61f) && (obj1Friction==0.72f))
+		||((obj0Friction==0.72f) && (obj1Friction==0.61f)))
+	{
+		if (obj0Friction==0.61f)
+		{
+			btRigidBody* red = (btRigidBody*)obj1;
+			red->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* red = (btRigidBody*)obj0;
+			red->setFriction(0.94f);
+		}
+		std::cout << "Fail - you hit a red block with a coconut D:" << std::endl;
+	}
+	//Collisions between orange blocks and the ground (ground has friction of 0.8)
+	if (((obj0Friction==0.8f) && (obj1Friction==0.7f))
+		||((obj0Friction==0.7f) && (obj1Friction==0.8f)))
+	{
+		if (obj0Friction==0.8f)
+		{
+			btRigidBody* orange = (btRigidBody*)obj1;
+			orange->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* orange = (btRigidBody*)obj0;
+			orange->setFriction(0.94f);
+		}
+		std::cout << "Orange block" << std::endl;
+	}
+	//Collisions between blue blocks and the ground
+	if (((obj0Friction==0.8f) && (obj1Friction==0.71f))
+		||((obj0Friction==0.71f) && (obj1Friction==0.8f)))
+	{
+		if (obj0Friction==0.8f)
+		{
+			btRigidBody* blue = (btRigidBody*)obj1;
+			blue->setFriction(0.94f);
+		}
+		else
+		{
+			btRigidBody* blue = (btRigidBody*)obj0;
+			blue->setFriction(0.94f);
+		}
+		std::cout << "Fail - you let a blue block touch the ground D:" << std::endl;
+	}
 	return true;
 }
 
@@ -113,14 +130,10 @@ PGFrameListener::PGFrameListener (
 			mVelocity(Ogre::Vector3::ZERO), mGoingForward(false), mGoingBack(false), mGoingLeft(false), 
 			mGoingRight(false), mGoingUp(false), mGoingDown(false), mFastMove(false),
 			freeRoam(false), mPaused(true), gunActive(false), shotGun(false), mFishAlive(NUM_FISH),
-			mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mLoadingScreenCreated(false), mInLoadingScreen(false),
-			mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), mUserLevelLoader(NULL), 
-			mControlScreenCreated(false), mInControlMenu(false),
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
 {
-	mHydraxPtr = mHydrax;
-	testing = 1;
+	// Initialize platform variables
 	stepTime = 0;
 	beginJenga = false;
 	newPlatformShape = false;
@@ -128,9 +141,12 @@ PGFrameListener::PGFrameListener (
 	platformGoingDown = false;
 	spawnedPlatform = false;
 
+	mMenus = new MenuScreen(this);
+
 	playerNode = pNode;
 	playerNodeHeight = pNodeHeight;
 
+	// Initialize compositor
 	Ogre::CompositorManager::getSingleton().
 		addCompositor(mWindow->getViewport(0), "Bloom")->addListener(this);
 	Ogre::CompositorManager::getSingleton().
@@ -169,6 +185,7 @@ PGFrameListener::PGFrameListener (
 	spawnDistance = 500;
 	currentLevel = 1;
 	levelComplete = false;
+	levelScore = 0;
 
 	// Start Bullet
 	mNumEntitiesInstanced = 0; // how many shapes are created
@@ -208,8 +225,10 @@ PGFrameListener::PGFrameListener (
  	mShapes.push_back(playerBoxShape);
  	mBodies.push_back(playerBody);
 
+	// Initialize cube map for gun
 	createCubeMap();
 	
+	// Initialize gravity gun and buffers
 	pivotNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 	pivotNodePitch = pivotNode->createChildSceneNode();
 	pivotNodeRoll = pivotNodePitch->createChildSceneNode();
@@ -302,6 +321,15 @@ PGFrameListener::PGFrameListener (
 	palm2Entity = mSceneMgr->createEntity(
 			"Palm2Default",
 			"Palm2.mesh");
+	orangeEntity = mSceneMgr->createEntity(
+		"orangeDefault",
+		"Jenga.mesh");
+	blueEntity = mSceneMgr->createEntity(
+		"blueDefault",
+		"Jenga.mesh");
+	redEntity = mSceneMgr->createEntity(
+		"redDefault",
+		"Jenga.mesh");
  	boxEntity->setCastShadows(true);
 	mSpawnObject = mSceneMgr->getRootSceneNode()->createChildSceneNode("spawnObject");
     mSpawnObject->attachObject(boxEntity);
@@ -311,7 +339,8 @@ PGFrameListener::PGFrameListener (
 	//Initialise number of coconuts collected and targets killed
 	coconutCount = 0;
 	targetCount = 0;
-	gridsize = 26;
+	//gridsize = 26;
+	gridsize = 3;
 	weatherSystem = 0;
 
 	for (int i = 0; i < NUM_FISH; i++)
@@ -321,81 +350,69 @@ PGFrameListener::PGFrameListener (
 		mFishLastDirection[i] = Vector3(1, -0.2, 1);
 	}
 
-	if (weatherSystem == 0)
-	{
-		// Create the day/night system
-		createCaelumSystem();
-		mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
-	}
-	else
-	{
-		// Set ambiant lighting
-		mSceneMgr->setAmbientLight(Ogre::ColourValue(1, 1, 1));
+	// Create the day/night system
+	createCaelumSystem();
+	mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
 
-		// Light
-		Ogre::Light *mLight0 = mSceneMgr->createLight("Light0");
-		mLight0->setDiffuseColour(0.3, 0.3, 0.3);
-		mLight0->setCastShadows(false);
+	// Shadow caster
+	Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
+	mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+	spotOn = false;
 
-		// Shadow caster
-		Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
-		mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+	// Create SkyX object
+	mSkyX = new SkyX::SkyX(mSceneMgr, mCamera);
 
-		// Create SkyX object
-		mSkyX = new SkyX::SkyX(mSceneMgr, mCamera);
+	// No smooth fading
+	mSkyX->getMeshManager()->setSkydomeFadingParameters(false);
 
-		// No smooth fading
-		mSkyX->getMeshManager()->setSkydomeFadingParameters(false);
+	// A little change to default atmosphere settings :)
+	SkyX::AtmosphereManager::Options atOpt = mSkyX->getAtmosphereManager()->getOptions();
+	atOpt.RayleighMultiplier = 0.003075f;
+	atOpt.MieMultiplier = 0.00125f;
+	atOpt.InnerRadius = 9.92f;
+	atOpt.OuterRadius = 10.3311f;
+	atOpt.Time = 6.0f;
+	mSkyX->getAtmosphereManager()->setOptions(atOpt);
 
-		// A little change to default atmosphere settings :)
-		SkyX::AtmosphereManager::Options atOpt = mSkyX->getAtmosphereManager()->getOptions();
-		atOpt.RayleighMultiplier = 0.003075f;
-		atOpt.MieMultiplier = 0.00125f;
-		atOpt.InnerRadius = 9.92f;
-		atOpt.OuterRadius = 10.3311f;
-		mSkyX->getAtmosphereManager()->setOptions(atOpt);
+	// Create the sky
+	mSkyX->create();
 
-		// Create the sky
-		mSkyX->create();
+	// Add a basic cloud layer
+	mSkyX->getCloudsManager()->add(SkyX::CloudLayer::Options(/* Default options */));
 
-		// Add a basic cloud layer
-		mSkyX->getCloudsManager()->add(SkyX::CloudLayer::Options(/* Default options */));
-
-		// Add the Hydrax Rtt listener
-		mWaterGradient = SkyX::ColorGradient();
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.779105)*0.4, 1));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.729105)*0.3, 0.8));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.25, 0.6));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.2, 0.5));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.1, 0.45));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.025, 0));
-		// Sun
-		mSunGradient = SkyX::ColorGradient();
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.5, 1.0f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.4, 0.75f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.3, 0.5625f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.6,0.5,0.2)*1.5, 0.5f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.25, 0.45f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.01, 0.0f));
-		// Ambient
-		mAmbientGradient = SkyX::ColorGradient();
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 1.0f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 0.6f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.6, 0.5f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.3, 0.45f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.1, 0.35f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.05, 0.0f));
-	}
+	// Add the Hydrax Rtt listener
+	mWaterGradient = SkyX::ColorGradient();
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.779105)*0.4, 1));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.729105)*0.3, 0.8));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.25, 0.6));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.2, 0.5));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.1, 0.45));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.025, 0));
+	// Sun
+	mSunGradient = SkyX::ColorGradient();
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.5, 1.0f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.4, 0.75f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.3, 0.5625f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.6,0.5,0.2)*1.5, 0.5f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.25, 0.45f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.01, 0.0f));
+	// Ambient
+	mAmbientGradient = SkyX::ColorGradient();
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 1.0f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 0.6f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.6, 0.5f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.3, 0.45f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.1, 0.35f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.05, 0.0f));
 	
-	mHydrax->getRttManager()->addRttListener(this);
 	light = mSceneMgr->createLight("tstLight");
     mTerrainGlobals = OGRE_NEW Ogre::TerrainGlobalOptions();
     mTerrainGroup = OGRE_NEW Ogre::TerrainGroup(mSceneMgr, Ogre::Terrain::ALIGN_X_Z, 129, 3000.0f);
-	createTerrain();
+	createTerrain(currentLevel);
 
 	//How many custom levels have been generated so far
-	mNumberOfCustomLevels = findUniqueName()-1;
-	mNewLevelsMade = 0;
+	mMenus->mNumberOfCustomLevels = findUniqueName()-1;
+	mMenus->mNewLevelsMade = 0;
 
 	//Particles :)
 	gunParticle = mSceneMgr->createParticleSystem("spiral", "Spiral");		//Grabbing
@@ -404,155 +421,45 @@ PGFrameListener::PGFrameListener (
 	gravityGun->attachObject(gunParticle2);
 	gunParticle->setEmitting(false);
 	gunParticle2->setEmitting(false);
-}
-
-void PGFrameListener::setupPSSMShadows()
-{
-/*	Ogre::MaterialPtr IslandMat = static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"));
-	//IslandMat->getTechnique(0)->setSchemeName("Default");
-	//IslandMat->getTechnique(1)->setSchemeName("NoDefault");
-	
-	// Produce the island from the config file
-	mSceneMgr->setWorldGeometry("Island.cfg");
-
-	// Adds depth so the water is darker the deeper you go
-	mHydrax->getMaterialManager()->addDepthTechnique(
-		static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"))
-		->createTechnique());
-		*/
-    mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE_INTEGRATED);
-
-    // 3 textures per spotlight
-    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_SPOTLIGHT, 3);
-
-    // 3 textures per directional light
-    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_DIRECTIONAL, 3);
-    mSceneMgr->setShadowTextureCount(3);
-    mSceneMgr->setShadowTextureConfig(0, 1024, 1024, PF_FLOAT32_RGB);
-    mSceneMgr->setShadowTextureConfig(1, 1024, 1024, PF_FLOAT32_RGB);
-    mSceneMgr->setShadowTextureConfig(2, 512, 512, PF_FLOAT32_RGB);
-
-    mSceneMgr->setShadowTextureSelfShadow(true);
-    // Set up caster material - this is just a standard depth/shadow map caster
-    mSceneMgr->setShadowTextureCasterMaterial("PSVSMShadowCaster");
-
-    // big NONO to render back faces for VSM.  it doesn't need any biasing
-    // so it's worthless (and rather problematic) to use the back face hack that
-    // works so well for normal depth shadow mapping (you know, so you don't
-    // get surface acne)
-    mSceneMgr->setShadowCasterRenderBackFaces(false);
-
-
-    const unsigned numShadowRTTs = mSceneMgr->getShadowTextureCount();
-    for (unsigned i = 0; i < numShadowRTTs; ++i)
-    {
-        Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(i);
-        Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
-        vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
-        vp->setClearEveryFrame(true);
-    }
-
-    // shadow camera setup
-    // float shadowFarDistance = mCamera->getFarClipDistance();
-    float shadowNearDistance = mCamera->getNearClipDistance();
-    float shadowFarDistance = 1000;
-    // float shadowNearDistance = 100;
-    PSSMShadowCameraSetup* pssmSetup = new PSSMShadowCameraSetup();
-    pssmSetup->calculateSplitPoints(3, shadowNearDistance, shadowFarDistance);
-    pssmSetup->setSplitPadding(mCamera->getNearClipDistance());
-    pssmSetup->setOptimalAdjustFactor(0, 2);
-    pssmSetup->setOptimalAdjustFactor(1, 1);
-    pssmSetup->setOptimalAdjustFactor(2, 0.5);
-
-    mSceneMgr->setShadowCameraSetup(ShadowCameraSetupPtr(pssmSetup));
-    mSceneMgr->setShadowFarDistance(shadowFarDistance);
-
-    // once the camera setup is finialises comment this section out and set the param_named in
-    // the .program script with the values of splitPoints
-    Vector4 splitPoints;
-    const PSSMShadowCameraSetup::SplitPointList& splitPointList = pssmSetup->getSplitPoints();
-    for (int i = 0; i < 3; ++i)
-    {
-        splitPoints[i] = splitPointList[i];
-    }
-    Ogre::ResourceManager::ResourceMapIterator it = Ogre::MaterialManager::getSingleton().getResourceIterator();
-
-    static const Ogre::String receiverPassName[2] =
-    {
-        "PSSMShadowReceiverDirectional",
-        "PSSMShadowReceiverSpotlight",
-    };
-
-    while (it.hasMoreElements())
-    {
-        Ogre::MaterialPtr mat = it.getNext();
-        for(int i=0; i<2; i++)
-        {
-            if (mat->getNumTechniques() > 0 &&
-                mat->getTechnique(0)->getPass(receiverPassName[i]) != NULL &&
-                mat->getTechnique(0)->getPass(receiverPassName[i])->getFragmentProgramParameters()->
-                _findNamedConstantDefinition("pssmSplitPoints", false) != NULL)
-            {
-                //printf("set pssmSplitPoints %s\n", mat->getName().c_str());
-                mat->getTechnique(0)->getPass(receiverPassName[i])->getFragmentProgramParameters()->
-                setNamedConstant("pssmSplitPoints", splitPoints);
-            }
-        }
-    }
-}
-
-/** Update shadow far distance
-	*/
-void PGFrameListener::updateShadowFarDistance()
-{
-	Ogre::Light* Light1 = mSceneMgr->getLight("Light1");
-	float currentLength = (Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length();
-
-	if (currentLength < 1000)
-	{
-		mLastPositionLength = currentLength;
-		return;
-	}
-		
-	if (currentLength - mLastPositionLength > 100)
-	{
-		mLastPositionLength += 100;
-
-		Light1->setShadowFarDistance(Light1->getShadowFarDistance() + 100);
-	}
-	else if (currentLength - mLastPositionLength < -100)
-	{
-		mLastPositionLength -= 100;
-
-		Light1->setShadowFarDistance(Light1->getShadowFarDistance() - 100);
-	}
-}
-
-void PGFrameListener::updateEnvironmentLighting()
-{
-	Ogre::Vector3 lightDir = mSkyX->getAtmosphereManager()->getSunDirection();
-
-	bool preForceDisableShadows = mForceDisableShadows;
-	mForceDisableShadows = (lightDir.y > 0.15f) ? true : false;
-
-	// Calculate current color gradients point
-	float point = (-lightDir.y + 1.0f) / 2.0f;
-	//mHydrax->setWaterColor(mWaterGradient.getColor(point));
-
-	Ogre::Vector3 sunPos = mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.1;
-	mHydrax->setSunPosition(sunPos);
-
-	Ogre::Light *Light0 = mSceneMgr->getLight("Light0"),
-				*Light1 = mSceneMgr->getLight("Light1");
-
-	Light0->setPosition(mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.02);
-	Light1->setDirection(lightDir);
-
-	Ogre::Vector3 sunCol = mSunGradient.getColor(point);
-	Light0->setSpecularColour(sunCol.x, sunCol.y, sunCol.z);
-	Ogre::Vector3 ambientCol = mAmbientGradient.getColor(point);
-	Light0->setDiffuseColour(ambientCol.x, ambientCol.y, ambientCol.z);
-	mHydrax->setSunColor(sunCol);
+	//Sun :D
+	sunParticle = mSceneMgr->createParticleSystem("Sun", "Sun");
+	sunNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("SunNode");
+	sunNode->attachObject(sunParticle);
+	sunParticle->setEmitting(true);
+	//HUD
+	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 3.3f);
+	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 3.3f);
+	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 3.3f);
+	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 3.3f);
+	String timeString = "00:00";
+	HUDTargetText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDTargetText->showOnTop();
+	HUDTargetText->setColor(Ogre::ColourValue(1,0,0,0.9));
+	HUDCoconutText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDCoconutText->showOnTop();
+	HUDCoconutText->setColor(Ogre::ColourValue(1,0,0,0.9));
+	HUDScoreText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	HUDScoreText->showOnTop();
+	HUDScoreText->setColor(Ogre::ColourValue(1,0,0,0.9));
+	timerText->setTextAlignment(MovableText::H_CENTER, MovableText::V_ABOVE);
+	timerText->showOnTop();
+	timerText->setColor(Ogre::ColourValue(1,0,0,0.9));
+	HUDNode = mSceneMgr->getRootSceneNode()->createChildSceneNode("HUDNode");
+	HUDNode2 = HUDNode->createChildSceneNode("HUDNode2");
+	HUDNode3 = HUDNode->createChildSceneNode("HUDNode3");
+	HUDNode4 = HUDNode->createChildSceneNode("HUDNode4");
+	timerNode = HUDNode->createChildSceneNode("timerNode");
+	HUDNode2->attachObject(HUDTargetText); //Targets killed
+	HUDNode2->setPosition(-40,-25,0);
+	HUDNode3->attachObject(HUDCoconutText); //Coconuts
+	HUDNode3->setPosition(-40, 25,0);
+	HUDNode4->attachObject(HUDScoreText); //Score
+	HUDNode4->setPosition(30, 25,0);
+	timerNode->attachObject(timerText);
+	timerNode->setPosition(0, 25,0);
+	timer = new Timer();
+	currentTime = 0;
+	levelTime = 0; //Target time for level in seconds
 }
 
 PGFrameListener::~PGFrameListener()
@@ -592,9 +499,9 @@ PGFrameListener::~PGFrameListener()
 bool PGFrameListener::frameStarted(const FrameEvent& evt)
 {
 	if(mFrameCount > 1) {
-		if(!mInGameMenu && !mMainMenu) { //If not in menu continue to update world
+		if(!mMenus->mInGameMenu && !mMenus->mMainMenu && !mMenus->mLevel1AimsOpen) { //If not in menu continue to update world
 
-			if (weatherSystem == 0)
+			if (weatherSystem == 0) // Caelum updates
 			{
 				// Move the sun
 				Ogre::Vector3 sunPosition = mCamera->getDerivedPosition();
@@ -605,21 +512,37 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 				mHydrax->setSunColor(Ogre::Vector3(mCaelumSystem->getSun()->getBodyColour().r,
 					mCaelumSystem->getSun()->getBodyColour().g,
 					mCaelumSystem->getSun()->getBodyColour().b));
-				//CAN ALSO CHANGE THE COLOUR OF THE WATER
-	
-				// Update shadow far distance
-				//updateShadowFarDistance();
+				sunNode->setVisible(true);
+				sunNode->setPosition(sunPosition.x + 2500, sunPosition.y + 500, sunPosition.z);
 			}
-			else
+			else // SkyX updates
 			{
 				// Change SkyX atmosphere options if needed
 				SkyX::AtmosphereManager::Options SkyXOptions = mSkyX->getAtmosphereManager()->getOptions();
-				mSkyX->setTimeMultiplier(mTimeMultiplier);
+				SkyXOptions.Time.x = 9.2f;
 				mSkyX->getAtmosphereManager()->setOptions(SkyXOptions);
-				// Update environment lighting
-				updateEnvironmentLighting();
 				// Update SkyX
-				mSkyX->update(evt.timeSinceLastFrame);
+				mSkyX->update(0.005f);
+				light->setDiffuseColour(0.3, 0.3, 0.3);
+				light->setSpecularColour(0.1, 0.1, 0.1);
+				light->setDirection(mSkyX->getAtmosphereManager()->getSunDirection() * -1);
+				sunNode->setVisible(false);
+
+				// Reflection of the moon
+				Ogre::Vector3 lightDir = mSkyX->getAtmosphereManager()->getSunDirection();
+				lightDir *= -1;
+				mHydrax->setSunColor(Vector3(0.5, 0.5, 0.5));
+				Ogre::Vector3 sunPos = mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.1;
+				mHydrax->setSunPosition(sunPos);
+
+				if (spotOn)
+				{
+					mSceneMgr->getLight("Spot")->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection() * 10);
+					mSceneMgr->getLight("Spot")->setDirection(mCamera->getDerivedDirection());
+					mSceneMgr->getLight("Spot")->setDiffuseColour(1, 1, 1);
+					mSceneMgr->getLight("Spot")->setSpecularColour(1, 1, 1);
+					mSceneMgr->getLight("Spot")->setVisible(true);
+				}
 			}
 	
 			gunPosBuffer6 =  gunPosBuffer5;
@@ -635,10 +558,8 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 
 			// Update the game elements
 			moveCamera(evt.timeSinceLastFrame);
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
+			mWorld->stepSimulation(evt.timeSinceLastFrame, 5);	// update Bullet Physics animation
+			mWorld->stepSimulation(evt.timeSinceLastFrame, 5);	// update Bullet Physics animation
 			mHydrax->update(evt.timeSinceLastFrame);
 		
 			playerNodeHeight->setPosition(playerNode->getPosition().x,
@@ -652,7 +573,6 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 			if(mPickedBody != NULL && mPickedBody->getBulletRigidBody()->getFriction() != 0.12f){
 				if (mPickConstraint)
 				{
-					gunParticle->setEmitting(true);
 					// add a point to point constraint for picking
 					CEGUI::Point mousePos = CEGUI::MouseCursor::getSingleton().getPosition();
 					//cout << mousePos.d_x << " " << mousePos.d_y << endl;
@@ -665,18 +585,43 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 					const Ogre::Vector3 eyePos(mCamera->getDerivedPosition());
 					Ogre::Vector3 dir = rayTo.getDirection () * mOldPickingDist;
 					const Ogre::Vector3 newPos (eyePos + dir);
-					p2p->setPivotB (newPos);   
+					p2p->setPivotB (newPos);  
 				}
 			}
+			//Position HUD
+			HUDNode->setOrientation(mCamera->getDerivedOrientation());
+			HUDNode->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 70);
 		} //End of non-menu specifics
 
 		//Keep player upright
 		playerBody->getBulletRigidBody()->setAngularFactor(0.0);
 
 		if (editMode)
+		{ //Update preview object location
+			mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
+			if (snap)
+			{
+				mSpawnLocation.x = floor(mSpawnLocation.x/gridsize) * gridsize + (gridsize/2);
+				mSpawnLocation.y = floor(mSpawnLocation.y/gridsize) * gridsize + (gridsize/2);
+				mSpawnLocation.z = floor(mSpawnLocation.z/gridsize) * gridsize + (gridsize/2);
+			}
+			mSpawnObject->setPosition(mSpawnLocation);
 			gravityGun->setVisible(false);
+		}
 		else
 			gravityGun->setVisible(true);
+
+		//update timer text
+		currentTime = timer->getMilliseconds();
+		if (((int)currentTime/1000)%60<10) //0 padding
+		{
+			timeString = StringConverter::toString((int)currentTime/60000)+":0"+StringConverter::toString(((int)currentTime/1000)%60);
+		}
+		else
+		{
+			timeString = StringConverter::toString((int)currentTime/60000)+":"+StringConverter::toString(((int)currentTime/1000)%60);
+		}
+		timerText->setCaption(timeString);
 	} else {
 
 	}
@@ -691,12 +636,15 @@ bool PGFrameListener::frameEnded(const FrameEvent& evt)
 
 void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 {
-	// FOG UNDERWATER?
-
+	// Hide hydrax and show ogre ocean for gun reflection
 	gravityGun->setVisible(false);
 	mHydrax->setVisible(false);
-	ocean->setVisible(true);
-	oceanFade->setVisible(true);
+
+	if (weatherSystem == 0)
+	{
+		ocean->setVisible(true);
+		oceanFade->setVisible(true);
+	}
 
 	// point the camera in the right direction based on which face of the cubemap this is
 	mCamera->setOrientation(Quaternion::IDENTITY);
@@ -709,20 +657,19 @@ void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 
 void PGFrameListener::postRenderTargetUpdate(const RenderTargetEvent& evt)
 {
-    gravityGun->setVisible(true); 
+	// Return visibility back to normal
+	gravityGun->setVisible(true); 
 	mHydrax->setVisible(hideHydrax);
-	ocean->setVisible(false);
-	oceanFade->setVisible(false);
+	if (weatherSystem == 0)
+	{
+		ocean->setVisible(false);
+		oceanFade->setVisible(false);	
+	}
 }
 
 void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
 {
-	while(!mHydrax->isVisible()) {cout << "howdy" << endl;}
-	//mHydrax->setVisible(true);
-	//mHydrax->setWaterColor(Vector3(0, 0, 0));
-	//mHydrax->remove();
-	//cout << "hello" << endl;
-	/*if (weatherSystem == 1)
+	if (weatherSystem == 1)
 	{
 		// If needed in any case...
 		bool underwater = mHydrax->_isCurrentFrameUnderwater();
@@ -749,16 +696,12 @@ void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& R
 			}
 			break;
 		}
-	}*/
+	}
 }
 
 void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
 {
-	while(!mHydrax->isVisible()) {cout << "howdy2" << endl;}
-	//mHydrax->setWaterColor(Vector3(0, 0, 0));
-	//mHydrax->create();
-	//mHydrax->setVisible(false);
-	/*if (weatherSystem == 1)
+	if (weatherSystem == 1)
 	{
 		bool underwater = mHydrax->_isCurrentFrameUnderwater();
 
@@ -782,7 +725,7 @@ void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& 
 			}
 			break;
 		}
-	}*/
+	}
 }
 
 void PGFrameListener::createCubeMap()
@@ -844,22 +787,59 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     }
     else if (evt.key == OIS::KC_ESCAPE)
     {
-        if(!mMainMenu && !mBackPressedFromMainMenu) {
-			mInGameMenu = !mInGameMenu; //Toggle menu
+        if(!(mMenus->mMainMenu) && !(mMenus->mBackPressedFromMainMenu) && !(mMenus->mLevel1AimsOpen) && !(mMenus->mLevel2AimsOpen)
+			 && !(mMenus->mLevel1CompleteOpen) && !(mMenus->mLevelFailedOpen)) {
+			mMenus->mInGameMenu = !(mMenus->mInGameMenu); //Toggle menu
 			freeRoam = !freeRoam;
-			if(!mInGameMenu) {//If no longer in in-game menu then close menus
-				closeMenus();
+			if(!(mMenus->mInGameMenu)) {//If no longer in in-game menu then close menus
+				mMenus->closeMenus();
 			}
-			else if (mInGameMenuCreated) { //Toggle menu only if it has actually been created
+			else if (mMenus->mInGameMenuCreated) { //Toggle menu only if it has actually been created
 				if(editMode) {
 					mSpawnObject->detachAllObjects();
 				}
 				CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
-				loadInGameMenu();
-				inGameMenuRoot->setVisible(true);
+				mMenus->loadInGameMenu();
+				mMenus->inGameMenuRoot->setVisible(true);
 			}
 		}
     }
+	else if(evt.key == (OIS::KC_TAB)) {
+		if(!(mMenus->mInGameMenu) && !(mMenus->mMainMenu) && !(mMenus->mLevel1CompleteOpen) && !(mMenus->mLevelFailedOpen)) {
+			if(currentLevel == 1) {
+				mMenus->mLevel1AimsOpen = !(mMenus->mLevel1AimsOpen);
+				freeRoam = !freeRoam;
+				if(mMenus->mLevel1AimsOpen) {
+					CEGUI::MouseCursor::getSingleton().setVisible(false);
+					if(!(mMenus->mLevel1AimsCreated)) {
+						mMenus->loadLevel1Aims();
+					}
+					mMenus->level1AimsRoot->setVisible(true);
+				}
+				else {
+					mMenus->level1AimsRoot->setVisible(false);
+					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+					CEGUI::MouseCursor::getSingleton().setVisible(true);
+				}
+			}
+			else if(currentLevel == 2) {
+				mMenus->mLevel2AimsOpen = !(mMenus->mLevel2AimsOpen);
+				freeRoam = !freeRoam;
+				if(mMenus->mLevel2AimsOpen) {
+					CEGUI::MouseCursor::getSingleton().setVisible(false);
+					if(!(mMenus->mLevel2AimsCreated)) {
+						mMenus->loadLevel2Aims();
+					}
+					mMenus->level2AimsRoot->setVisible(true);
+				}
+				else {
+					mMenus->level2AimsRoot->setVisible(false);
+					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+					CEGUI::MouseCursor::getSingleton().setVisible(true);
+				}
+			}
+		}
+	}
 	else if(evt.key == (OIS::KC_K))	hideHydrax = !hideHydrax;
 	else if (evt.key == (OIS::KC_I)) 
 	{
@@ -871,7 +851,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 	else if (evt.key == OIS::KC_PGUP) editMode = !editMode; //Toggle edit mode
 	else if(evt.key == OIS::KC_Q) {
 		if(!editMode) {
-			spawnBox(); 
+			spawnBox((mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100));
 		}
 	}
 
@@ -912,7 +892,33 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			objSpawnType = 6;
 			mSpawnObject->detachAllObjects();
 			mSpawnObject->attachObject(palm2Entity);
-		} else if(evt.key == OIS::KC_0) {
+		}
+		else if (evt.key == OIS::KC_7) // Press 7 multiple times to toggle coloured blocks
+		{
+			if (objSpawnType!=7 && objSpawnType!=8 && objSpawnType!=9)
+			{
+				objSpawnType=7;
+			} else if (objSpawnType==7)
+			{
+				objSpawnType = 8;
+			}
+			else if (objSpawnType==8)
+			{
+				objSpawnType = 9;
+			}
+			else if (objSpawnType==9)
+			{
+				objSpawnType = 7;
+			}
+			mSpawnObject->detachAllObjects();
+			switch (objSpawnType)
+			{
+				case 7: mSpawnObject->attachObject(orangeEntity); break;
+				case 8: mSpawnObject->attachObject(blueEntity); break;
+				default: mSpawnObject->attachObject(redEntity);
+			}
+		}
+		else if(evt.key == OIS::KC_0) {
 			mSpawnObject->detachAllObjects();
 		}
 		//Rotation of object to spawn
@@ -995,24 +1001,8 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 		mCamera->pitch(Ogre::Degree(-evt.state.Y.rel * 0.15f));
 		if (editMode)
 		{
-			//Set object spawning distance
-			//std::cout << "mouse wheel: " << evt.state.Z.rel << "distance: " << spawnDistance << std::endl;
+			//Set object spawning distance from scrollwheel input
 			spawnDistance = spawnDistance + evt.state.Z.rel;
-			mSpawnLocation = mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * spawnDistance;
-			if (snap)
-			{
-				mSpawnLocation.x = floor(mSpawnLocation.x/gridsize) * gridsize + (gridsize/2);
-				mSpawnLocation.y = floor(mSpawnLocation.y/gridsize) * gridsize + (gridsize/2);
-				mSpawnLocation.z = floor(mSpawnLocation.z/gridsize) * gridsize + (gridsize/2);
-			}
-			//std::cout << "Spawn Location: " << mSpawnLocation << std::endl;
-			mSpawnObject->setPosition(mSpawnLocation);
-			cout << mSpawnObject->getPosition() << endl;
-			cout << mSpawnObject->getOrientation().w << endl;
-			cout << mSpawnObject->getOrientation().x << endl;
-			cout << mSpawnObject->getOrientation().y << endl;
-			cout << mSpawnObject->getOrientation().z << endl;
-			cout << mSpawnObject->getScale() << endl;
 		}
 		else
 		{
@@ -1036,7 +1026,7 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 
 bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
-	if(editMode) {
+	if(editMode && !(mMenus->mInGameMenu)) {
 		if(id == (OIS::MB_Left)) 
 			placeNewObject(objSpawnType);
 	}
@@ -1067,8 +1057,20 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 				std::cout << "Collision found" << std::endl;
 				body = static_cast <OgreBulletDynamics::RigidBody *> 
 					(mCollisionClosestRayResultCallback->getCollidedObject());
-		
 				pickPos = body->getCenterOfMassPosition();//mCollisionClosestRayResultCallback->getCollisionPoint ();
+
+				//spawn Coconut if body is a tree
+				if (body->getBulletRigidBody()->getFriction()==0.93f)
+				{
+					if(Vector3(playerNode->getPosition().x,0,playerNode->getPosition().z).distance(Vector3(pickPos.x,0,pickPos.z))<200)
+					{
+						std::cout << "spawning coconut" << std::endl;
+						spawnBox(Vector3(playerNode->getPosition().x,playerNode->getPosition().y+80,playerNode->getPosition().z));
+					}
+					
+				}
+		
+		
 				if (body->getBulletRigidBody()->getFriction() == 0.12f)
 					platformContact = mCollisionClosestRayResultCallback->getCollisionPoint ();
 
@@ -1088,6 +1090,9 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 				}
 				else if (body->getBulletRigidBody()->getFriction() == 0.11f)
 				{}
+				else if (body->getBulletRigidBody()->getFriction() == 0.7f){}
+				else if (body->getBulletRigidBody()->getFriction() == 0.71f){}
+				else if (body->getBulletRigidBody()->getFriction() == 0.72f){}
 				else if(editMode) {
 					placeNewObject(objSpawnType);
 				}
@@ -1100,7 +1105,10 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 
 					if ((body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) > 30) &&
 						(body->getSceneNode()->getPosition().distance(pivotNode->getPosition()) < 500))
-						mWorld->addConstraint(p2pConstraint);					    
+					{
+						mWorld->addConstraint(p2pConstraint);
+						gunParticle->setEmitting(true);
+					}
 
 					//centre camera on object for moving blocks
 					if (body->getBulletRigidBody()->getFriction()==0.8f)
@@ -1148,6 +1156,7 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 {
 	// Left mouse button up
 	gunParticle2->setEmitting(false);
+	gunParticle->setEmitting(false);
 	if(editMode) {
 		if (id == OIS::MB_Middle)
 		{
@@ -1192,22 +1201,25 @@ inline std::string to_string (const T& t)
 }
 
 void PGFrameListener::placeNewObject(int objectType) {
-
 	std::string name;
 	std::string mesh;
 	Vector3 position = mSpawnLocation;//(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100);
 	Quaternion orientation = mSpawnObject->getOrientation();
 	Vector3 scale = mSpawnObject->getScale();
 	float mass;
+	double friction;
 
 	switch(objectType)
 	{
-		case 1: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
-		case 2: name = "Coconut"; mesh = "Coco.mesh"; mass = 0; break;
-		case 3: name = "Target"; mesh = "Target.mesh"; mass = 0; break;
-		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; break;
-		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; break;
-		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; break;
+		case 1: name = "Crate"; mesh = "Crate.mesh"; mass = 0; friction = 0.9; break;
+		case 2: name = "Coconut"; mesh = "Coco.mesh"; mass = 0; friction = 0.92;break;
+		case 3: name = "Target"; mesh = "Target.mesh"; mass = 0; friction = 0.93; break;
+		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; friction = 0.6; break;
+		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; friction = 0.93; break;
+		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; friction = 0.93; break;
+		case 7: name = "Orange"; mesh = "Jenga.mesh"; mass = 0; friction = 0.7; break;
+		case 8: name = "Blue"; mesh = "Jenga.mesh"; mass = 0; friction = 0.71; break;
+		case 9: name = "Red"; mesh = "Jenga.mesh"; mass = 0; friction = 0.72; break;
 		default: name = "Crate"; mesh = "Crate.mesh"; mass = 0; break;
 	}
 	
@@ -1225,7 +1237,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 	object[10] = to_string(scale.y);
 	object[11] = to_string(scale.z);
 	object[12] = "0.1"; //Restitution
-	object[13] = "0.93"; //Friction
+	object[13] = to_string(friction); //Friction
 	object[14] = to_string(mass);
 	object[15] = "0"; //is animated?
 	object[16] = "0"; //movement in x
@@ -1237,7 +1249,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 	object[22] = "0"; //rotation in z
 	object[23] = "0"; //has billboard?
 
-	Target* newObject = new Target(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
+	EnvironmentObject* newObject = new EnvironmentObject(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
 		
 	//We want our collision callback function to work with all level objects
 	newObject->getBody()->getBulletRigidBody()->setCollisionFlags(playerBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
@@ -1250,6 +1262,9 @@ void PGFrameListener::placeNewObject(int objectType) {
 		case 4: newObject->getBody()->getBulletRigidBody()->setFriction(0.80f); levelBlocks.push_back(newObject); break;
 		case 5: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelPalms.push_back(newObject); break;
 		case 6: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelPalms.push_back(newObject); break;
+		case 7: newObject->getBody()->getBulletRigidBody()->setFriction(0.70f); levelOrange.push_back(newObject); break;
+		case 8: newObject->getBody()->getBulletRigidBody()->setFriction(0.71f); levelBlue.push_back(newObject); break;
+		case 9: newObject->getBody()->getBulletRigidBody()->setFriction(0.72f); levelRed.push_back(newObject); break;
 		default: levelBodies.push_back(newObject);
 	}
 	mBodies.push_back(newObject->getBody());
@@ -1283,53 +1298,87 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	if (mShutDown)
 		return false;
 	
-	if(mInLoadingScreen) {
-		if(mUserLevelLoader != NULL) {
-			mUserLevelLoader->load();
-			mUserLevelLoader = NULL;
+	if(mMenus->mLevel1AimsOpen) {
+		mMenus->loadLevel1Aims();
+	}
+	else if(mMenus->mLevel2AimsOpen) {
+		mMenus->loadLevel2Aims();
+	}
+	else if(mMenus->mLevel1CompleteOpen) {
+		CEGUI::System::getSingleton().setGUISheet(mMenus->level1CompleteRoot);
+		mMenus->level1CompleteRoot->setVisible(true);
+	}
+	else if(mMenus->mLevelFailedOpen) {
+		CEGUI::System::getSingleton().setGUISheet(mMenus->levelFailedRoot);
+		mMenus->levelFailedRoot->setVisible(true);
+	}
+	else if(mMenus->mInLoadingScreen) {
+		if(mMenus->mUserLevelLoader != NULL) {
+			mMenus->mUserLevelLoader->load();
+			mMenus->mUserLevelLoader = NULL;
 		} 
 		else {
-			loadLevel(mLevelToLoad);
+			if(currentLevel == 0) {
+				loadLevel(0, editingLevel, false);
+			}
+			else if(currentLevel > 0) {
+				loadLevel(currentLevel, currentLevel, false);
+			}
 		}
-		loadingScreenRoot->setVisible(false);
-		mInLoadingScreen = false;
+		mMenus->mInLoadingScreen = false;
+		CEGUI::MouseCursor::getSingleton().setVisible(true);
+		if(editMode) {
+			clearTargets(levelBodies);
+			clearTargets(levelCoconuts);
+			clearTargets(levelBlocks);
+			clearTargets(levelTargets);
+			clearTargets(levelPalms);
+			levelPalmAnims.clear();
+			currentLevel = 0;
+		}
 	}
-	else if(mMainMenu) {
-		loadMainMenu();
+	else if(mMenus->mMainMenu) {
+		mMenus->loadMainMenu();
 	} 
 	else {
 		//Check whether viewing in-game menu
-		if(mInGameMenu) {
-			if(mInLevelMenu) {
-				loadLevelSelectorMenu();
+		if(mMenus->mInGameMenu) {
+			if(mMenus->mInLevelMenu) {
+				mMenus->loadLevelSelectorMenu();
 			}
-			else if(mInUserLevelMenu) {
-				loadUserLevelSelectorMenu();
+			else if(mMenus->mInUserLevelMenu) {
+				mMenus->loadUserLevelSelectorMenu();
 			}
-			else if(mInControlMenu) {
-				loadControlsScreen();
+			else if(mMenus->mInControlMenu) {
+				mMenus->loadControlsScreen();
+			}
+			else if(mMenus->mHighScoresOpen) {
+				mMenus->loadHighScoresScreen();
+			}
+			else if(mMenus->mInEditorMenu) {
+				mMenus->loadEditorSelectorMenu();
 			}
 			else {
-				loadInGameMenu();
+				mMenus->loadInGameMenu();
 			}
 		} 
 		//Else, update the world
 		else {
 			worldUpdates(evt); // Cam, caelum etc.
 			checkObjectsForRemoval(); //Targets and coconuts
+			mMenus->loadingScreenRoot->setVisible(false);
+			checkLevelEndCondition();
 		}
 	}
     //Need to capture/update each device
     mKeyboard->capture();
     mMouse->capture();
 
-	checkLevelEndCondition();
-
     return true;
 }
 
 void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) 
-{
+{	
 	if (currentLevel == 2)
 		moveJengaPlatform(evt.timeSinceLastFrame);
 
@@ -1354,13 +1403,6 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 	}
 	else
 		gunAnimate->addTime(-evt.timeSinceLastFrame * 1.5);
-
-	if (weatherSystem == 0)
-	{
-		// So that the caelum system is updated for both cameras
-		//mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("PlayerCam"));
-		//mCaelumSystem->updateSubcomponents (evt.timeSinceLastFrame);
-	}
 
 	Ogre::Vector3 camPosition = mCamera->getPosition();
 	Ogre::Quaternion camOr = mCamera->getOrientation();
@@ -1413,38 +1455,38 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 void PGFrameListener::moveTargets(double evtTime){
 	spinTime += evtTime;
 
-	auto targetIt = levelBodies.begin();
-	while(targetIt != levelBodies.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	auto objectIt = levelBodies.begin();
+	while(objectIt != levelBodies.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
 
-	targetIt = levelCoconuts.begin();
-	while(targetIt != levelCoconuts.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	objectIt = levelCoconuts.begin();
+	while(objectIt != levelCoconuts.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
-	targetIt = levelTargets.begin();
-	while(targetIt != levelTargets.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	objectIt = levelTargets.begin();
+	while(objectIt != levelTargets.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
-	targetIt = levelBlocks.begin();
-	while(targetIt != levelBlocks.end()) {
-		Target *target = *targetIt;
-		if(target->mAnimated) {
-			target->move(spinTime, evtTime);
+	objectIt = levelBlocks.begin();
+	while(objectIt != levelBlocks.end()) {
+		EnvironmentObject *object = *objectIt;
+		if(object->mAnimated) {
+			object->move(spinTime, evtTime);
 		}
-		targetIt++;
+		objectIt++;
 	}
 }
 
@@ -1458,11 +1500,11 @@ void PGFrameListener::animatePalms(const Ogre::FrameEvent& evt) {
 
 void PGFrameListener::checkObjectsForRemoval() {
 	//Here we check the status of collectable coconuts, and remove if necessary and update coconutCount
- 	std::deque<Target *>::iterator itLevelCoconuts = levelCoconuts.begin();
+ 	std::deque<EnvironmentObject *>::iterator itLevelCoconuts = levelCoconuts.begin();
  	while (levelCoconuts.end() != itLevelCoconuts)
  	{   
-		Target *target = *itLevelCoconuts;
-		OgreBulletDynamics::RigidBody* currentBody = target->getBody();
+		EnvironmentObject *object = *itLevelCoconuts;
+		OgreBulletDynamics::RigidBody* currentBody = object->getBody();
 		
 		if(currentBody->getBulletRigidBody()->getFriction()==0.94f)
 		{
@@ -1470,8 +1512,13 @@ void PGFrameListener::checkObjectsForRemoval() {
 			// animation could be started here.
 			currentBody->getSceneNode()->detachAllObjects(); //removes the visible coconut
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody()); // Removes the physics box
-			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+
 			++coconutCount;
+			String text = String("Coconuts: "+ (StringConverter::toString(coconutCount)));
+			HUDCoconutText->setCaption(text);
+			levelScore += 500;
+			text = String("Score: "+ (StringConverter::toString(levelScore)));
+			HUDScoreText->setCaption(text);
 			std::cout << "Coconut get!:\tTotal: " << coconutCount << std::endl;
 		}
 		++itLevelCoconuts;
@@ -1568,11 +1615,10 @@ void PGFrameListener::UpdateSpeedFactor(double factor)
 	mCaelumSystem->getUniversalClock ()->setTimeScale (mPaused ? 0 : mSpeedFactor);
 }
 
-void PGFrameListener::spawnBox(void)
+void PGFrameListener::spawnBox(Vector3 spawnPosition)
 {
 	Vector3 size = Vector3::ZERO;	// size of the box
- 	// starting position of the box
- 	Vector3 position = (mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100);
+ 	Vector3 position = spawnPosition; // starting position of the box
 	Quaternion orientation = mSpawnObject->getOrientation();
 	Vector3 scale = mSpawnObject->getScale();
 
@@ -1620,7 +1666,7 @@ void PGFrameListener::spawnBox(void)
  				mCamera->getDerivedDirection().normalisedCopy() * 7.0f ); // shooting speed
 	defaultBody->getBulletRigidBody()->setCollisionFlags(defaultBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
- 	// push the created objects to the dequese
+ 	// push the created objects to the deque
  	mShapes.push_back(sceneSphereShape);
  	mBodies.push_back(defaultBody);
 }
@@ -1631,6 +1677,8 @@ void PGFrameListener::spawnFish(void)
 		mFishNumber = NUM_FISH;
 	else if (currentLevel == 2)
 		mFishNumber = NUM_FISH / 3;
+	else
+		mFishNumber = 0;
 
 	mFishAlive = mFishNumber;
 
@@ -1661,7 +1709,7 @@ void PGFrameListener::spawnFish(void)
 		if (size.z > biggestSize)
 			biggestSize = size.z;
 
-		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode("FishParent" + StringConverter::toString(i));
 		SceneNode *node2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("Fish" + StringConverter::toString(i));
 		node2->setScale(2.6, 2.6, 2.6);
 
@@ -1674,7 +1722,7 @@ void PGFrameListener::spawnFish(void)
  		OgreBulletCollisions::SphereCollisionShape *sceneBoxShape = new OgreBulletCollisions::SphereCollisionShape(biggestSize);
  		// and the Bullet rigid body
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
+ 				"FishBody" + StringConverter::toString(i), mWorld);
  		defaultBody->setShape(	node,
  					sceneBoxShape,
  					0.6f,			// dynamic body restitution
@@ -1705,25 +1753,20 @@ void PGFrameListener::changeLevelFish()
 		mWorld->getBulletDynamicsWorld()->removeRigidBody(mFish[i]->getBulletRigidBody());
 		mSceneMgr->destroyEntity("Fish" + StringConverter::toString(i));
 		mSceneMgr->destroySceneNode("Fish" + StringConverter::toString(i));
+		mSceneMgr->destroySceneNode("FishParent" + StringConverter::toString(i));
+		mSceneMgr->destroySceneNode("FishBody" + StringConverter::toString(i) + "Node");
+
+		if (mFishDead[i])
+		{
+			mSceneMgr->destroyEntity("FishDead" + StringConverter::toString(i));
+			mSceneMgr->destroySceneNode(mFishNodes[i]);
+			mSceneMgr->destroySceneNode("DeadFishBody" + StringConverter::toString(i) + "Node");
+		}
+
 		mFishDead[i] = false;
 	}
 
 	spawnFish();
-	/*for(int i=0; i<NUM_FISH; i++) 
-	{ 
-		Vector3 position;
-		if (currentLevel == 1)
-			position = Vector3(1490+i*rand()%NUM_FISH, 70, 1500+i*rand()%NUM_FISH);
-		else if (currentLevel == 2)
-			position = Vector3(902+i*rand()%NUM_FISH, 70, 849+i*rand()%NUM_FISH);
-
-		mFish[i]->getBulletRigidBody()->setActivationState(DISABLE_DEACTIVATION);
-		btTransform transform = mFish[i]->getCenterOfMassTransform();
-		transform.setOrigin(btVector3(position.x,
-										position.y,
-										position.z));
-		mFish[i] ->getBulletRigidBody()->setCenterOfMassTransform(transform);
-	}*/
 }
 
 void PGFrameListener::moveFish(double timeSinceLastFrame) 
@@ -1766,7 +1809,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 			Vector3	   tempPos = mFishNodes[i]->getPosition();
 			mFishNodes[i] = node;
 			OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 				"defaultBoxRigidDead" + StringConverter::toString(i), mWorld);
+ 				"DeadFishBody" + StringConverter::toString(i), mWorld);
 
 			if(mPickedBody != NULL) 
 			{
@@ -1795,6 +1838,8 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
  					5.0f, 			// dynamic bodymass
 					tempPos,		// starting position of the box
 					temp);			// orientation of the box
+
+			mWorld->getBulletDynamicsWorld()->removeRigidBody(mFish[i]->getBulletRigidBody());
 			mFish[i] = defaultBody;
 
 			mWorld->stepSimulation(0.0000000001);	// update Bullet Physics animation	
@@ -1940,7 +1985,7 @@ void PGFrameListener::createBulletTerrain(void)
 	defaultTerrainBody = new OgreBulletDynamics::RigidBody("Terrain", mWorld);
 
 	pTerrainNode = mSceneMgr->getRootSceneNode ()->createChildSceneNode();
-	changeBulletTerrain();
+	changeBulletTerrain(currentLevel);
 
 	mBodies.push_back(defaultTerrainBody);
 	mShapes.push_back(mTerrainShape);
@@ -1955,7 +2000,7 @@ void PGFrameListener::createBulletTerrain(void)
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
 
-void PGFrameListener::changeBulletTerrain(void)
+void PGFrameListener::changeBulletTerrain(int level)
 {
 	try
 	{
@@ -1965,10 +2010,12 @@ void PGFrameListener::changeBulletTerrain(void)
 	{
 	}
 	Ogre::ConfigFile config;
-	if (currentLevel == 1)
+	if (level == 1)
 		config.loadFromResourceSystem("Island.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
-	else if (currentLevel == 2)
+	else if (level == 2)
 		config.loadFromResourceSystem("Island2.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
+	else if (level == 3)
+		config.loadFromResourceSystem("Island3.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
 
 	unsigned page_size = Ogre::StringConverter::parseUnsignedInt(config.getSetting( "PageSize" ));
 
@@ -2005,8 +2052,8 @@ void PGFrameListener::changeBulletTerrain(void)
 		heights, 
 		true);
 
-	const float      terrainBodyRestitution  = 0.1f;
-	const float      terrainBodyFriction     = 0.8f;
+	const float terrainBodyRestitution = 0.1f;
+	const float terrainBodyFriction = 0.8f;
 
 	Ogre::Vector3 terrainShiftPos( (terrainScale.x * (page_size - 1) / 2), \
 									0,
@@ -2016,21 +2063,33 @@ void PGFrameListener::changeBulletTerrain(void)
 	defaultTerrainBody->setStaticShape (pTerrainNode, mTerrainShape, terrainBodyRestitution, terrainBodyFriction, terrainShiftPos);
 }
 
-
 void PGFrameListener::createCaelumSystem(void)
 {
 	// Initialize the caelum day/night weather system
 	// Each on below corresponds to each element in the system
     Caelum::CaelumSystem::CaelumComponent componentMask;
-	componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
-		Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
-		//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
-		0);
-	//componentMask = Caelum::CaelumSystem::CAELUM_COMPONENTS_DEFAULT;
+	if (currentLevel == 1)
+	{
+		componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
+			Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
+			0);
+	}
+	else
+	{
+		componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
+			0);
+	}
     mCaelumSystem = new Caelum::CaelumSystem(Root::getSingletonPtr(), mSceneMgr, componentMask);
 	((Caelum::SpriteSun*) mCaelumSystem->getSun())->setSunTextureAngularSize(Ogre::Degree(6.0f));
 
@@ -2038,32 +2097,14 @@ void PGFrameListener::createCaelumSystem(void)
 	mCaelumSystem->setSceneFogDensityMultiplier(0.0008f); // or some other smal6l value.
 	mCaelumSystem->setManageSceneFog(false);
 	mCaelumSystem->getUniversalClock()->setTimeScale (0); // This sets the timescale for the day/night system
-	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(2000);
-	mCaelumSystem->getSun()->getMainLight()->setVisible(false);
+	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(1750);
+	//mCaelumSystem->getSun()->getMainLight()->setVisible(false);
 
     // Register caelum as a listener.
     mWindow->addListener(mCaelumSystem);
 	Root::getSingletonPtr()->addFrameListener(mCaelumSystem);
-
-	//mCaelumSystem->get->setFarRadius(Ogre::Real(80000.0));
-
     UpdateSpeedFactor(mCaelumSystem->getUniversalClock ()->getTimeScale ());
-
-	//Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(0);
-    //Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
-    //vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
-    //vp->setClearEveryFrame(true);
-	//vp->setAutoUpdated(false);
-	//mShadowTarget = tex->getBuffer()->getRenderTarget();
-	//mShadowTarget->addViewport(mCamera)->setOverlaysEnabled(false);
-	//mShadowTarget->getViewport(0)->setClearEveryFrame(true);
-	//mShadowTarget->getViewport(0)->setBackgroundColour(Ogre::ColourValue::Blue);
-	//mShadowTarget->setAutoUpdated(true);
-	//mShadowTarget->addListener(this);
-	
-    renderedLight.push_back(mCaelumSystem->getSun()->getMainLight());
-	
-	mSceneMgr->addListener(&shadowCameraUpdater);
+    //renderedLight.push_back(mCaelumSystem->getSun()->getMainLight());
 }
 
 void PGFrameListener::gunController()
@@ -2176,548 +2217,196 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 {
 	if ((currentLevel ==1) && (levelComplete ==false))
 	{
-		//level one ends either when the fishies get hit or when you kill all the targets
+		//level one ends when you kill all the targets
 		bool winning = true;
- 		std::deque<Target *>::iterator itLevelTargets = levelTargets.begin();
+ 		std::deque<EnvironmentObject *>::iterator itLevelTargets = levelTargets.begin();
  		while (levelTargets.end() != itLevelTargets)
  		{
-			winning = (*itLevelTargets)->targetHit();
-			if (winning)
-				break;
+			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
+			{
+				//update score
+				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 10000);
+				std::cout << "Score: " << levelScore << std::endl;
+				(*itLevelTargets)->counted = true;
+				targetCount++;
+				String text = String("Targets hit: "+ (StringConverter::toString(targetCount)));
+				HUDTargetText->setCaption(text);
+
+				text = String("Score: "+ (StringConverter::toString(levelScore)));
+				HUDScoreText->setCaption(text);
+			}
+
+			if ((*itLevelTargets)->targetHit() == false)
+			{
+				winning = false;
+			}
 			++itLevelTargets;
  		}
 		if (winning)
 		{
-			std::cout << "You're Winner!" << std::endl;
-			levelComplete = true;
-		}
-	}
-}
-
-void PGFrameListener::loadMainMenu() {
-	CEGUI::Window *mainMenu;
-	if(!mMainMenuCreated) {
-		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
-		CEGUI::MouseCursor::getSingleton().setVisible(true);
-		//Create root window
-		mainMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_mainMenuRoot" );
-		CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
-		
-		// Creating Imagesets and defining images
-		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("menuBackground","ProjectGravity.jpg");
-		imgs->defineImage("backgroundImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
-
-		//Create new, inner window, set position, size and attach to root.
-		mainMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","MainMenu" );
-		mainMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
-		mainMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
-		mainMenu->setProperty("Image","set:menuBackground image:backgroundImage");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenu); //Attach to current (inGameMenuRoot) GUI sheet		
-
-		//Menu Buttons
-		CEGUI::System::getSingleton().setGUISheet(mainMenu); //Change GUI sheet to the 'visible' Taharez window
-
-		CEGUI::Window *newGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainNewGameBtn");  // Create Window
-		newGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		newGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-newGameBtn->getWidth(),CEGUI::UDim(0.1,0)));
-		newGameBtn->setText("New Game");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(newGameBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *editModeBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainEditModeBtn");  // Create Window
-		editModeBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		editModeBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-editModeBtn->getWidth(),CEGUI::UDim(0.22,0)));
-		editModeBtn->setText("Edit Mode");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(editModeBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainLoadLevelBtn");  // Create Window
-		loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevelBtn->getWidth(),CEGUI::UDim(0.34,0)));
-		loadLevelBtn->setText("Load Level");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
-
-		CEGUI::Window *loadUserLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainLoadUserLevelBtn");  // Create Window
-		loadUserLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadUserLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadUserLevelBtn->getWidth(),CEGUI::UDim(0.46,0)));
-		loadUserLevelBtn->setText("User Levels");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadUserLevelBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *loadControlsBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainControlsBtn");  // Create Window
-		loadControlsBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadControlsBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadUserLevelBtn->getWidth(),CEGUI::UDim(0.58,0)));
-		loadControlsBtn->setText("Controls");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadControlsBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","MainExitGameBtn");  // Create Window
-		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-exitGameBtn->getWidth(),CEGUI::UDim(0.8,0)));
-		exitGameBtn->setText("Exit Game");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
-
-		//Register events
-		newGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::newGame, this));
-		editModeBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::launchEditMode, this));
-		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevelPressed, this));
-		loadUserLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadUserLevelPressed, this));
-		loadControlsBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::showControlScreen, this));
-		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::exitGamePressed, this));
-		mMainMenuCreated=true;
-	}
-	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
-	mBackPressedFromMainMenu = true;
-	CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
-	
-}
-
-void PGFrameListener::loadInGameMenu() {
-	CEGUI::Window *inGameMenu;
-	if(!mInGameMenuCreated) {
-		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
-		CEGUI::MouseCursor::getSingleton().setVisible(true);
-		
-		//Create root window
-		inGameMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_inGameMenuRoot" );
-		CEGUI::System::getSingleton().setGUISheet(inGameMenuRoot);
-		
-		//Create new, inner window, set position, size and attach to root.
-		inGameMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","InGameMainMenu" );
-		inGameMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
-		inGameMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
-		inGameMenu->setProperty("Image","set:menuBackground image:backgroundImage");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(inGameMenu); //Attach to current (inGameMenuRoot) GUI sheet
-		
-		//Menu Buttons
-		CEGUI::System::getSingleton().setGUISheet(inGameMenu); //Change GUI sheet to the 'visible' Taharez window
-		
-		CEGUI::Window *resumeGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameResumeGameBtn");  // Create Window
-		resumeGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		resumeGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-resumeGameBtn->getWidth(),CEGUI::UDim(0.1,0)));
-		resumeGameBtn->setText("Resume");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(resumeGameBtn);
-
-		CEGUI::Window *editModeBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameEditModeBtn");  // Create Window
-		editModeBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		editModeBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-editModeBtn->getWidth(),CEGUI::UDim(0.22,0)));
-		editModeBtn->setText("Edit Mode");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(editModeBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameLoadLevelBtn");  // Create Window
-		loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevelBtn->getWidth(),CEGUI::UDim(0.34,0)));
-		loadLevelBtn->setText("Load Level");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *loadUserLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameLoadUserLevelBtn");  // Create Window
-		loadUserLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadUserLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadUserLevelBtn->getWidth(),CEGUI::UDim(0.46,0)));
-		loadUserLevelBtn->setText("User Levels");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadUserLevelBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *loadControlsBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameControlsBtn");  // Create Window
-		loadControlsBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadControlsBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadUserLevelBtn->getWidth(),CEGUI::UDim(0.58,0)));
-		loadControlsBtn->setText("Controls");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadControlsBtn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *mainMenuBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameMainMenuBtn");  // Create Window
-		mainMenuBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		mainMenuBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-mainMenuBtn->getWidth(), CEGUI::UDim(0.7,0)));
-		mainMenuBtn->setText("Main Menu");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mainMenuBtn);
-
-		CEGUI::Window *exitGameBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","InGameExitGameBtn");  // Create Window
-		exitGameBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		exitGameBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-exitGameBtn->getWidth(),CEGUI::UDim(0.82,0)));
-		exitGameBtn->setText("Exit Game");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(exitGameBtn);
-
-		//Register events
-		resumeGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameResumePressed, this));
-		editModeBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::launchEditMode, this));
-		loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevelPressed, this));
-		loadUserLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadUserLevelPressed, this));
-		loadControlsBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::showControlScreen, this));
-		exitGameBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::exitGamePressed, this));
-		mainMenuBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::inGameMainMenuPressed, this));
-		mInGameMenuCreated=true;
-	}
-	//Needed here to ensure that if user re-opens menu after previously selecting 'Load Level' it opens the correct menu
-	mBackPressedFromMainMenu = false;
-	CEGUI::System::getSingleton().setGUISheet(inGameMenuRoot);
-	
-}
-
-void PGFrameListener::loadLevelSelectorMenu() {
-	CEGUI::Window *levelMenu;
-	if(!mLevelMenuCreated) {
-		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
-		CEGUI::MouseCursor::getSingleton().setVisible(true);
-		//Create root window
-		levelMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_LevelRoot" );
-		CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
-
-		//Create new, inner window, set position, size and attach to root.
-		levelMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","levelMenu" );
-		levelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
-		levelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
-		levelMenu->setProperty("Image","set:menuBackground image:backgroundImage");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(levelMenu); //Attach to current (inGameMenuRoot) GUI sheet
-		
-		//Menu Buttons
-		CEGUI::System::getSingleton().setGUISheet(levelMenu); //Change GUI sheet to the 'visible' Taharez window
-
-		/* ScrollablePane */		
-		CEGUI::Window* scroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "levelScroll");
-		scroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.1, 0)));
-		scroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.6, 0)));
-		((CEGUI::ScrollablePane*)scroll)->setContentPaneAutoSized(true);
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(scroll);
-		
-		//Put buttons inside the scroll-able area
-		CEGUI::System::getSingleton().setGUISheet(scroll);
-
-		CEGUI::Window *loadLevel1Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel1Btn");  // Create Window
-		loadLevel1Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadLevel1Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel1Btn->getWidth(),CEGUI::UDim(0,0)));
-		loadLevel1Btn->setText("Level 1");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel1Btn);  //Buttons are now added to the window so they will move with it.
-
-		CEGUI::Window *loadLevel2Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel2Btn");  // Create Window
-		loadLevel2Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadLevel2Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel2Btn->getWidth(),CEGUI::UDim(0.2,0)));
-		loadLevel2Btn->setText("Level 2");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
-
-		//Set buttons outside of scroll-able area
-		CEGUI::System::getSingleton().setGUISheet(levelMenu);
-
-		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","LoadLvlResumeGameBtn");  // Create Window
-		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.8,0)));
-		backBtn->setText("Back");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
-
-		//Register events
-		loadLevel1Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel1, this));
-		loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel2, this));
-		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::levelBackPressed, this));
-		mLevelMenuCreated=true;
-	}
-	CEGUI::System::getSingleton().setGUISheet(levelMenuRoot);
-}
-
-void PGFrameListener::loadUserLevelSelectorMenu() {
-	CEGUI::Window *userLevelMenu;
-	if(!mUserLevelMenuCreated) {
-		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
-		CEGUI::MouseCursor::getSingleton().setVisible(true);
-		//Create root window
-		userLevelMenuRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_UserLevelRoot" );
-		CEGUI::System::getSingleton().setGUISheet(userLevelMenuRoot);
-		
-		//Create new, inner window, set position, size and attach to root.
-		userLevelMenu = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","userLevelMenu" );
-		userLevelMenu->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
-		userLevelMenu->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
-		userLevelMenu->setProperty("Image","set:menuBackground image:backgroundImage");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(userLevelMenu); //Attach to current (inGameMenuRoot) GUI sheet
-		
-		//Menu Buttons
-		CEGUI::System::getSingleton().setGUISheet(userLevelMenu); //Change GUI sheet to the 'visible' Taharez window
-		
-		/* ScrollablePane */		
-		mScroll = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/ScrollablePane", "userLevelScroll");
-		mScroll->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0),CEGUI::UDim(0.1, 0)));
-		mScroll->setSize(CEGUI::UVector2(CEGUI::UDim(1, 0),CEGUI::UDim(0.6, 0)));
-		((CEGUI::ScrollablePane*)mScroll)->setContentPaneAutoSized(true);
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(mScroll);
-		
-		//Put buttons inside the scroll-able area
-		CEGUI::System::getSingleton().setGUISheet(mScroll);
-
-		CEGUI::Window *loadLevelBtn;
-		int i;
-		for(i=1; i <= mNumberOfCustomLevels; i++) {
-			std::string buttonName = "userLoadLevel"+StringConverter::toString(i)+"Btn";
-
-			loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
-			loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
-			loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevelBtn->getWidth(), CEGUI::UDim((0.2*(i-1)),0)));
-			loadLevelBtn->setText("Custom Level "+StringConverter::toString(i));
-			CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
-
-			LevelLoad *level = new LevelLoad(this, StringConverter::toString(i));
-			loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::preLoad, level));
-		}
-
-		//Set buttons outside of scroll-able area
-		CEGUI::System::getSingleton().setGUISheet(userLevelMenu);
-
-		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","userLoadLvlBackBtn");  // Create Window
-		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.8,0)));
-		backBtn->setText("Back");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
-
-		//Register events
-		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::levelBackPressed, this));
-		mUserLevelMenuCreated=true;
-	} else {
-		//Do we need to update the number of level loading buttons?
-		if(mNewLevelsMade > 0) {
-			std::cout << "need to add more buttons " << mNewLevelsMade << std::endl;
-			//Put buttons inside the scroll-able area
-			CEGUI::System::getSingleton().setGUISheet(mScroll);
-
-			CEGUI::Window *loadLevelBtn;
-			int i;
-			int newNumberOfLevels = mNumberOfCustomLevels + mNewLevelsMade;
-			for(i=1; i <= mNewLevelsMade; i++) {
-				std::string buttonName = "userLoadLevel"+StringConverter::toString((i+mNumberOfCustomLevels)+"Btn");
-
-				loadLevelBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton", buttonName);
-				loadLevelBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
-				loadLevelBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevelBtn->getWidth(), CEGUI::UDim((0.2*((i-1)+mNumberOfCustomLevels)),0)));
-				loadLevelBtn->setText("Custom Level "+StringConverter::toString((i+mNumberOfCustomLevels)));
-				CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevelBtn);
-
-				LevelLoad *level = new LevelLoad(this, StringConverter::toString((i+mNumberOfCustomLevels)));
-				loadLevelBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&LevelLoad::preLoad, level));
+			int timeBonus = ((levelTime*1000)-currentTime) *(10.0/(levelTime*1.0)); //normalise time taken to give max bonus of 10K
+			if (timeBonus<0) {
+				timeBonus=0;
 			}
-			mNewLevelsMade = 0;
-			mNumberOfCustomLevels = newNumberOfLevels;
+			levelScore += timeBonus;
+			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Time bonus " << timeBonus << std::endl;
+			std::cout << "Score: " << levelScore << std::endl;
+			float oldHighScore = getOldHighScore(currentLevel);
+			if(levelScore >= oldHighScore) {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
+				saveNewHighScore(currentLevel, levelScore);
+			} 
+			else {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
+			}
+			levelComplete = true;
+			mMenus->mLevel1CompleteOpen = true;
+			freeRoam = false;
+			coconutCount = 0;
+			targetCount = 0;
+			levelScore = 0;
 		}
 	}
-	CEGUI::System::getSingleton().setGUISheet(userLevelMenuRoot);
-}
-
-void PGFrameListener::loadLoadingScreen() {
-	CEGUI::Window *loadingScreen;
-	if(!mLoadingScreenCreated) {
-		//Create root window
-		loadingScreenRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_loadingRoot" );
-		CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
-		
-		// Creating Imagesets and define images
-		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("loadingBackground","loading.jpg");
-		imgs->defineImage("loadingBackgroundImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
-
-		//Create new, inner window, set position, size and attach to root.
-		loadingScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","LoadingScreen" );
-		loadingScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
-		loadingScreen->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
-		loadingScreen->setProperty("Image","set:loadingBackground image:loadingBackgroundImage");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadingScreen); //Attach to current (inGameMenuRoot) GUI sheet		
-
-		//Menu Buttons
-		CEGUI::System::getSingleton().setGUISheet(loadingScreen); //Change GUI sheet to the 'visible' Taharez window
-
-		mLoadingScreenCreated=true;
-	}	
-}
-
-void PGFrameListener::loadControlsScreen() {
-	CEGUI::Window *controlsScreen;
-	if(!mControlScreenCreated) {
-		//Create root window
-		controlScreenRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_controlRoot" );
-		CEGUI::System::getSingleton().setGUISheet(controlScreenRoot);
-		
-		// Creating Imagesets and define images
-		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("controls","Controls.jpg");
-		imgs->defineImage("controlsImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
-
-		//Create new, inner window, set position, size and attach to root.
-		loadingScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","ControlScreen" );
-		loadingScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
-		loadingScreen->setSize(CEGUI::UVector2(CEGUI::UDim(0, mWindow->getWidth()), CEGUI::UDim(0, mWindow->getHeight())));
-		loadingScreen->setProperty("Image","set:controls image:controlsImage");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadingScreen); //Attach to current (inGameMenuRoot) GUI sheet		
-
-		//CEGUI::System::getSingleton().setGUISheet(loadingScreen);
-
-		CEGUI::Window *backBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","controlBackGameBtn");  // Create Window
-		backBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.3,0),CEGUI::UDim(0,70)));
-		backBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-backBtn->getWidth(),CEGUI::UDim(0.8,0)));
-		backBtn->setText("Back");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(backBtn);
-
-		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::levelBackPressed, this));
-
-		mControlScreenCreated=true;
-	}	
-}
-
-bool PGFrameListener::newGame(const CEGUI::EventArgs& e) {
-	mBackPressedFromMainMenu = false;
-	loadLevel1(e);
-	return 1;
-}
-
-bool PGFrameListener::launchEditMode(const CEGUI::EventArgs& e) {
-	clearLevel();
-	editMode = true;
-	closeMenus();
-	return true;
-}
-
-bool PGFrameListener::loadLevelPressed(const CEGUI::EventArgs& e) {
-	std::cout << "load" << std::endl;
-	mMainMenu=false;
-	mInGameMenu = true;
-	mInLevelMenu = true;
-
-	if(mLevelMenuCreated) {
-		levelMenuRoot->setVisible(true);
-	} else {
-		loadLevelSelectorMenu();
+	if ((currentLevel ==2) && (levelComplete ==false))
+	{
+		//Check for Jenga block above certain height
+		std::deque<EnvironmentObject *>::iterator itLevelBlocks = levelBlocks.begin();
+		while (levelTargets.end() != itLevelBlocks)
+		{
+			if ((*itLevelBlocks)->mPosition.y > 1000)
+			{
+				levelScore += 10000;
+				levelComplete = true;
+				break;
+			}
+			++itLevelBlocks;
+		}
+		if (levelComplete)
+		{
+			int timeBonus = ((levelTime*1000)-currentTime) *(10.0/(levelTime*1.0)); //normalise time taken to give max bonus of 10K
+			if (timeBonus<0) {
+				timeBonus=0;
+			}
+			levelScore += timeBonus;
+			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Time bonus " << timeBonus << std::endl;
+			std::cout << "Score: " << levelScore << std::endl;
+			float oldHighScore = getOldHighScore(currentLevel);
+			if(levelScore >= oldHighScore) {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
+				saveNewHighScore(currentLevel, levelScore);
+			} 
+			else {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
+			}
+			levelComplete = true;
+			//mLevel2CompleteOpen = true;
+			freeRoam = false;
+			coconutCount = 0;
+			targetCount = 0;
+			levelScore = 0;
+		}
 	}
-	return 1;
+	if ((currentLevel ==3) && (levelComplete ==false))
+	{
+		/*bool winning = true;
+
+		//Check if blue blocks hit ground
+		std::deque<EnvironmentObject *>::iterator itLevelBlue = levelBlue.begin();
+		while (levelBlue.end() != itLevelBlue)
+		{
+			if ((*itLevelBlue)->targetHit())
+			{
+				levelComplete = true;
+				levelScore = 0;
+				std::cout << "LEVEL FAILED" << std::endl;
+				levelComplete = false;
+				coconutCount = 0;
+				freeRoam = false;
+				mMenus->loadLevelFailed(currentLevel);
+				mMenus->mLevelFailedOpen = true;
+				break;
+			}
+			++itLevelBlue;
+		}
+
+		//Check if coconut hit red block
+		std::deque<EnvironmentObject *>::iterator itLevelRed = levelRed.begin();
+		while (levelRed.end() != itLevelRed)
+		{
+			if ((*itLevelRed)->targetHit())
+			{
+				levelComplete = true;
+				levelScore = 0;
+				std::cout << "LEVEL FAILED" << std::endl;
+				levelComplete = false;
+				coconutCount = 0;
+				freeRoam = false;
+				mMenus->loadLevelFailed(currentLevel);
+				mMenus->mLevelFailedOpen = true;
+				break;
+			}
+			++itLevelBlue;
+		}
+
+		//Check orange blocks
+		std::deque<EnvironmentObject *>::iterator itLevelOrange = levelOrange.begin();
+		while (levelTargets.end() != itLevelOrange)
+		{
+			if (((*itLevelOrange)->targetCounted()==false) && ((*itLevelOrange)->targetHit()))
+			{
+				//update score
+				levelScore += 1000;
+				(*itLevelOrange)->counted = true;
+				std::cout << "Orange block knocked down!" << std::endl;
+			}
+			if ((*itLevelOrange)->targetHit() == false)
+			{
+				winning = false;
+			}
+			++itLevelOrange;
+		}
+		if (winning)
+		{
+			int timeBonus = ((levelTime*1000)-currentTime) *(10.0/(levelTime*1.0)); //normalise time taken to give max bonus of 10K
+			if (timeBonus<0) {
+				timeBonus=0;
+			}
+			levelScore += timeBonus;
+			std::cout << "You're Winner!" << std::endl;
+			std::cout << "Score: " << levelScore << std::endl;
+			levelComplete = true;
+			freeRoam = false;
+			mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
+			mMenus->mLevel1CompleteOpen = true;
+			coconutCount = 0;
+		}*/
+	}
 }
 
-bool PGFrameListener::loadUserLevelPressed(const CEGUI::EventArgs& e) {
-	std::cout << "load user" << std::endl;
-	mMainMenu=false;
-	mInGameMenu = true;
-	mInLevelMenu = false;
-	mInUserLevelMenu = true;
+float PGFrameListener::getOldHighScore(int level) {
+	float oldHighScore;
 
-	if(mUserLevelMenuCreated) {
-		userLevelMenuRoot->setVisible(true);
-	} else {
-		loadUserLevelSelectorMenu();
+	std::ifstream objects("../../res/Levels/Level"+to_string(level)+"HighScore.txt");
+	std::string line;
+	int i=0;
+
+	while(std::getline(objects, line)) {
+		if(line.substr(0, 1) != "#") { //Ignore comments in file
+			oldHighScore = atoi(line.c_str());
+		}
 	}
-	return 1;
+
+	return oldHighScore;
 }
 
-bool PGFrameListener::inGameMainMenuPressed(const CEGUI::EventArgs& e) {
-	std::cout << "main menu" << std::endl;
-	mMainMenu = true;
-	mInGameMenu = false;
-	mInLevelMenu = false;
-	
-	inGameMenuRoot->setVisible(false);
-	mainMenuRoot->setVisible(true);
-	return 1;
+void PGFrameListener::saveNewHighScore(int level, float levelScore) {
+	ofstream outputToHighScoreFile;
+	outputToHighScoreFile.open("../../res/Levels/Level"+to_string(level)+"HighScore.txt");
+	outputToHighScoreFile << StringConverter::toString(levelScore) << "\n";
+	outputToHighScoreFile.close();
 }
-
-bool PGFrameListener::levelBackPressed(const CEGUI::EventArgs& e) {
-	if(mLevelMenuCreated) {
-		levelMenuRoot->setVisible(false);
-	}
-	if(mUserLevelMenuCreated) {
-		userLevelMenuRoot->setVisible(false);
-	}
-	if(mControlScreenCreated) {
-		controlScreenRoot->setVisible(false);
-	}
-	mInLevelMenu = false;
-	mInUserLevelMenu = false;
-	mInControlMenu = false;
-
-	if(mBackPressedFromMainMenu) {
-		std::cout << "main back" << std::endl;
-		mMainMenu = true;		
-		mainMenuRoot->setVisible(true);
-	} else {
-		std::cout << "inGame back" << std::endl;
-		mInGameMenu = true;
-		inGameMenuRoot->setVisible(true);
-	}
-	return 1;
-}
-
-bool PGFrameListener::exitGamePressed(const CEGUI::EventArgs& e) {
-	std::cout << "exit" << std::endl;
-	mShutDown = true;
-	return 1;
-}
-
-bool PGFrameListener::inGameResumePressed(const CEGUI::EventArgs& e) {
-	closeMenus();
-	return 1;
-}
-
-bool PGFrameListener::loadLevel1(const CEGUI::EventArgs& e) {
-	std::cout << "loadlevel1" << std::endl;
-	btTransform transform = playerBody->getCenterOfMassTransform();
-	transform.setOrigin(btVector3(413, 166, 2534));
-	playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
-	playerBody->setLinearVelocity(0, 0, 0);
-	mCamera->setOrientation(Quaternion(0.9262, 0, -0.377, 0));
-	setLevelLoading(1);
-	return 1;
-}
-
-bool PGFrameListener::loadLevel2(const CEGUI::EventArgs& e) {
-	std::cout << "loadlevel2" << std::endl;
-	btTransform transform = playerBody->getCenterOfMassTransform();
-	transform.setOrigin(btVector3(354, 149, 2734));
-	playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
-	playerBody->setLinearVelocity(0, 0, 0);
-	mCamera->setOrientation(Quaternion(0.793087, 0, -0.609109, 0));
-	setLevelLoading(2);
-	return 1;
-}
-
-void PGFrameListener::showLoadingScreen(void) {
-	closeMenus();
-	if(!mLoadingScreenCreated) {
-		loadLoadingScreen();
-	}
-	
-	loadingScreenRoot->setVisible(true);
-	CEGUI::System::getSingleton().setGUISheet(loadingScreenRoot);
-
-	mInLoadingScreen = true;
-}
-
-bool PGFrameListener::showControlScreen(const CEGUI::EventArgs& e) {
-	mMainMenu=false;
-	mInGameMenu = true;
-	mInControlMenu = true;
-
-	if(!mControlScreenCreated) {
-		loadControlsScreen();
-	}
-	controlScreenRoot->setVisible(true);
-	CEGUI::System::getSingleton().setGUISheet(controlScreenRoot);
-
-	return 1;
-}
-
-void PGFrameListener::setLevelLoading(int levelNumber) {
-	showLoadingScreen();
-	mLevelToLoad = levelNumber;
-}
-
-void PGFrameListener::closeMenus(void) {
-	std::cout << "close menus" <<std::endl;
-	mMainMenu = false;
- 	mInGameMenu = false;
-	mInLevelMenu = false;
-	mInUserLevelMenu = false;
-	mInControlMenu = false;
-	freeRoam = true;
-	mBackPressedFromMainMenu = false;
-
-	CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseTarget" );
-	
-	mainMenuRoot->setVisible(false);
-	if(mInGameMenuCreated) {
-		inGameMenuRoot->setVisible(false);
-	}
-	if(mLevelMenuCreated) {
-		levelMenuRoot->setVisible(false);
-	}
-	if(mUserLevelMenuCreated) {
-		userLevelMenuRoot->setVisible(false);
-	}
-	if(mControlScreenCreated) {
-		controlScreenRoot->setVisible(false);
-	}
-	CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
-	std::cout << "menus closed" <<std::endl;
- }
 
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
 {
@@ -2732,33 +2421,44 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	std::stringstream targets;
 	std::stringstream blocks;
 	std::stringstream palms;
+	std::stringstream oranges;
+	std::stringstream blues;
+	std::stringstream reds;
 	String mesh;
 	ofstream outputToFile;
-	
+	ofstream outputToFileStoringTerrain;
+
 	int number = findUniqueName();
 	outputToFile.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(number)+"Objects.txt"); // Overwrites old level file when you save
+	
+	//Stores which island was used
+	outputToFileStoringTerrain.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(number)+"Island.txt");
+	outputToFileStoringTerrain << to_string(editingLevel) << "\n";
 
 	ofstream outputToLevelTrackingFile;
 	outputToLevelTrackingFile.open("../../res/Levels/Custom/UserGeneratedLevels.txt");
 	outputToLevelTrackingFile << StringConverter::toString(number) << "\n";
+	outputToLevelTrackingFile.close();
 
 	bodies = generateObjectStringForSaving(levelBodies);
 	coconuts = generateObjectStringForSaving(levelCoconuts);
 	targets = generateObjectStringForSaving(levelTargets);
 	blocks = generateObjectStringForSaving(levelBlocks);
 	palms = generateObjectStringForSaving(levelPalms);
+	oranges = generateObjectStringForSaving(levelOrange);
+	blues = generateObjectStringForSaving(levelBlue);
+	reds = generateObjectStringForSaving(levelRed);
 
-	objects << bodies.str() << coconuts.str() << targets.str() << blocks.str() << palms.str();
+	objects << bodies.str() << coconuts.str() << targets.str() << blocks.str() << palms.str() << oranges.str() << blues.str() << reds.str();
  	
 	std::string objectsString = objects.str();
-	std::cout << objectsString << std::endl;
 	outputToFile << objectsString;
 	outputToFile.close();
-	mNewLevelsMade++;
+	mMenus->mNewLevelsMade++;
 }
 
-std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<Target *> queue) {
-	std::deque<Target *>::iterator iterate = queue.begin();
+std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<EnvironmentObject *> queue) {
+	std::deque<EnvironmentObject *>::iterator iterate = queue.begin();
 	std::stringstream objectDetails;
  	while (queue.end() != iterate)
  	{   
@@ -2797,7 +2497,6 @@ std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<Targ
 }
 
 int PGFrameListener::findUniqueName(void) {
-	std::cout << "find unique file name" << std::endl;
 	std::string number;
 
 	std::ifstream objects("../../res/Levels/Custom/UserGeneratedLevels.txt");
@@ -2806,21 +2505,114 @@ int PGFrameListener::findUniqueName(void) {
 
 	while(std::getline(objects, line)) {
 		if(line.substr(0, 1) != "#") { //Ignore comments in file
-			std::stringstream lineStream(line);
 			number = line;
-			std::cout << number << std::endl;
 		}
 	}
 	int uniqueNumber = atoi(number.c_str()) + 1;
 	return uniqueNumber;
 }
 
-void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with whatever you've got, but don't forget to set levelComplete to false!
+void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 {
-	std::cout << "remove things" << std::endl;	
-	currentLevel = levelNo;
 	clearLevel();
 
+	loadLevelIslandAndWater(islandNo);
+	setPlayerPosition(levelNo);
+	levelComplete = false;
+	levelScore = 0;
+	coconutCount = 0;
+	targetCount = 0;
+
+	loadObjectFile(levelNo, userLevel);
+	changeLevelFish();
+	HUDNode2->detachAllObjects();
+	//Reset GUI messages
+	HUDTargetText->setCaption("Targets killed: 0");
+	HUDCoconutText->setCaption("Coconuts: 0");
+	HUDScoreText->setCaption("Score: 0");
+
+	if (mCaelumSystem)
+	{
+		mWindow->removeListener(mCaelumSystem);
+		Root::getSingletonPtr()->removeFrameListener(mCaelumSystem);
+		mCaelumSystem->shutdown(false);
+		mCaelumSystem = 0;
+	}
+	if (mSkyX->isCreated())
+	{
+		mSkyX->remove();
+		mSceneMgr->getLight("Light1")->setVisible(false);
+		mSceneMgr->destroyLight(mSceneMgr->getLight("Light1"));
+	}
+
+	mSceneMgr->setAmbientLight(ColourValue(0.05, 0.05, 0.05, 2));
+	weatherSystem = 0;
+
+	if (spotOn)
+	{
+		mSceneMgr->destroyLight(mSceneMgr->getLight("Spot"));
+		spotOn = false;
+	}
+
+	if(!userLevel) {
+		currentLevel = levelNo;
+		if(levelNo == 1)
+		{
+			createCaelumSystem();
+			HUDNode2->attachObject(HUDTargetText);
+			spinTime = 0;
+			levelTime = 300;
+		}
+		else if (levelNo == 2)
+		{
+			createCaelumSystem();
+			createJengaPlatform();
+			levelTime = 600;
+		}
+		else if (levelNo == 3)
+		{
+			// Shadow caster
+			Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
+			mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+			mLight1->setDiffuseColour(0, 0, 0);
+			mLight1->setSpecularColour(0, 0, 0);
+			mLight1->setVisible(false);
+			mSkyX->create();
+			weatherSystem = 1;
+
+			levelTime = 300;
+		}
+	}
+	else {
+		currentLevel = 0;
+		createCaelumSystem();
+	}
+
+	if (mCaelumSystem)
+	{
+		mCaelumSystem->setJulianDay(70.07);
+		// Fixes horizon error where sea meets skydome
+		std::vector<Ogre::RenderQueueGroupID> caelumskyqueue;
+		caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
+		mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
+		mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
+	}
+
+	if (weatherSystem == 1)
+	{
+		Light *spotlight = mSceneMgr->createLight("Spot");
+		spotlight->setType(Light::LT_SPOTLIGHT);
+		spotlight->setDiffuseColour(1, 1, 1);
+		spotlight->setSpecularColour(100, 100, 100);
+		spotlight->setSpotlightRange(Ogre::Degree(10), Ogre::Degree(20));
+		spotOn = true;
+	}
+
+	//Reset timer
+	timer->reset();
+}
+
+void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
 
 	Hydrax::Module::ProjectedGrid *mModule 
@@ -2843,45 +2635,59 @@ void PGFrameListener::loadLevel(int levelNo) // Jess - you can replace this with
 		mHydrax->loadCfg("PGOcean.hdx");
 	else if (levelNo == 2)
 		mHydrax->loadCfg("PGOcean2.hdx");
+	else if (levelNo == 3)
+		mHydrax->loadCfg("PGOcean3.hdx");
 
 	// Create water
 	mHydrax->create();
 	mHydrax->update(0);
+	mHydrax->getRttManager()->addRttListener(this);
 
-	mCaelumSystem->setJulianDay(70.07);
-	// Fixes horizon error where sea meets skydome
-	std::vector<Ogre::RenderQueueGroupID> caelumskyqueue;
-	caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
-	mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
+	//Set up terrain
+	createTerrain(levelNo);
+	changeBulletTerrain(levelNo);
+}
 
-	//Then go through the new level's file and call placeNewObject() for each line
-	createTerrain();
-	changeBulletTerrain();
-	levelComplete = false;
-	loadObjectFile(levelNo, false);
-	changeLevelFish();
-
-	if(levelNo == 1)
-		spinTime = 0;
-	else if (levelNo == 2)
-		createJengaPlatform();
+void PGFrameListener::setPlayerPosition(int level) {
+	if(level == 1) {
+		btTransform transform = playerBody->getCenterOfMassTransform();
+		transform.setOrigin(btVector3(413, 166, 2534));
+		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		playerBody->setLinearVelocity(0, 0, 0);
+		mCamera->setOrientation(Quaternion(0.9262, 0, -0.377, 0));
+	} else if(level == 2) {
+		btTransform transform = playerBody->getCenterOfMassTransform();
+		transform.setOrigin(btVector3(354, 149, 2734));
+		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		playerBody->setLinearVelocity(0, 0, 0);
+		mCamera->setOrientation(Quaternion(0.793087, 0, -0.609109, 0));
+	} else if(level == 3) {
+		btTransform transform = playerBody->getCenterOfMassTransform();
+		transform.setOrigin(btVector3(641, 169, 2521));
+		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		playerBody->setLinearVelocity(0, 0, 0);
+		mCamera->setDirection(0.72, 0, -0.69);
+	}
 }
 
 void PGFrameListener::clearLevel(void) 
 {
 	//Remove current level objects (bodies, coconuts, targets) by going through the lists and removing each
 	clearTargets(levelBodies);
-	std::cout << "remove coconuts" << std::endl;
 	clearTargets(levelCoconuts);
-	std::cout << "remove blocks" << std::endl;
 	clearTargets(levelBlocks);
-	std::cout << "remove targets" << std::endl;
 	clearTargets(levelTargets);
-	std::cout << "remove palms" << std::endl;
-	clearTargets(levelPalms);	
+	clearTargets(levelPalms);
 	levelPalmAnims.clear();
+	clearTargets(levelOrange);
+	std::cout << "remove orange blocks" << std::endl;
+	clearTargets(levelBlue);
+	std::cout << "remove blue blocks" << std::endl;
+	clearTargets(levelRed);
+	std::cout << "remove red blocks" << std::endl;
 	
 	mTerrainGroup->removeAllTerrains();
+
 	if (spawnedPlatform)
 		destroyJengaPlatform();
 
@@ -2901,8 +2707,8 @@ void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &
 	queue.clear();
 }
 
-void PGFrameListener::clearTargets(std::deque<Target *> &queue) {
-	std::deque<Target *>::iterator iterator = queue.begin();
+void PGFrameListener::clearTargets(std::deque<EnvironmentObject *> &queue) {
+	std::deque<EnvironmentObject *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
  	{   
 		OgreBulletDynamics::RigidBody *currentBody = (*iterator)->getBody();
@@ -2927,16 +2733,17 @@ void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
 }
 
 void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
-	std::cout << "load object file" << std::endl;
 	std::string object[24];
 	std::ifstream objects;
+	std::ifstream island;
+	std::string line;
 
 	if(!userLevel) {
 		objects.open("../../res/Levels/Level"+StringConverter::toString(levelNo)+"Objects.txt");
 	} else {
 		objects.open("../../res/Levels/Custom/UserLevel"+StringConverter::toString(levelNo)+"Objects.txt");
 	}
-	std::string line;
+	
 	int i=0;
 
 	while(std::getline(objects, line)) {
@@ -2957,11 +2764,10 @@ void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
 	}
 }
 
-void PGFrameListener::loadLevelObjects(std::string object[24]) {
-	std::cout << "loading object" << std::endl;
-
+void PGFrameListener::loadLevelObjects(std::string object[24]) 
+{
 	std::string name = object[0];
-	Target* newObject = new Target(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
+	EnvironmentObject* newObject = new EnvironmentObject(this, mWorld, mNumEntitiesInstanced, mSceneMgr, object);
 
 	if (name == "Crate") {
 		levelBodies.push_back(newObject);
@@ -2979,6 +2785,15 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 		levelPalms.push_back(newObject);
 		levelPalmAnims.push_back(newObject->getPalmAnimation());
 	}
+	else if (name == "Orange") {
+		levelOrange.push_back(newObject);
+	}
+	else if (name == "Blue") {
+		levelBlue.push_back(newObject);
+	}
+	else if (name == "Red") {
+		levelRed.push_back(newObject);
+	}
 	else {
 		levelBodies.push_back(newObject);
 	}
@@ -2986,8 +2801,9 @@ void PGFrameListener::loadLevelObjects(std::string object[24]) {
 	mNumEntitiesInstanced++;				
 }
 
-void PGFrameListener::createTerrain()
+void PGFrameListener::createTerrain(int levelNo)
 {
+	std::cout <<"create terrain" << std::endl;
 	lightdir = Vector3(0.0, -0.3, 0.75);
     lightdir.normalise();
 
@@ -3001,21 +2817,22 @@ void PGFrameListener::createTerrain()
  
     mTerrainGroup->setFilenameConvention(Ogre::String("BasicTutorial3Terrain"), Ogre::String("dat"));
     mTerrainGroup->setOrigin(Ogre::Vector3(1500, 0, 1500));
- 
+	std::cout <<"config terrain" << std::endl;
 	configureTerrainDefaults(light);
  
     for (long x = 0; x <= 0; ++x)
         for (long y = 0; y <= 0; ++y)
-            defineTerrain(x, y);
- 
+            defineTerrain(x, y, levelNo);
+	std::cout << "for loop done" <<std::endl;
     // sync load since we want everything in place when we start
     mTerrainGroup->loadAllTerrains(true);
- 
+	std::cout <<"if imported terrain" << std::endl;
     if (mTerrainsImported)
     {
         Ogre::TerrainGroup::TerrainIterator ti = mTerrainGroup->getTerrainIterator();
         while(ti.hasMoreElements())
         {
+			std::cout <<"while" << std::endl;
             Ogre::Terrain* t = ti.getNext()->instance;
             initBlendMaps(t);
         }
@@ -3032,9 +2849,6 @@ void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
     mTerrainGlobals->setCompositeMapDistance(3000);
  
     // Important to set these so that the terrain knows what to use for derived (non-realtime) data
-	//mTerrainGlobals->setLightMapDirection(light->getDerivedDirection());
-    //mTerrainGlobals->setCompositeMapAmbient(mSceneMgr->getAmbientLight());
-    //mTerrainGlobals->setCompositeMapDiffuse(light->getDiffuseColour());
 	mTerrainGlobals->setCastsDynamicShadows(false);
  
     // Configure default import settings for if we use imported image
@@ -3057,38 +2871,51 @@ void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
     defaultimp.layerList[2].textureNames.push_back("grass_green-01_normalheight.dds");
 }
 
-void PGFrameListener::defineTerrain(long x, long y)
+void PGFrameListener::defineTerrain(long x, long y, int levelNo)
 {
-    Ogre::String filename = mTerrainGroup->generateFilename(x, y);
+    std::cout << "define terrain" <<std::endl;
+	Ogre::String filename = mTerrainGroup->generateFilename(x, y);
     if (Ogre::ResourceGroupManager::getSingleton().resourceExists(mTerrainGroup->getResourceGroup(), filename))
     {
-        mTerrainGroup->defineTerrain(x, y);
+        std::cout << "define terrain IF" <<std::endl;
+		mTerrainGroup->defineTerrain(x, y, levelNo);
     }
     else
     {
+		std::cout << "define terrain ELSE" <<std::endl;
         Ogre::Image img;
-        getTerrainImage(x % 2 != 0, y % 2 != 0, img);
+        getTerrainImage(x % 2 != 0, y % 2 != 0, img, levelNo);
         mTerrainGroup->defineTerrain(x, y, &img);
         mTerrainsImported = true;
+		std::cout << "define terrain ELSE done" <<std::endl;
     }
 }
 
-void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img)
+void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, int levelNo)
 {
-	if (currentLevel == 1)
+	std::cout << "get terrainimage " <<std::endl;
+	if (levelNo == 1) {
+		std::cout << "get terrainimage 1" <<std::endl;
 		img.load("terrain.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-	else if (currentLevel == 2)
+	}
+	else if (levelNo == 2) {
+		std::cout << "get terrainimage 2" <<std::endl;
 		img.load("terrain2.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+	}
+	else if (levelNo == 3) {
+		std::cout << "get terrainimage 3" <<std::endl;
+		img.load("terrain3.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+	}
     if (flipX)
         img.flipAroundY();
     if (flipY)
         img.flipAroundX();
- 
+	std::cout << "terrain image got" <<std::endl;
 }
 
 void PGFrameListener::initBlendMaps(Ogre::Terrain* terrain)
 {
-    Ogre::TerrainLayerBlendMap* blendMap0 = terrain->getLayerBlendMap(1);
+	Ogre::TerrainLayerBlendMap* blendMap0 = terrain->getLayerBlendMap(1);
     Ogre::TerrainLayerBlendMap* blendMap1 = terrain->getLayerBlendMap(2);
     Ogre::Real minHeight0 = 125; // 
     Ogre::Real fadeDist0 = 40;
