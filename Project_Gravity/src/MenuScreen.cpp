@@ -11,8 +11,9 @@ MenuScreen::MenuScreen(PGFrameListener* frameListener) :
 		mMainMenu(true), mMainMenuCreated(false), mInGameMenu(false), mInGameMenuCreated(false), mInEditorMenu(false), mEditorMenuCreated(false),
 		mLoadingScreenCreated(false), mInLoadingScreen(false), mInLevelMenu(false), mLevelMenuCreated(false), mInUserLevelMenu(false), mUserLevelMenuCreated(false), 
 		mUserLevelLoader(NULL), 
-		mControlScreenCreated(false), mInControlMenu(false), mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false),
-		mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false),mHighScoresCreated(false), mHighScoresOpen(false)
+		mControlScreenCreated(false), mInControlMenu(false), mHighScoresCreated(false), mHighScoresOpen(false),
+		mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false), mLevel3AimsCreated(false), mLevel3AimsOpen(false),
+		mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false)
 {
 
 }
@@ -587,6 +588,30 @@ void MenuScreen::loadLevel2Aims() {
 	}	
 	CEGUI::System::getSingleton().setGUISheet(level2AimsRoot);
 	level2AimsRoot->setVisible(true);
+}
+
+//Code for creating the level 3 aims screen
+void MenuScreen::loadLevel3Aims() {
+	if(!mLevel3AimsCreated) {
+		//Create root window
+		level3AimsRoot = CEGUI::WindowManager::getSingleton().createWindow( "DefaultWindow", "_level3AimsRoot" );
+		CEGUI::System::getSingleton().setGUISheet(level3AimsRoot);
+		
+		// Creating Imagesets and define images
+		CEGUI::Imageset* imgs = (CEGUI::Imageset*) &CEGUI::ImagesetManager::getSingletonPtr()->createFromImageFile("level3aims","Level3Aims.png");
+		imgs->defineImage("level3AimsImage", CEGUI::Point(0.0,0.0), CEGUI::Size(1920,1080), CEGUI::Point(0.0,0.0));
+
+		//Create new, inner window, set position, size and attach to root.
+		CEGUI::Window* aimsScreen = CEGUI::WindowManager::getSingleton().createWindow("WindowsLook/StaticImage","Level3AimsScreen" );
+		aimsScreen->setPosition(CEGUI::UVector2(CEGUI::UDim(0.0, 0),CEGUI::UDim(0.0, 0)));
+		aimsScreen->setSize(CEGUI::UVector2(CEGUI::UDim(0, mFrameListener->mWindow->getWidth()), CEGUI::UDim(0, mFrameListener->mWindow->getHeight())));
+		aimsScreen->setProperty("Image","set:level3aims image:level3AimsImage");
+		aimsScreen->setProperty( "BackgroundEnabled", "False" );
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(aimsScreen); //Attach to current (level2AimsRoot) GUI sheet	
+		mLevel3AimsCreated = true;
+	}	
+	CEGUI::System::getSingleton().setGUISheet(level3AimsRoot);
+	level3AimsRoot->setVisible(true);
 }
 
 //Code for creating the 'level completed' screen

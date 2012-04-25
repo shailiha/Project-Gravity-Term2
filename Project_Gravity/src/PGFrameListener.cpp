@@ -838,6 +838,22 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 					CEGUI::MouseCursor::getSingleton().setVisible(true);
 				}
 			}
+			else if(currentLevel == 3) {
+				mMenus->mLevel3AimsOpen = !(mMenus->mLevel3AimsOpen);
+				freeRoam = !freeRoam;
+				if(mMenus->mLevel3AimsOpen) {
+					CEGUI::MouseCursor::getSingleton().setVisible(false);
+					if(!(mMenus->mLevel3AimsCreated)) {
+						mMenus->loadLevel3Aims();
+					}
+					mMenus->level3AimsRoot->setVisible(true);
+				}
+				else {
+					mMenus->level3AimsRoot->setVisible(false);
+					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+					CEGUI::MouseCursor::getSingleton().setVisible(true);
+				}
+			}
 		}
 	}
 	else if(evt.key == (OIS::KC_K))	hideHydrax = !hideHydrax;
