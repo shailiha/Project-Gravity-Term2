@@ -82,23 +82,16 @@ EnvironmentObject::EnvironmentObject(PGFrameListener* frameListener, OgreBulletD
 		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 	}
 	else {
-		if (mName=="Orange")
-		{
-			mMass=50;
-			entity->setMaterialName("GoldCoconut");
-		}
-		if (mName=="Blue")
+		if (mName=="Orange" ||mName=="Blue" || mName=="Red" || mName=="Block")
 		{
 			mMass=50;
 		}
-		if (mName=="Red")
-		{
-			mMass=50;
-		}
-		if (mName=="Block")
-		{
-			mMass=50;
-		}
+		if (mName == "Orange")
+			entity->setMaterialName("Orange");
+		else if (mName == "Blue")
+			entity->setMaterialName("Blue");
+		else if (mName == "Red")
+			entity->setMaterialName("Red");
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
 		mBody->setShape(objectNode, sceneBoxShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
 	}
@@ -167,7 +160,7 @@ void EnvironmentObject::move(float spinTime, double evtTime)
 				mTextPos = mBody->getCenterOfMassPosition();
 				mTextBool = true;
 					
-				int targetScore = (int) (mBody->getBulletRigidBody()->getRestitution() * 1000);
+				int targetScore = (int) (mBody->getBulletRigidBody()->getRestitution() * 10000);
 				std::stringstream ss;//create a stringstream
 				ss << targetScore;//add number to the stream
 				std::string targetString = ss.str();;

@@ -27,7 +27,6 @@ public:
 	void createResourceListener(void);
     bool quit(const CEGUI::EventArgs &e);
 	void initCEGUI(void);
-	void setupLiSpSMShadows();
 
 private:
 	PGFrameListener* mFrameListener;

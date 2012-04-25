@@ -6,38 +6,6 @@ extern const int NUM_FISH;
 
 using namespace std;
 
-Hydrax::Hydrax *mHydraxPtr;
-int testing;
-
-// Shadow config struct
-struct ShadowConfig
-{
-	bool Enable;
-	int  Size;
-
-	ShadowConfig(const bool& Enable_, const int& Size_)
-		: Enable(Enable_)
-		, Size(Size_)
-	{
-	}
-};
-
-struct PGFrameListener::shadowListener : public Ogre::SceneManager::Listener
-{
-    // this is a callback we'll be using to set up our shadow camera
-    void shadowTextureCasterPreViewProj(Ogre::Light *light, Ogre::Camera *cam, size_t)
-    {
-		//cout << testing << endl;
-    }
-    void shadowTexturesUpdated(size_t) 
-	{
-		//cout << testing << endl;
-	}
-    void shadowTextureReceiverPreViewProj(Ogre::Light*, Ogre::Frustum* frustrum) {}
-    void preFindVisibleObjects(Ogre::SceneManager*, Ogre::SceneManager::IlluminationRenderStage, Ogre::Viewport*) {}
-    void postFindVisibleObjects(Ogre::SceneManager*, Ogre::SceneManager::IlluminationRenderStage, Ogre::Viewport*) {}
-} shadowCameraUpdater;
-
 //Custom Callback function
 bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
 {
@@ -165,8 +133,7 @@ PGFrameListener::PGFrameListener (
 			mLastPositionLength((Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length()), mTimeMultiplier(0.1f),mPalmShapeCreated(false),
 			mFrameCount(0)
 {
-	mHydraxPtr = mHydrax;
-	testing = 1;
+	// Initialize platform variables
 	stepTime = 0;
 	beginJenga = false;
 	newPlatformShape = false;
@@ -179,6 +146,7 @@ PGFrameListener::PGFrameListener (
 	playerNode = pNode;
 	playerNodeHeight = pNodeHeight;
 
+	// Initialize compositor
 	Ogre::CompositorManager::getSingleton().
 		addCompositor(mWindow->getViewport(0), "Bloom")->addListener(this);
 	Ogre::CompositorManager::getSingleton().
@@ -257,8 +225,10 @@ PGFrameListener::PGFrameListener (
  	mShapes.push_back(playerBoxShape);
  	mBodies.push_back(playerBody);
 
+	// Initialize cube map for gun
 	createCubeMap();
 	
+	// Initialize gravity gun and buffers
 	pivotNode = mSceneMgr->getRootSceneNode()->createChildSceneNode();
 	pivotNodePitch = pivotNode->createChildSceneNode();
 	pivotNodeRoll = pivotNodePitch->createChildSceneNode();
@@ -380,73 +350,61 @@ PGFrameListener::PGFrameListener (
 		mFishLastDirection[i] = Vector3(1, -0.2, 1);
 	}
 
-	if (weatherSystem == 0)
-	{
-		// Create the day/night system
-		createCaelumSystem();
-		mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
-	}
-	else
-	{
-		// Set ambiant lighting
-		mSceneMgr->setAmbientLight(Ogre::ColourValue(1, 1, 1));
+	// Create the day/night system
+	createCaelumSystem();
+	mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
 
-		// Light
-		Ogre::Light *mLight0 = mSceneMgr->createLight("Light0");
-		mLight0->setDiffuseColour(0.3, 0.3, 0.3);
-		mLight0->setCastShadows(false);
+	// Shadow caster
+	Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
+	mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+	spotOn = false;
 
-		// Shadow caster
-		Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
-		mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+	// Create SkyX object
+	mSkyX = new SkyX::SkyX(mSceneMgr, mCamera);
 
-		// Create SkyX object
-		mSkyX = new SkyX::SkyX(mSceneMgr, mCamera);
+	// No smooth fading
+	mSkyX->getMeshManager()->setSkydomeFadingParameters(false);
 
-		// No smooth fading
-		mSkyX->getMeshManager()->setSkydomeFadingParameters(false);
+	// A little change to default atmosphere settings :)
+	SkyX::AtmosphereManager::Options atOpt = mSkyX->getAtmosphereManager()->getOptions();
+	atOpt.RayleighMultiplier = 0.003075f;
+	atOpt.MieMultiplier = 0.00125f;
+	atOpt.InnerRadius = 9.92f;
+	atOpt.OuterRadius = 10.3311f;
+	atOpt.Time = 6.0f;
+	mSkyX->getAtmosphereManager()->setOptions(atOpt);
 
-		// A little change to default atmosphere settings :)
-		SkyX::AtmosphereManager::Options atOpt = mSkyX->getAtmosphereManager()->getOptions();
-		atOpt.RayleighMultiplier = 0.003075f;
-		atOpt.MieMultiplier = 0.00125f;
-		atOpt.InnerRadius = 9.92f;
-		atOpt.OuterRadius = 10.3311f;
-		mSkyX->getAtmosphereManager()->setOptions(atOpt);
+	// Create the sky
+	mSkyX->create();
 
-		// Create the sky
-		mSkyX->create();
+	// Add a basic cloud layer
+	mSkyX->getCloudsManager()->add(SkyX::CloudLayer::Options(/* Default options */));
 
-		// Add a basic cloud layer
-		mSkyX->getCloudsManager()->add(SkyX::CloudLayer::Options(/* Default options */));
-
-		// Add the Hydrax Rtt listener
-		mWaterGradient = SkyX::ColorGradient();
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.779105)*0.4, 1));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.729105)*0.3, 0.8));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.25, 0.6));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.2, 0.5));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.1, 0.45));
-		mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.025, 0));
-		// Sun
-		mSunGradient = SkyX::ColorGradient();
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.5, 1.0f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.4, 0.75f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.3, 0.5625f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.6,0.5,0.2)*1.5, 0.5f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.25, 0.45f));
-		mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.01, 0.0f));
-		// Ambient
-		mAmbientGradient = SkyX::ColorGradient();
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 1.0f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 0.6f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.6, 0.5f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.3, 0.45f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.1, 0.35f));
-		mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.05, 0.0f));
-	}
+	// Add the Hydrax Rtt listener
+	mWaterGradient = SkyX::ColorGradient();
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.779105)*0.4, 1));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.729105)*0.3, 0.8));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.25, 0.6));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.2, 0.5));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.1, 0.45));
+	mWaterGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.058209,0.535822,0.679105)*0.025, 0));
+	// Sun
+	mSunGradient = SkyX::ColorGradient();
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.5, 1.0f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.4, 0.75f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.8,0.75,0.55)*1.3, 0.5625f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.6,0.5,0.2)*1.5, 0.5f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.25, 0.45f));
+	mSunGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(0.5,0.5,0.5)*0.01, 0.0f));
+	// Ambient
+	mAmbientGradient = SkyX::ColorGradient();
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 1.0f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*1, 0.6f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.6, 0.5f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.3, 0.45f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.1, 0.35f));
+	mAmbientGradient.addCFrame(SkyX::ColorGradient::ColorFrame(Ogre::Vector3(1,1,1)*0.05, 0.0f));
 	
-	mHydrax->getRttManager()->addRttListener(this);
 	light = mSceneMgr->createLight("tstLight");
     mTerrainGlobals = OGRE_NEW Ogre::TerrainGlobalOptions();
     mTerrainGroup = OGRE_NEW Ogre::TerrainGroup(mSceneMgr, Ogre::Terrain::ALIGN_X_Z, 129, 3000.0f);
@@ -504,155 +462,6 @@ PGFrameListener::PGFrameListener (
 	levelTime = 0; //Target time for level in seconds
 }
 
-void PGFrameListener::setupPSSMShadows()
-{
-/*	Ogre::MaterialPtr IslandMat = static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"));
-	//IslandMat->getTechnique(0)->setSchemeName("Default");
-	//IslandMat->getTechnique(1)->setSchemeName("NoDefault");
-	
-	// Produce the island from the config file
-	mSceneMgr->setWorldGeometry("Island.cfg");
-
-	// Adds depth so the water is darker the deeper you go
-	mHydrax->getMaterialManager()->addDepthTechnique(
-		static_cast<Ogre::MaterialPtr>(Ogre::MaterialManager::getSingleton().getByName("Island"))
-		->createTechnique());
-		*/
-    mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE_INTEGRATED);
-
-    // 3 textures per spotlight
-    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_SPOTLIGHT, 3);
-
-    // 3 textures per directional light
-    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_DIRECTIONAL, 3);
-    mSceneMgr->setShadowTextureCount(3);
-    mSceneMgr->setShadowTextureConfig(0, 1024, 1024, PF_FLOAT32_RGB);
-    mSceneMgr->setShadowTextureConfig(1, 1024, 1024, PF_FLOAT32_RGB);
-    mSceneMgr->setShadowTextureConfig(2, 512, 512, PF_FLOAT32_RGB);
-
-    mSceneMgr->setShadowTextureSelfShadow(true);
-    // Set up caster material - this is just a standard depth/shadow map caster
-    mSceneMgr->setShadowTextureCasterMaterial("PSVSMShadowCaster");
-
-    // big NONO to render back faces for VSM.  it doesn't need any biasing
-    // so it's worthless (and rather problematic) to use the back face hack that
-    // works so well for normal depth shadow mapping (you know, so you don't
-    // get surface acne)
-    mSceneMgr->setShadowCasterRenderBackFaces(false);
-
-
-    const unsigned numShadowRTTs = mSceneMgr->getShadowTextureCount();
-    for (unsigned i = 0; i < numShadowRTTs; ++i)
-    {
-        Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(i);
-        Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
-        vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
-        vp->setClearEveryFrame(true);
-    }
-
-    // shadow camera setup
-    // float shadowFarDistance = mCamera->getFarClipDistance();
-    float shadowNearDistance = mCamera->getNearClipDistance();
-    float shadowFarDistance = 1000;
-    // float shadowNearDistance = 100;
-    PSSMShadowCameraSetup* pssmSetup = new PSSMShadowCameraSetup();
-    pssmSetup->calculateSplitPoints(3, shadowNearDistance, shadowFarDistance);
-    pssmSetup->setSplitPadding(mCamera->getNearClipDistance());
-    pssmSetup->setOptimalAdjustFactor(0, 2);
-    pssmSetup->setOptimalAdjustFactor(1, 1);
-    pssmSetup->setOptimalAdjustFactor(2, 0.5);
-
-    mSceneMgr->setShadowCameraSetup(ShadowCameraSetupPtr(pssmSetup));
-    mSceneMgr->setShadowFarDistance(shadowFarDistance);
-
-    // once the camera setup is finialises comment this section out and set the param_named in
-    // the .program script with the values of splitPoints
-    Vector4 splitPoints;
-    const PSSMShadowCameraSetup::SplitPointList& splitPointList = pssmSetup->getSplitPoints();
-    for (int i = 0; i < 3; ++i)
-    {
-        splitPoints[i] = splitPointList[i];
-    }
-    Ogre::ResourceManager::ResourceMapIterator it = Ogre::MaterialManager::getSingleton().getResourceIterator();
-
-    static const Ogre::String receiverPassName[2] =
-    {
-        "PSSMShadowReceiverDirectional",
-        "PSSMShadowReceiverSpotlight",
-    };
-
-    while (it.hasMoreElements())
-    {
-        Ogre::MaterialPtr mat = it.getNext();
-        for(int i=0; i<2; i++)
-        {
-            if (mat->getNumTechniques() > 0 &&
-                mat->getTechnique(0)->getPass(receiverPassName[i]) != NULL &&
-                mat->getTechnique(0)->getPass(receiverPassName[i])->getFragmentProgramParameters()->
-                _findNamedConstantDefinition("pssmSplitPoints", false) != NULL)
-            {
-                //printf("set pssmSplitPoints %s\n", mat->getName().c_str());
-                mat->getTechnique(0)->getPass(receiverPassName[i])->getFragmentProgramParameters()->
-                setNamedConstant("pssmSplitPoints", splitPoints);
-            }
-        }
-    }
-}
-
-/** Update shadow far distance
-	*/
-void PGFrameListener::updateShadowFarDistance()
-{
-	Ogre::Light* Light1 = mSceneMgr->getLight("Light1");
-	float currentLength = (Ogre::Vector3(1500, 100, 1500) - mCamera->getDerivedPosition()).length();
-
-	if (currentLength < 1000)
-	{
-		mLastPositionLength = currentLength;
-		return;
-	}
-		
-	if (currentLength - mLastPositionLength > 100)
-	{
-		mLastPositionLength += 100;
-
-		Light1->setShadowFarDistance(Light1->getShadowFarDistance() + 100);
-	}
-	else if (currentLength - mLastPositionLength < -100)
-	{
-		mLastPositionLength -= 100;
-
-		Light1->setShadowFarDistance(Light1->getShadowFarDistance() - 100);
-	}
-}
-
-void PGFrameListener::updateEnvironmentLighting()
-{
-	Ogre::Vector3 lightDir = mSkyX->getAtmosphereManager()->getSunDirection();
-
-	bool preForceDisableShadows = mForceDisableShadows;
-	mForceDisableShadows = (lightDir.y > 0.15f) ? true : false;
-
-	// Calculate current color gradients point
-	float point = (-lightDir.y + 1.0f) / 2.0f;
-	//mHydrax->setWaterColor(mWaterGradient.getColor(point));
-
-	Ogre::Vector3 sunPos = mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.1;
-	mHydrax->setSunPosition(sunPos);
-
-	Ogre::Light *Light0 = mSceneMgr->getLight("Light0"),
-				*Light1 = mSceneMgr->getLight("Light1");
-
-	Light0->setPosition(mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.02);
-	Light1->setDirection(lightDir);
-
-	Ogre::Vector3 sunCol = mSunGradient.getColor(point);
-	Light0->setSpecularColour(sunCol.x, sunCol.y, sunCol.z);
-	Ogre::Vector3 ambientCol = mAmbientGradient.getColor(point);
-	Light0->setDiffuseColour(ambientCol.x, ambientCol.y, ambientCol.z);
-	mHydrax->setSunColor(sunCol);
-}
-
 PGFrameListener::~PGFrameListener()
 {
 	// We created the query, and we are also responsible for deleting it.
@@ -692,7 +501,7 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 	if(mFrameCount > 1) {
 		if(!mMenus->mInGameMenu && !mMenus->mMainMenu && !mMenus->mLevel1AimsOpen) { //If not in menu continue to update world
 
-			if (weatherSystem == 0)
+			if (weatherSystem == 0) // Caelum updates
 			{
 				// Move the sun
 				Ogre::Vector3 sunPosition = mCamera->getDerivedPosition();
@@ -703,21 +512,37 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 				mHydrax->setSunColor(Ogre::Vector3(mCaelumSystem->getSun()->getBodyColour().r,
 					mCaelumSystem->getSun()->getBodyColour().g,
 					mCaelumSystem->getSun()->getBodyColour().b));
-				//CAN ALSO CHANGE THE COLOUR OF THE WATER
-	
-				// Update shadow far distance
-				//updateShadowFarDistance();
+				sunNode->setVisible(true);
+				sunNode->setPosition(sunPosition.x + 2500, sunPosition.y + 500, sunPosition.z);
 			}
-			else
+			else // SkyX updates
 			{
 				// Change SkyX atmosphere options if needed
 				SkyX::AtmosphereManager::Options SkyXOptions = mSkyX->getAtmosphereManager()->getOptions();
-				mSkyX->setTimeMultiplier(mTimeMultiplier);
+				SkyXOptions.Time.x = 9.2f;
 				mSkyX->getAtmosphereManager()->setOptions(SkyXOptions);
-				// Update environment lighting
-				updateEnvironmentLighting();
 				// Update SkyX
-				mSkyX->update(evt.timeSinceLastFrame);
+				mSkyX->update(0.005f);
+				light->setDiffuseColour(0.3, 0.3, 0.3);
+				light->setSpecularColour(0.1, 0.1, 0.1);
+				light->setDirection(mSkyX->getAtmosphereManager()->getSunDirection() * -1);
+				sunNode->setVisible(false);
+
+				// Reflection of the moon
+				Ogre::Vector3 lightDir = mSkyX->getAtmosphereManager()->getSunDirection();
+				lightDir *= -1;
+				mHydrax->setSunColor(Vector3(0.5, 0.5, 0.5));
+				Ogre::Vector3 sunPos = mCamera->getDerivedPosition() - lightDir*mSkyX->getMeshManager()->getSkydomeRadius()*0.1;
+				mHydrax->setSunPosition(sunPos);
+
+				if (spotOn)
+				{
+					mSceneMgr->getLight("Spot")->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection() * 10);
+					mSceneMgr->getLight("Spot")->setDirection(mCamera->getDerivedDirection());
+					mSceneMgr->getLight("Spot")->setDiffuseColour(1, 1, 1);
+					mSceneMgr->getLight("Spot")->setSpecularColour(1, 1, 1);
+					mSceneMgr->getLight("Spot")->setVisible(true);
+				}
 			}
 	
 			gunPosBuffer6 =  gunPosBuffer5;
@@ -733,10 +558,8 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 
 			// Update the game elements
 			moveCamera(evt.timeSinceLastFrame);
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
-			mWorld->stepSimulation(evt.timeSinceLastFrame);	// update Bullet Physics animation	
+			mWorld->stepSimulation(evt.timeSinceLastFrame, 5);	// update Bullet Physics animation
+			mWorld->stepSimulation(evt.timeSinceLastFrame, 5);	// update Bullet Physics animation
 			mHydrax->update(evt.timeSinceLastFrame);
 		
 			playerNodeHeight->setPosition(playerNode->getPosition().x,
@@ -765,9 +588,6 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 					p2p->setPivotB (newPos);  
 				}
 			}
-			//Set sun particle
-			Ogre::Vector3 sunPosition = mCaelumSystem->getSun()->getMainLight()->getDerivedDirection() * -80000;
-			sunNode->setPosition(sunPosition);
 			//Position HUD
 			HUDNode->setOrientation(mCamera->getDerivedOrientation());
 			HUDNode->setPosition(mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 70);
@@ -816,11 +636,15 @@ bool PGFrameListener::frameEnded(const FrameEvent& evt)
 
 void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 {
-	// FOG UNDERWATER?
+	// Hide hydrax and show ogre ocean for gun reflection
 	gravityGun->setVisible(false);
 	mHydrax->setVisible(false);
-	ocean->setVisible(true);
-	oceanFade->setVisible(true);
+
+	if (weatherSystem == 0)
+	{
+		ocean->setVisible(true);
+		oceanFade->setVisible(true);
+	}
 
 	// point the camera in the right direction based on which face of the cubemap this is
 	mCamera->setOrientation(Quaternion::IDENTITY);
@@ -833,20 +657,19 @@ void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 
 void PGFrameListener::postRenderTargetUpdate(const RenderTargetEvent& evt)
 {
+	// Return visibility back to normal
 	gravityGun->setVisible(true); 
 	mHydrax->setVisible(hideHydrax);
-	ocean->setVisible(false);
-	oceanFade->setVisible(false);
+	if (weatherSystem == 0)
+	{
+		ocean->setVisible(false);
+		oceanFade->setVisible(false);	
+	}
 }
 
 void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
 {
-	//while(!mHydrax->isVisible()) {cout << "howdy" << endl;}
-	//mHydrax->setVisible(true);
-	//mHydrax->setWaterColor(Vector3(0, 0, 0));
-	//mHydrax->remove();
-	//cout << "hello" << endl;
-	/*if (weatherSystem == 1)
+	if (weatherSystem == 1)
 	{
 		// If needed in any case...
 		bool underwater = mHydrax->_isCurrentFrameUnderwater();
@@ -873,16 +696,12 @@ void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& R
 			}
 			break;
 		}
-	}*/
+	}
 }
 
 void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
 {
-	//while(!mHydrax->isVisible()) {cout << "howdy2" << endl;}
-	//mHydrax->setWaterColor(Vector3(0, 0, 0));
-	//mHydrax->create();
-	//mHydrax->setVisible(false);
-	/*if (weatherSystem == 1)
+	if (weatherSystem == 1)
 	{
 		bool underwater = mHydrax->_isCurrentFrameUnderwater();
 
@@ -906,7 +725,7 @@ void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& 
 			}
 			break;
 		}
-	}*/
+	}
 }
 
 void PGFrameListener::createCubeMap()
@@ -1585,13 +1404,6 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 	else
 		gunAnimate->addTime(-evt.timeSinceLastFrame * 1.5);
 
-	if (weatherSystem == 0)
-	{
-		// So that the caelum system is updated for both cameras
-		//mCaelumSystem->notifyCameraChanged(mSceneMgr->getCamera("PlayerCam"));
-		//mCaelumSystem->updateSubcomponents (evt.timeSinceLastFrame);
-	}
-
 	Ogre::Vector3 camPosition = mCamera->getPosition();
 	Ogre::Quaternion camOr = mCamera->getOrientation();
 
@@ -1700,7 +1512,7 @@ void PGFrameListener::checkObjectsForRemoval() {
 			// animation could be started here.
 			currentBody->getSceneNode()->detachAllObjects(); //removes the visible coconut
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody()); // Removes the physics box
-			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+
 			++coconutCount;
 			String text = String("Coconuts: "+ (StringConverter::toString(coconutCount)));
 			HUDCoconutText->setCaption(text);
@@ -1865,6 +1677,8 @@ void PGFrameListener::spawnFish(void)
 		mFishNumber = NUM_FISH;
 	else if (currentLevel == 2)
 		mFishNumber = NUM_FISH / 3;
+	else
+		mFishNumber = 0;
 
 	mFishAlive = mFishNumber;
 
@@ -1895,7 +1709,7 @@ void PGFrameListener::spawnFish(void)
 		if (size.z > biggestSize)
 			biggestSize = size.z;
 
-		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode();
+		SceneNode *node = mSceneMgr->getRootSceneNode()->createChildSceneNode("FishParent" + StringConverter::toString(i));
 		SceneNode *node2 = mSceneMgr->getRootSceneNode()->createChildSceneNode("Fish" + StringConverter::toString(i));
 		node2->setScale(2.6, 2.6, 2.6);
 
@@ -1908,7 +1722,7 @@ void PGFrameListener::spawnFish(void)
  		OgreBulletCollisions::SphereCollisionShape *sceneBoxShape = new OgreBulletCollisions::SphereCollisionShape(biggestSize);
  		// and the Bullet rigid body
  		OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 				"defaultBoxRigid" + StringConverter::toString(mNumEntitiesInstanced), mWorld);
+ 				"FishBody" + StringConverter::toString(i), mWorld);
  		defaultBody->setShape(	node,
  					sceneBoxShape,
  					0.6f,			// dynamic body restitution
@@ -1939,6 +1753,16 @@ void PGFrameListener::changeLevelFish()
 		mWorld->getBulletDynamicsWorld()->removeRigidBody(mFish[i]->getBulletRigidBody());
 		mSceneMgr->destroyEntity("Fish" + StringConverter::toString(i));
 		mSceneMgr->destroySceneNode("Fish" + StringConverter::toString(i));
+		mSceneMgr->destroySceneNode("FishParent" + StringConverter::toString(i));
+		mSceneMgr->destroySceneNode("FishBody" + StringConverter::toString(i) + "Node");
+
+		if (mFishDead[i])
+		{
+			mSceneMgr->destroyEntity("FishDead" + StringConverter::toString(i));
+			mSceneMgr->destroySceneNode(mFishNodes[i]);
+			mSceneMgr->destroySceneNode("DeadFishBody" + StringConverter::toString(i) + "Node");
+		}
+
 		mFishDead[i] = false;
 	}
 
@@ -1985,7 +1809,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 			Vector3	   tempPos = mFishNodes[i]->getPosition();
 			mFishNodes[i] = node;
 			OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
- 				"defaultBoxRigidDead" + StringConverter::toString(i), mWorld);
+ 				"DeadFishBody" + StringConverter::toString(i), mWorld);
 
 			if(mPickedBody != NULL) 
 			{
@@ -2014,6 +1838,8 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
  					5.0f, 			// dynamic bodymass
 					tempPos,		// starting position of the box
 					temp);			// orientation of the box
+
+			mWorld->getBulletDynamicsWorld()->removeRigidBody(mFish[i]->getBulletRigidBody());
 			mFish[i] = defaultBody;
 
 			mWorld->stepSimulation(0.0000000001);	// update Bullet Physics animation	
@@ -2188,6 +2014,8 @@ void PGFrameListener::changeBulletTerrain(int level)
 		config.loadFromResourceSystem("Island.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
 	else if (level == 2)
 		config.loadFromResourceSystem("Island2.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
+	else if (level == 3)
+		config.loadFromResourceSystem("Island3.cfg", ResourceGroupManager::AUTODETECT_RESOURCE_GROUP_NAME, "=", true);
 
 	unsigned page_size = Ogre::StringConverter::parseUnsignedInt(config.getSetting( "PageSize" ));
 
@@ -2240,15 +2068,28 @@ void PGFrameListener::createCaelumSystem(void)
 	// Initialize the caelum day/night weather system
 	// Each on below corresponds to each element in the system
     Caelum::CaelumSystem::CaelumComponent componentMask;
-	componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
-		Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
-		//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
-		Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
-		0);
-	//componentMask = Caelum::CaelumSystem::CAELUM_COMPONENTS_DEFAULT;
+	if (currentLevel == 1)
+	{
+		componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
+			Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
+			0);
+	}
+	else
+	{
+		componentMask = static_cast<Caelum::CaelumSystem::CaelumComponent> (
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SUN |				
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_MOON |
+			Caelum::CaelumSystem::CAELUM_COMPONENT_SKY_DOME |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_IMAGE_STARFIELD |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_POINT_STARFIELD |
+			//Caelum::CaelumSystem::CAELUM_COMPONENT_CLOUDS |
+			0);
+	}
     mCaelumSystem = new Caelum::CaelumSystem(Root::getSingletonPtr(), mSceneMgr, componentMask);
 	((Caelum::SpriteSun*) mCaelumSystem->getSun())->setSunTextureAngularSize(Ogre::Degree(6.0f));
 
@@ -2256,32 +2097,14 @@ void PGFrameListener::createCaelumSystem(void)
 	mCaelumSystem->setSceneFogDensityMultiplier(0.0008f); // or some other smal6l value.
 	mCaelumSystem->setManageSceneFog(false);
 	mCaelumSystem->getUniversalClock()->setTimeScale (0); // This sets the timescale for the day/night system
-	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(2000);
-	mCaelumSystem->getSun()->getMainLight()->setVisible(false);
+	mCaelumSystem->getSun()->getMainLight()->setShadowFarDistance(1750);
+	//mCaelumSystem->getSun()->getMainLight()->setVisible(false);
 
     // Register caelum as a listener.
     mWindow->addListener(mCaelumSystem);
 	Root::getSingletonPtr()->addFrameListener(mCaelumSystem);
-
-	//mCaelumSystem->get->setFarRadius(Ogre::Real(80000.0));
-
     UpdateSpeedFactor(mCaelumSystem->getUniversalClock ()->getTimeScale ());
-
-	//Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(0);
-    //Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
-    //vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
-    //vp->setClearEveryFrame(true);
-	//vp->setAutoUpdated(false);
-	//mShadowTarget = tex->getBuffer()->getRenderTarget();
-	//mShadowTarget->addViewport(mCamera)->setOverlaysEnabled(false);
-	//mShadowTarget->getViewport(0)->setClearEveryFrame(true);
-	//mShadowTarget->getViewport(0)->setBackgroundColour(Ogre::ColourValue::Blue);
-	//mShadowTarget->setAutoUpdated(true);
-	//mShadowTarget->addListener(this);
-	
-    renderedLight.push_back(mCaelumSystem->getSun()->getMainLight());
-	
-	mSceneMgr->addListener(&shadowCameraUpdater);
+    //renderedLight.push_back(mCaelumSystem->getSun()->getMainLight());
 }
 
 void PGFrameListener::gunController()
@@ -2402,7 +2225,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
 			{
 				//update score
-				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 1000);
+				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 10000);
 				std::cout << "Score: " << levelScore << std::endl;
 				(*itLevelTargets)->counted = true;
 				targetCount++;
@@ -2431,11 +2254,11 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			float oldHighScore = getOldHighScore(currentLevel);
 			if(levelScore >= oldHighScore) {
-				mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
 				saveNewHighScore(currentLevel, levelScore);
 			} 
 			else {
-				mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, false);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
 			mMenus->mLevel1CompleteOpen = true;
@@ -2472,11 +2295,11 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			float oldHighScore = getOldHighScore(currentLevel);
 			if(levelScore >= oldHighScore) {
-				//loadLevel2Complete(0, coconutCount, levelScore, currentLevel, true);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
 				saveNewHighScore(currentLevel, levelScore);
 			} 
 			else {
-				//loadLevel2Complete(0, coconutCount, levelScore, currentLevel, false);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
 			//mLevel2CompleteOpen = true;
@@ -2488,7 +2311,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 	}
 	if ((currentLevel ==3) && (levelComplete ==false))
 	{
-		bool winning = true;
+		/*bool winning = true;
 
 		//Check if blue blocks hit ground
 		std::deque<EnvironmentObject *>::iterator itLevelBlue = levelBlue.begin();
@@ -2559,7 +2382,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
 			mMenus->mLevel1CompleteOpen = true;
 			coconutCount = 0;
-		}
+		}*/
 	}
 }
 
@@ -2709,26 +2532,81 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	HUDCoconutText->setCaption("Coconuts: 0");
 	HUDScoreText->setCaption("Score: 0");
 
+	if (mCaelumSystem)
+	{
+		mWindow->removeListener(mCaelumSystem);
+		Root::getSingletonPtr()->removeFrameListener(mCaelumSystem);
+		mCaelumSystem->shutdown(false);
+		mCaelumSystem = 0;
+	}
+	if (mSkyX->isCreated())
+	{
+		mSkyX->remove();
+		mSceneMgr->getLight("Light1")->setVisible(false);
+		mSceneMgr->destroyLight(mSceneMgr->getLight("Light1"));
+	}
+
+	mSceneMgr->setAmbientLight(ColourValue(0.05, 0.05, 0.05, 2));
+	weatherSystem = 0;
+
+	if (spotOn)
+	{
+		mSceneMgr->destroyLight(mSceneMgr->getLight("Spot"));
+		spotOn = false;
+	}
+
 	if(!userLevel) {
 		currentLevel = levelNo;
 		if(levelNo == 1)
 		{
+			createCaelumSystem();
 			HUDNode2->attachObject(HUDTargetText);
 			spinTime = 0;
 			levelTime = 300;
 		}
 		else if (levelNo == 2)
 		{
+			createCaelumSystem();
 			createJengaPlatform();
 			levelTime = 600;
 		}
 		else if (levelNo == 3)
 		{
+			// Shadow caster
+			Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
+			mLight1->setType(Ogre::Light::LT_DIRECTIONAL);
+			mLight1->setDiffuseColour(0, 0, 0);
+			mLight1->setSpecularColour(0, 0, 0);
+			mLight1->setVisible(false);
+			mSkyX->create();
+			weatherSystem = 1;
+
 			levelTime = 300;
 		}
 	}
 	else {
 		currentLevel = 0;
+		createCaelumSystem();
+	}
+
+	if (mCaelumSystem)
+	{
+		mCaelumSystem->setJulianDay(70.07);
+		// Fixes horizon error where sea meets skydome
+		std::vector<Ogre::RenderQueueGroupID> caelumskyqueue;
+		caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
+		mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
+		mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
+	}
+
+	if (weatherSystem == 1)
+	{
+		Light *spotlight = mSceneMgr->createLight("Spot");
+		spotlight->setType(Light::LT_SPOTLIGHT);
+		spotlight->setDiffuseColour(1, 1, 1);
+		spotlight->setSpecularColour(100, 100, 100);
+		spotlight->setSpotlightRange(Ogre::Degree(10), Ogre::Degree(20));
+		spotOn = true;
 	}
 
 	//Reset timer
@@ -2758,16 +2636,13 @@ void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 		mHydrax->loadCfg("PGOcean.hdx");
 	else if (levelNo == 2)
 		mHydrax->loadCfg("PGOcean2.hdx");
+	else if (levelNo == 3)
+		mHydrax->loadCfg("PGOcean3.hdx");
 
 	// Create water
 	mHydrax->create();
 	mHydrax->update(0);
-
-	mCaelumSystem->setJulianDay(70.07);
-	// Fixes horizon error where sea meets skydome
-	std::vector<Ogre::RenderQueueGroupID> caelumskyqueue;
-	caelumskyqueue.push_back(static_cast<Ogre::RenderQueueGroupID>(Ogre::RENDER_QUEUE_SKIES_EARLY + 2));
-	mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
+	mHydrax->getRttManager()->addRttListener(this);
 
 	//Set up terrain
 	createTerrain(levelNo);
@@ -2787,6 +2662,12 @@ void PGFrameListener::setPlayerPosition(int level) {
 		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
 		playerBody->setLinearVelocity(0, 0, 0);
 		mCamera->setOrientation(Quaternion(0.793087, 0, -0.609109, 0));
+	} else if(level == 3) {
+		btTransform transform = playerBody->getCenterOfMassTransform();
+		transform.setOrigin(btVector3(641, 169, 2521));
+		playerBody->getBulletRigidBody()->setCenterOfMassTransform(transform);
+		playerBody->setLinearVelocity(0, 0, 0);
+		mCamera->setDirection(0.72, 0, -0.69);
 	}
 }
 
@@ -2969,9 +2850,6 @@ void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
     mTerrainGlobals->setCompositeMapDistance(3000);
  
     // Important to set these so that the terrain knows what to use for derived (non-realtime) data
-	//mTerrainGlobals->setLightMapDirection(light->getDerivedDirection());
-    //mTerrainGlobals->setCompositeMapAmbient(mSceneMgr->getAmbientLight());
-    //mTerrainGlobals->setCompositeMapDiffuse(light->getDiffuseColour());
 	mTerrainGlobals->setCastsDynamicShadows(false);
  
     // Configure default import settings for if we use imported image
@@ -3024,6 +2902,10 @@ void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, 
 	else if (levelNo == 2) {
 		std::cout << "get terrainimage 2" <<std::endl;
 		img.load("terrain2.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+	}
+	else if (levelNo == 3) {
+		std::cout << "get terrainimage 3" <<std::endl;
+		img.load("terrain3.png", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
 	}
     if (flipX)
         img.flipAroundY();

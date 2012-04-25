@@ -72,40 +72,6 @@ void Project_Gravity::createScene(void)
 	scene->create(mSceneMgr, mCamera, mWindow);
 	mHydrax = scene->mHydrax;
 }
-
-void Project_Gravity::setupLiSpSMShadows()
-{
-	std::cout<<"setup LISP"<<std::endl;
-    mSceneMgr->setShadowTechnique(SHADOWTYPE_TEXTURE_ADDITIVE);
-
-    // 3 textures per directional light
-    mSceneMgr->setShadowTextureCountPerLightType(Ogre::Light::LT_DIRECTIONAL, 1);
-    mSceneMgr->setShadowTextureCount(1);
-    mSceneMgr->setShadowTextureConfig(0, 2048, 2048, PF_FLOAT32_RGB);
-
-    mSceneMgr->setShadowTextureSelfShadow(true);
-    // Set up caster material - this is just a standard depth/shadow map caster
-    mSceneMgr->setShadowTextureCasterMaterial("LiSpShadowCaster");
-    mSceneMgr->setShadowTextureReceiverMaterial("LiSpShadowReceiver");
-
-    // Dont render backfaces (mora surface acne, but avoid errors)
-    mSceneMgr->setShadowCasterRenderBackFaces(false);
-
-    const unsigned numShadowRTTs = mSceneMgr->getShadowTextureCount();
-    for (unsigned i = 0; i < numShadowRTTs; ++i)
-    {
-        Ogre::TexturePtr tex = mSceneMgr->getShadowTexture(i);
-        Ogre::Viewport *vp = tex->getBuffer()->getRenderTarget()->getViewport(0);
-        vp->setBackgroundColour(Ogre::ColourValue(1, 1, 1, 1));
-        vp->setClearEveryFrame(true);
-    }
-
-    // shadow camera setup
-    float ShadowFarDistance = 29000;
-    LiSPSMShadowCameraSetup* LiSpSMSetup = new LiSPSMShadowCameraSetup();
-    mSceneMgr->setShadowCameraSetup(ShadowCameraSetupPtr(LiSpSMSetup));
-    mSceneMgr->setShadowFarDistance(ShadowFarDistance);
-}
  
 void Project_Gravity::createFrameListener(void)
 {

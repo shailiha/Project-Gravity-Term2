@@ -250,7 +250,7 @@ void MenuScreen::loadEditorSelectorMenu() {
 		//Register on-click events for each button
 		loadLevel1Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::editLevel1, this));
 		loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::editLevel2, this));
-		//loadLevel3Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&PGFrameListener::loadLevel3, this));
+		loadLevel3Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::editLevel3, this));
 		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::levelBackPressed, this));
 		mEditorMenuCreated=true;
 	}
@@ -304,9 +304,9 @@ void MenuScreen::loadLevelSelectorMenu() {
 		//Button to load level 3
 		CEGUI::Window *loadLevel3Btn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","loadLevel3Btn");  // Create Window
 		loadLevel3Btn->setSize(CEGUI::UVector2(CEGUI::UDim(0.25,0),CEGUI::UDim(0,70)));
-		loadLevel3Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel2Btn->getWidth(),CEGUI::UDim(0.4,0)));
-		loadLevel3Btn->setText("Level 2");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel2Btn);
+		loadLevel3Btn->setPosition(CEGUI::UVector2(CEGUI::UDim(1,-100)-loadLevel3Btn->getWidth(),CEGUI::UDim(0.4,0)));
+		loadLevel3Btn->setText("Level 3");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(loadLevel3Btn);
 
 		//Set buttons outside of scroll-able area
 		CEGUI::System::getSingleton().setGUISheet(levelMenu);
@@ -321,7 +321,7 @@ void MenuScreen::loadLevelSelectorMenu() {
 		//Register on-click events for buttons
 		loadLevel1Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel1, this));
 		loadLevel2Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
-		//loadLevel3Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+		loadLevel3Btn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
 		backBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::levelBackPressed, this));
 		mLevelMenuCreated=true;
 	}
@@ -666,8 +666,9 @@ void MenuScreen::loadLevelComplete(float time, int coconuts, float score, int le
 		star->setVisible(false);
 	}
 	//Update the static texts with details for the level
+	
 	CEGUI::Window* button = level1CompleteRoot->getChild("level1TimerText");
-	button->setText("Time taken: "+to_string(time));
+	button->setText("Time taken: "+StringConverter::toString((int)time/60000)+":"+StringConverter::toString(((int)time/1000)%60));
 	button = level1CompleteRoot->getChild("level1CocoText");
 	button->setText("Coconuts found: "+to_string(coconuts));
 	button = level1CompleteRoot->getChild("level1ScoreText");

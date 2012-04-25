@@ -41,6 +41,7 @@ private:
 	SceneNode *sunNode;
 	float stepTime;
 	Ogre::Timer* timer;	//Timer
+	bool spotOn;
 	
 	//Is level complete?
 	bool levelComplete;
@@ -294,7 +295,6 @@ public:
 	bool frameRenderingQueued(const Ogre::FrameEvent& evt);
 	void worldUpdates(const Ogre::FrameEvent& evt);
 	void checkObjectsForRemoval();
-	void setupPSSMShadows();
 
 	void windowResized(Ogre::RenderWindow* rw);
 	void windowClosed(Ogre::RenderWindow* rw);
@@ -340,8 +340,6 @@ public:
 	void checkLevelEndCondition(void);
 	float getOldHighScore(int level);
 	void saveNewHighScore(int level, float levelScore);
-	void updateShadowFarDistance();
-	void updateEnvironmentLighting();
 	void animatePalms(const Ogre::FrameEvent& evt);
 
 	// New Terrain
