@@ -749,14 +749,16 @@ void PGFrameListener::createCubeMap()
 
 bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 {
-	if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = true; // mVariables for camera movement
-	else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
-	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
-	else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = true;
-	else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
-	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
-	else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
-    else if (evt.key == OIS::KC_R)   // cycle polygon rendering mode
+	if(freeRoam) {
+		if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = true; // mVariables for camera movement
+		else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
+		else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
+		else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = true;
+		else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
+		else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
+		else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
+	}
+    if (evt.key == OIS::KC_R)   // cycle polygon rendering mode
     {
         Ogre::String newVal;
         Ogre::PolygonMode pm;
@@ -789,7 +791,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     else if (evt.key == OIS::KC_ESCAPE)
     {
         if(!(mMenus->mMainMenu) && !(mMenus->mBackPressedFromMainMenu) && !(mMenus->mLevel1AimsOpen) && !(mMenus->mLevel2AimsOpen)
-			 && !(mMenus->mLevel1CompleteOpen) && !(mMenus->mLevelFailedOpen)) {
+			 && !(mMenus->mLevelCompleteOpen) && !(mMenus->mLevelFailedOpen)) {
 			mMenus->mInGameMenu = !(mMenus->mInGameMenu); //Toggle menu
 			freeRoam = !freeRoam;
 			if(!(mMenus->mInGameMenu)) {//If no longer in in-game menu then close menus
@@ -806,7 +808,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		}
     }
 	else if(evt.key == (OIS::KC_TAB)) {
-		if(!(mMenus->mInGameMenu) && !(mMenus->mMainMenu) && !(mMenus->mLevel1CompleteOpen) && !(mMenus->mLevelFailedOpen)) {
+		if(!(mMenus->mInGameMenu) && !(mMenus->mMainMenu) && !(mMenus->mLevelCompleteOpen) && !(mMenus->mLevelFailedOpen)) {
 			if(currentLevel == 1) {
 				mMenus->mLevel1AimsOpen = !(mMenus->mLevel1AimsOpen);
 				freeRoam = !freeRoam;
@@ -1321,7 +1323,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	else if(mMenus->mLevel2AimsOpen) {
 		mMenus->loadLevel2Aims();
 	}
-	else if(mMenus->mLevel1CompleteOpen) {
+	else if(mMenus->mLevelCompleteOpen) {
 		CEGUI::System::getSingleton().setGUISheet(mMenus->level1CompleteRoot);
 		mMenus->level1CompleteRoot->setVisible(true);
 	}
@@ -2278,7 +2280,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
-			mMenus->mLevel1CompleteOpen = true;
+			mMenus->mLevelCompleteOpen = true;
 			freeRoam = false;
 			coconutCount = 0;
 			targetCount = 0;
@@ -2396,8 +2398,9 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			levelComplete = true;
 			freeRoam = false;
 			mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
-			mMenus->mLevel1CompleteOpen = true;
+			mMenus->mLevelCompleteOpen = true;
 			coconutCount = 0;
+			levelScore = 0;
 		}
 	}
 }

@@ -58,8 +58,8 @@ public:
 
 	//Level completion flags
 	CEGUI::Window* level1CompleteRoot;
-	bool mLevel1CompleteCreated;
-	bool mLevel1CompleteOpen;
+	bool mLevelCompleteCreated;
+	bool mLevelCompleteOpen;
 	CEGUI::Window* levelFailedRoot;
 	bool mLevelFailedCreated;
 	bool mLevelFailedOpen;

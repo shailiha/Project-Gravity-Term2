@@ -13,7 +13,7 @@ MenuScreen::MenuScreen(PGFrameListener* frameListener) :
 		mUserLevelLoader(NULL), 
 		mControlScreenCreated(false), mInControlMenu(false), mHighScoresCreated(false), mHighScoresOpen(false),
 		mLevel1AimsCreated(false), mLevel1AimsOpen(false), mLevel2AimsCreated(false), mLevel2AimsOpen(false), mLevel3AimsCreated(false), mLevel3AimsOpen(false),
-		mLevel1CompleteCreated(false), mLevel1CompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false)
+		mLevelCompleteCreated(false), mLevelCompleteOpen(false), mLevelFailedCreated(false), mLevelFailedOpen(false)
 {
 
 }
@@ -115,6 +115,7 @@ void MenuScreen::loadMainMenu() {
 	mBackPressedFromMainMenu = true;
 	CEGUI::System::getSingleton().setGUISheet(mainMenuRoot);
 }
+
 //Code setting up the in-game menu screen
 void MenuScreen::loadInGameMenu() {
 	if(!mInGameMenuCreated) {
@@ -616,7 +617,7 @@ void MenuScreen::loadLevel3Aims() {
 
 //Code for creating the 'level completed' screen
 void MenuScreen::loadLevelComplete(float time, int coconuts, float score, int level, bool highScore) {
-	if(!mLevel1CompleteCreated) {
+	if(!mLevelCompleteCreated) {
 		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
 		//Create root window
@@ -676,12 +677,17 @@ void MenuScreen::loadLevelComplete(float time, int coconuts, float score, int le
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(continueBtn);
 		//Register events
 		if(level == 1) {
+			continueBtn->setText("Continue");
 			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
 		} else if (level == 2) {
-			//continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+			continueBtn->setText("Continue");
+			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+		} else if(level == 3) {
+			continueBtn->setText("Main Menu");
+			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::inGameMainMenuPressed, this));
 		}
 		
-		mLevel1CompleteCreated = true;
+		mLevelCompleteCreated = true;
 	}
 	//If new high score, display star image
 	CEGUI::Window* star = level1CompleteRoot->getChild("HighScoreStarImage");
@@ -703,9 +709,14 @@ void MenuScreen::loadLevelComplete(float time, int coconuts, float score, int le
 	button->removeAllEvents();
 	//Re-register events
 	if(level == 1) {
+		button->setText("Continue");
 		button->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
 	} else if (level == 2) {
-		//button->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+		button->setText("Continue");
+		button->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+	} else if (level == 3) {
+		button->setText("Main Menu");
+		button->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::inGameMainMenuPressed, this));
 	}
 	CEGUI::System::getSingleton().setGUISheet(level1CompleteRoot);
 	level1CompleteRoot->setVisible(true);
@@ -713,7 +724,7 @@ void MenuScreen::loadLevelComplete(float time, int coconuts, float score, int le
 
 //Code for setting up the 'Level failed' screen
 void MenuScreen::loadLevelFailed(int level) {
-	CEGUI::Window* continueBtn;
+	CEGUI::Window* retryBtn;
 	if(!mLevelFailedCreated) {
 		CEGUI::System::getSingleton().setDefaultMouseCursor( "TaharezLook", "MouseArrow" );
 		CEGUI::MouseCursor::getSingleton().setVisible(true);
@@ -733,33 +744,34 @@ void MenuScreen::loadLevelFailed(int level) {
 		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(completeScreen); //Attach to current (inGameMenuRoot) GUI sheet	
 		
 		//Button for re-loading the failed level
-		CEGUI::Window* continueBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","levelFailedContBtn");  // Create Window
-		continueBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.2,0),CEGUI::UDim(0,70)));
-		continueBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.5,0),CEGUI::UDim(0.7,0)));
-		continueBtn->setText("Retry");
-		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(continueBtn);
+		retryBtn = CEGUI::WindowManager::getSingleton().createWindow("TaharezLook/SystemButton","levelFailedContBtn");  // Create Window
+		retryBtn->setSize(CEGUI::UVector2(CEGUI::UDim(0.2,0),CEGUI::UDim(0,70)));
+		retryBtn->setPosition(CEGUI::UVector2(CEGUI::UDim(0.5,0),CEGUI::UDim(0.7,0)));
+		retryBtn->setText("Retry");
+		CEGUI::System::getSingleton().getGUISheet()->addChildWindow(retryBtn);
 
 		//Register events
 		if(level == 1) {
-			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel1, this));
+			retryBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel1, this));
 		} else if (level == 2) {
-			continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
+			retryBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
 		} else if (level == 3) {
-			//continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+			retryBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
 		}
 		
 		mLevelFailedCreated = true;
 	}		
-	continueBtn = levelFailedRoot->getChild("levelFailedContBtn");
-	continueBtn->removeAllEvents();
+	retryBtn = levelFailedRoot->getChild("levelFailedContBtn");
+	retryBtn->removeAllEvents();
 	//Re-register events so 'Retry' button re-loads the correct level
 	if(level == 1) {
-		continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel1, this));
+		retryBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel1, this));
 	} else if (level == 2) {
-		continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
+		retryBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel2, this));
 	} else if (level == 3) {
-		//continueBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
+		retryBtn->subscribeEvent(CEGUI::PushButton::EventMouseClick, CEGUI::Event::Subscriber(&MenuScreen::loadLevel3, this));
 	}
+	mFrameListener->freeRoam = false;
 	CEGUI::System::getSingleton().setGUISheet(levelFailedRoot);
 	levelFailedRoot->setVisible(true);
 }
@@ -844,8 +856,16 @@ bool MenuScreen::inGameMainMenuPressed(const CEGUI::EventArgs& e) {
 	mInGameMenu = false;
 	mInLevelMenu = false;
 	
+	//For if level 3 completed and returning to menu
+	mLevelCompleteOpen = false;
+	if(mLevelCompleteCreated) {
+		level1CompleteRoot->setVisible(false);
+	}
+
 	mainMenuRoot->setVisible(true);
-	inGameMenuRoot->setVisible(false); //Hide unnecessary menus
+	if(mInGameMenuCreated) {
+		inGameMenuRoot->setVisible(false); //Hide unnecessary menus
+	}
 	return 1;
 }
 
@@ -919,7 +939,7 @@ bool MenuScreen::loadLevel2(const CEGUI::EventArgs& e) {
 	//Ensures editMode is no longer on
 	mFrameListener->editMode = false;
 	//For when level completed and loading new level
-	mLevel1CompleteOpen = false;
+	mLevelCompleteOpen = false;
 	mLevelFailedOpen = false;
 	//Load level 2
 	mFrameListener->currentLevel = 2;
@@ -935,7 +955,7 @@ bool MenuScreen::loadLevel3(const CEGUI::EventArgs& e) {
 	//Ensures editMode is no longer on
 	mFrameListener->editMode = false;
 	//For when level completed and loading new level
-	mLevel1CompleteOpen = false;
+	mLevelCompleteOpen = false;
 	mLevelFailedOpen = false;
 	//Load level 3
 	mFrameListener->currentLevel = 3;
