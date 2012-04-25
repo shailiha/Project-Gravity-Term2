@@ -2397,7 +2397,14 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
 			freeRoam = false;
-			mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
+			float oldHighScore = getOldHighScore(currentLevel);
+			if(levelScore >= oldHighScore) {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
+				saveNewHighScore(currentLevel, levelScore);
+			} 
+			else {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
+			}
 			mMenus->mLevelCompleteOpen = true;
 			coconutCount = 0;
 			levelScore = 0;
@@ -2575,15 +2582,15 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	}
 
 	if(!userLevel) {
-		currentLevel = levelNo;
-		if(levelNo == 1)
+		currentLevel = islandNo;
+		if(islandNo == 1)
 		{
 			createCaelumSystem();
 			HUDNode2->attachObject(HUDTargetText);
 			spinTime = 0;
 			levelTime = 300;
 		}
-		else if (levelNo == 2)
+		else if (islandNo == 2)
 		{
 			createCaelumSystem();
 			createJengaPlatform();
