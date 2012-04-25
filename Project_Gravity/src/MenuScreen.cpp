@@ -666,8 +666,9 @@ void MenuScreen::loadLevelComplete(float time, int coconuts, float score, int le
 		star->setVisible(false);
 	}
 	//Update the static texts with details for the level
+	
 	CEGUI::Window* button = level1CompleteRoot->getChild("level1TimerText");
-	button->setText("Time taken: "+to_string(time));
+	button->setText("Time taken: "+StringConverter::toString((int)time/60000)+":"+StringConverter::toString(((int)time/1000)%60));
 	button = level1CompleteRoot->getChild("level1CocoText");
 	button->setText("Coconuts found: "+to_string(coconuts));
 	button = level1CompleteRoot->getChild("level1ScoreText");

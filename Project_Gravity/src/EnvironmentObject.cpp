@@ -167,7 +167,7 @@ void EnvironmentObject::move(float spinTime, double evtTime)
 				mTextPos = mBody->getCenterOfMassPosition();
 				mTextBool = true;
 					
-				int targetScore = (int) (mBody->getBulletRigidBody()->getRestitution() * 1000);
+				int targetScore = (int) (mBody->getBulletRigidBody()->getRestitution() * 10000);
 				std::stringstream ss;//create a stringstream
 				ss << targetScore;//add number to the stream
 				std::string targetString = ss.str();;

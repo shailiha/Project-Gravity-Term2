@@ -57,8 +57,7 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
 			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
 			target->setFriction(0.94f);
-			//target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
-			target->setRestitution((double) ((1050 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
+			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
 		else
 		{
@@ -69,8 +68,7 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			double yDiff = target->getCenterOfMassPosition().y() - rbProjectile->getCenterOfMassPosition().y();
 			double zDiff = target->getCenterOfMassPosition().z() - rbProjectile->getCenterOfMassPosition().z();
 			target->setFriction(0.94f);
-			//target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
-			target->setRestitution((double) ((1050 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
+			target->setRestitution((double) ((105 - (2*sqrt(xDiff*xDiff + yDiff*yDiff + zDiff*zDiff)))/1000));
 		}
 	}
 
@@ -1702,7 +1700,7 @@ void PGFrameListener::checkObjectsForRemoval() {
 			// animation could be started here.
 			currentBody->getSceneNode()->detachAllObjects(); //removes the visible coconut
 			currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody()); // Removes the physics box
-			//currentBody->getBulletRigidBody()->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+
 			++coconutCount;
 			String text = String("Coconuts: "+ (StringConverter::toString(coconutCount)));
 			HUDCoconutText->setCaption(text);
@@ -2404,7 +2402,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			if (((*itLevelTargets)->targetCounted()==false) && ((*itLevelTargets)->targetHit()))
 			{
 				//update score
-				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 1000);
+				levelScore += ((*itLevelTargets)->getBody()->getBulletRigidBody()->getRestitution() * 10000);
 				std::cout << "Score: " << levelScore << std::endl;
 				(*itLevelTargets)->counted = true;
 				targetCount++;
@@ -2433,11 +2431,11 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			float oldHighScore = getOldHighScore(currentLevel);
 			if(levelScore >= oldHighScore) {
-				mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
 				saveNewHighScore(currentLevel, levelScore);
 			} 
 			else {
-				mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, false);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
 			mMenus->mLevel1CompleteOpen = true;
@@ -2473,11 +2471,11 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			float oldHighScore = getOldHighScore(currentLevel);
 			if(levelScore >= oldHighScore) {
-				//loadLevel2Complete(0, coconutCount, levelScore, currentLevel, true);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
 				saveNewHighScore(currentLevel, levelScore);
 			} 
 			else {
-				//loadLevel2Complete(0, coconutCount, levelScore, currentLevel, false);
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
 			//mLevel2CompleteOpen = true;
