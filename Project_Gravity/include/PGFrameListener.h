@@ -167,12 +167,11 @@ private:
 	Ogre::Entity* mOceanSurfaceEnt;
 	Ogre::Entity* mOceanFadeEnt;
 
-	OgreBulletDynamics::RigidBody *targetBody[6];
+	//Variables for dealing with when a target is hit
 	SceneNode *targetPivot;
 	SceneNode *target;
 	SceneNode *actualTarget;
 	double spinTime;
-	Entity *targetEnt[6];
 	
 	bool mScrollUp;
 	bool mScrollDown;
@@ -205,11 +204,7 @@ private:
 	Ogre::Entity *orangeEntity;
 	Ogre::Entity *blueEntity;
 	Ogre::Entity *redEntity;
-	SceneNode* billNodes[6];
-	MovableText* targetText[6];
-	double targetTextAnim[6];
-	bool targetTextBool[6];
-	Vector3 targetTextPos[6];
+
 	int targetScore;
 	Real mLastPositionLength;
 	Ogre::Real mTimeMultiplier;
