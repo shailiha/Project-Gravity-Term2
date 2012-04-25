@@ -90,7 +90,7 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 			btRigidBody* orange = (btRigidBody*)obj0;
 			orange->setFriction(0.94f);
 		}
-		std::cout << "Orange block" << std::endl;
+		std::cout << "Orange block hit ground" << std::endl;
 	}
 	//Collisions between blue blocks and the ground
 	if (((obj0Friction==0.8f) && (obj1Friction==0.71f))
@@ -505,7 +505,8 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 			{
 				// Move the sun
 				Ogre::Vector3 sunPosition = mCamera->getDerivedPosition();
-				sunPosition -= mCaelumSystem->getSun()->getLightDirection() * 80000;
+				if (mCaelumSystem)
+					sunPosition -= mCaelumSystem->getSun()->getLightDirection() * 80000;
 	
 				Ogre::String MaterialNameTmp = mHydrax->getMesh()->getMaterialName();
 				mHydrax->setSunPosition(sunPosition);
@@ -1060,7 +1061,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 				pickPos = body->getCenterOfMassPosition();//mCollisionClosestRayResultCallback->getCollisionPoint ();
 
 				//spawn Coconut if body is a tree
-				if (body->getBulletRigidBody()->getFriction()==0.93f)
+				if (body->getBulletRigidBody()->getFriction()==0.5f)
 				{
 					if(Vector3(playerNode->getPosition().x,0,playerNode->getPosition().z).distance(Vector3(pickPos.x,0,pickPos.z))<200)
 					{
@@ -1215,8 +1216,8 @@ void PGFrameListener::placeNewObject(int objectType) {
 		case 2: name = "Coconut"; mesh = "Coco.mesh"; mass = 0; friction = 0.92;break;
 		case 3: name = "Target"; mesh = "Target.mesh"; mass = 0; friction = 0.93; break;
 		case 4: name = "DynBlock"; mesh = "Jenga.mesh"; mass = 0; friction = 0.6; break;
-		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; friction = 0.93; break;
-		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; friction = 0.93; break;
+		case 5: name = "Palm"; mesh = "Palm1.mesh"; mass = 0; friction = 0.5; break;
+		case 6: name = "Palm"; mesh = "Palm2.mesh"; mass = 0; friction = 0.5; break;
 		case 7: name = "Orange"; mesh = "Jenga.mesh"; mass = 0; friction = 0.7; break;
 		case 8: name = "Blue"; mesh = "Jenga.mesh"; mass = 0; friction = 0.71; break;
 		case 9: name = "Red"; mesh = "Jenga.mesh"; mass = 0; friction = 0.72; break;
@@ -1260,8 +1261,8 @@ void PGFrameListener::placeNewObject(int objectType) {
 		case 2: newObject->getBody()->getBulletRigidBody()->setFriction(0.92f); levelCoconuts.push_back(newObject); break;
 		case 3: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelTargets.push_back(newObject); break;
 		case 4: newObject->getBody()->getBulletRigidBody()->setFriction(0.80f); levelBlocks.push_back(newObject); break;
-		case 5: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelPalms.push_back(newObject); break;
-		case 6: newObject->getBody()->getBulletRigidBody()->setFriction(0.93f); levelPalms.push_back(newObject); break;
+		case 5: newObject->getBody()->getBulletRigidBody()->setFriction(0.5f); levelPalms.push_back(newObject); break;
+		case 6: newObject->getBody()->getBulletRigidBody()->setFriction(0.5f); levelPalms.push_back(newObject); break;
 		case 7: newObject->getBody()->getBulletRigidBody()->setFriction(0.70f); levelOrange.push_back(newObject); break;
 		case 8: newObject->getBody()->getBulletRigidBody()->setFriction(0.71f); levelBlue.push_back(newObject); break;
 		case 9: newObject->getBody()->getBulletRigidBody()->setFriction(0.72f); levelRed.push_back(newObject); break;
@@ -2302,7 +2303,6 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
-			//mLevel2CompleteOpen = true;
 			freeRoam = false;
 			coconutCount = 0;
 			targetCount = 0;
@@ -2311,17 +2311,17 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 	}
 	if ((currentLevel ==3) && (levelComplete ==false))
 	{
-		/*bool winning = true;
+		bool winning = false;
 
 		//Check if blue blocks hit ground
 		std::deque<EnvironmentObject *>::iterator itLevelBlue = levelBlue.begin();
 		while (levelBlue.end() != itLevelBlue)
 		{
-			if ((*itLevelBlue)->targetHit())
+			if ((*itLevelBlue)->targetHit()==true)
 			{
 				levelComplete = true;
 				levelScore = 0;
-				std::cout << "LEVEL FAILED" << std::endl;
+				std::cout << "LEVEL FAILED - blue hit ground" << std::endl;
 				levelComplete = false;
 				coconutCount = 0;
 				freeRoam = false;
@@ -2340,7 +2340,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			{
 				levelComplete = true;
 				levelScore = 0;
-				std::cout << "LEVEL FAILED" << std::endl;
+				std::cout << "LEVEL FAILED - red hit by coconut" << std::endl;
 				levelComplete = false;
 				coconutCount = 0;
 				freeRoam = false;
@@ -2348,19 +2348,19 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				mMenus->mLevelFailedOpen = true;
 				break;
 			}
-			++itLevelBlue;
+			++itLevelRed;
 		}
 
 		//Check orange blocks
 		std::deque<EnvironmentObject *>::iterator itLevelOrange = levelOrange.begin();
-		while (levelTargets.end() != itLevelOrange)
+		while (levelOrange.end() != itLevelOrange)
 		{
+			winning = true;
 			if (((*itLevelOrange)->targetCounted()==false) && ((*itLevelOrange)->targetHit()))
 			{
 				//update score
 				levelScore += 1000;
 				(*itLevelOrange)->counted = true;
-				std::cout << "Orange block knocked down!" << std::endl;
 			}
 			if ((*itLevelOrange)->targetHit() == false)
 			{
@@ -2379,10 +2379,10 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
 			freeRoam = false;
-			mMenus->loadLevelComplete(0, coconutCount, levelScore, currentLevel, true);
+			mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
 			mMenus->mLevel1CompleteOpen = true;
 			coconutCount = 0;
-		}*/
+		}
 	}
 }
 
@@ -2570,7 +2570,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 			createJengaPlatform();
 			levelTime = 600;
 		}
-		else if (levelNo == 3)
+		else //if (levelNo == 3)
 		{
 			// Shadow caster
 			Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
@@ -2636,7 +2636,7 @@ void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 		mHydrax->loadCfg("PGOcean.hdx");
 	else if (levelNo == 2)
 		mHydrax->loadCfg("PGOcean2.hdx");
-	else if (levelNo == 3)
+	else //if (levelNo == 3)
 		mHydrax->loadCfg("PGOcean3.hdx");
 
 	// Create water

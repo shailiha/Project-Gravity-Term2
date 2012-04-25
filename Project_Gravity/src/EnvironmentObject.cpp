@@ -64,7 +64,7 @@ EnvironmentObject::EnvironmentObject(PGFrameListener* frameListener, OgreBulletD
 		btVector3 scale2(scale.x, scale.y, scale.z);
 		finalCollisionShape->getBulletShape()->setLocalScaling(scale2);
 		mBody->setShape(objectNode, (OgreBulletCollisions::CollisionShape*) ccs, mRestitution, mFriction, mMass, mPosition, mOrientation);
-
+		mBody->getBulletRigidBody()->setFriction(0.5f);
 		palmAnimation = entity->getAnimationState("my_animation");
 	}
 	else if(mName == "GoldCoconut") {
@@ -94,6 +94,7 @@ EnvironmentObject::EnvironmentObject(PGFrameListener* frameListener, OgreBulletD
 			entity->setMaterialName("Red");
 		OgreBulletCollisions::BoxCollisionShape* sceneBoxShape = new OgreBulletCollisions::BoxCollisionShape(size);
 		mBody->setShape(objectNode, sceneBoxShape, mRestitution, mFriction, mMass, mPosition, mOrientation);
+		mBody->getBulletRigidBody()->setCollisionFlags(mBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 	}
 
 	mBody->setCastShadows(true);
@@ -186,10 +187,10 @@ void EnvironmentObject::move(float spinTime, double evtTime)
 //Method to determine if a target has been hit 
 bool EnvironmentObject::targetHit()
 {
-	if (mBody->getBulletRigidBody()->getFriction()==0.93f)
-		return false;
-	else
+	if (mBody->getBulletRigidBody()->getFriction()==0.94f)
 		return true;
+	else
+		return false;
 }
 
 //Returns whether target has been counted (hit)
