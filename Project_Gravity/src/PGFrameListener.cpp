@@ -2740,18 +2740,6 @@ void PGFrameListener::clearTargets(std::deque<EnvironmentObject *> &queue) {
 	queue.clear();
 }
 
-void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
-	std::deque<Ogre::SceneNode *>::iterator iterator = queue.begin();
- 	while (queue.end() != iterator)
- 	{   
-		Ogre::SceneNode *node = *iterator;
-		node->detachAllObjects();
-		mSceneMgr->destroySceneNode(node->getName());
-		++iterator;
- 	}
-	queue.clear();
-}
-
 void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
 	std::string object[24];
 	std::ifstream objects;

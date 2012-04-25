@@ -331,7 +331,6 @@ public:
 	void clearLevel(void) ;
 	void clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue);
 	void clearTargets(std::deque<EnvironmentObject *> &queue);
-	void clearPalms(std::deque<SceneNode *> &queue);
 	void checkLevelEndCondition(void);
 	float getOldHighScore(int level);
 	void saveNewHighScore(int level, float levelScore);
