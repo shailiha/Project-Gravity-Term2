@@ -220,6 +220,7 @@ private:
 	SceneNode* HUDNode4;
 	SceneNode* timerNode;
 	double currentTime;
+	double mPausedTime;
 
 	// Color gradients
 	SkyX::ColorGradient mWaterGradient, 
