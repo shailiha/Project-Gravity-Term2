@@ -427,7 +427,7 @@ PGFrameListener::PGFrameListener (
 	sunNode->attachObject(sunParticle);
 	sunParticle->setEmitting(true);
 	//HUD
-	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 3.3f);
+	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "@ Targets hit: 0 ", "000_@KaiTi_33", 3.3f);
 	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 3.3f);
 	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 3.3f);
 	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 3.3f);
@@ -450,11 +450,11 @@ PGFrameListener::PGFrameListener (
 	HUDNode4 = HUDNode->createChildSceneNode("HUDNode4");
 	timerNode = HUDNode->createChildSceneNode("timerNode");
 	HUDNode2->attachObject(HUDTargetText); //Targets killed
-	HUDNode2->setPosition(-40,-25,0);
+	HUDNode2->setPosition(-37,-25,0);
 	HUDNode3->attachObject(HUDCoconutText); //Coconuts
 	HUDNode3->setPosition(-40, 25,0);
 	HUDNode4->attachObject(HUDScoreText); //Score
-	HUDNode4->setPosition(30, 25,0);
+	HUDNode4->setPosition(37, 25,0);
 	timerNode->attachObject(timerText);
 	timerNode->setPosition(0, 25,0);
 	timer = new Timer();
@@ -612,17 +612,20 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 		else
 			gravityGun->setVisible(true);
 
-		//update timer text
-		currentTime = timer->getMilliseconds();
-		if (((int)currentTime/1000)%60<10) //0 padding
-		{
-			timeString = StringConverter::toString((int)currentTime/60000)+":0"+StringConverter::toString(((int)currentTime/1000)%60);
+		if(freeRoam) {
+			//update timer text
+			currentTime = (timer->getMilliseconds() + mPausedTime);
+			if (((int)currentTime/1000)%60<10) //0 padding
+			{
+				timeString = StringConverter::toString((int)currentTime/60000)+":0"+StringConverter::toString(((int)currentTime/1000)%60);
+			}
+			else
+			{
+				timeString = StringConverter::toString((int)currentTime/60000)+":"+StringConverter::toString(((int)currentTime/1000)%60);
+			}
+			timerText->setCaption(timeString);
 		}
-		else
-		{
-			timeString = StringConverter::toString((int)currentTime/60000)+":"+StringConverter::toString(((int)currentTime/1000)%60);
-		}
-		timerText->setCaption(timeString);
+	
 	} else {
 
 	}
@@ -749,14 +752,16 @@ void PGFrameListener::createCubeMap()
 
 bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 {
-	if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = true; // mVariables for camera movement
-	else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
-	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
-	else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = true;
-	else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
-	else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
-	else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
-    else if (evt.key == OIS::KC_R)   // cycle polygon rendering mode
+	if(freeRoam) {
+		if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = true; // mVariables for camera movement
+		else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
+		else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
+		else if (evt.key == OIS::KC_D || evt.key == OIS::KC_RIGHT) mGoingRight = true;
+		else if (evt.key == OIS::KC_SPACE) mGoingUp = true;
+		else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
+		else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
+	}
+    if (evt.key == OIS::KC_R)   // cycle polygon rendering mode
     {
         Ogre::String newVal;
         Ogre::PolygonMode pm;
@@ -789,11 +794,15 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     else if (evt.key == OIS::KC_ESCAPE)
     {
         if(!(mMenus->mMainMenu) && !(mMenus->mBackPressedFromMainMenu) && !(mMenus->mLevel1AimsOpen) && !(mMenus->mLevel2AimsOpen)
-			 && !(mMenus->mLevel1CompleteOpen) && !(mMenus->mLevelFailedOpen)) {
+			 && !(mMenus->mLevelCompleteOpen) && !(mMenus->mLevelFailedOpen)) {
 			mMenus->mInGameMenu = !(mMenus->mInGameMenu); //Toggle menu
 			freeRoam = !freeRoam;
+			if(mMenus->mInGameMenu) {
+				mPausedTime = currentTime;
+			}
 			if(!(mMenus->mInGameMenu)) {//If no longer in in-game menu then close menus
 				mMenus->closeMenus();
+				timer->reset();
 			}
 			else if (mMenus->mInGameMenuCreated) { //Toggle menu only if it has actually been created
 				if(editMode) {
@@ -806,10 +815,17 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		}
     }
 	else if(evt.key == (OIS::KC_TAB)) {
-		if(!(mMenus->mInGameMenu) && !(mMenus->mMainMenu) && !(mMenus->mLevel1CompleteOpen) && !(mMenus->mLevelFailedOpen)) {
-			if(currentLevel == 1) {
-				mMenus->mLevel1AimsOpen = !(mMenus->mLevel1AimsOpen);
+		if(!(mMenus->mInGameMenu) && !(mMenus->mMainMenu) && !(mMenus->mLevelCompleteOpen) && !(mMenus->mLevelFailedOpen)) {
+			if(currentLevel == 1 || currentLevel == 2 || currentLevel == 3) {
 				freeRoam = !freeRoam;
+				if(!freeRoam) {
+					mPausedTime = currentTime;
+				} else {
+					timer->reset();
+				}
+			}
+			if(currentLevel == 1) {
+				mMenus->mLevel1AimsOpen = !(mMenus->mLevel1AimsOpen);		
 				if(mMenus->mLevel1AimsOpen) {
 					CEGUI::MouseCursor::getSingleton().setVisible(false);
 					if(!(mMenus->mLevel1AimsCreated)) {
@@ -825,7 +841,6 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			}
 			else if(currentLevel == 2) {
 				mMenus->mLevel2AimsOpen = !(mMenus->mLevel2AimsOpen);
-				freeRoam = !freeRoam;
 				if(mMenus->mLevel2AimsOpen) {
 					CEGUI::MouseCursor::getSingleton().setVisible(false);
 					if(!(mMenus->mLevel2AimsCreated)) {
@@ -835,6 +850,21 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 				}
 				else {
 					mMenus->level2AimsRoot->setVisible(false);
+					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
+					CEGUI::MouseCursor::getSingleton().setVisible(true);
+				}
+			}
+			else if(currentLevel == 3) {
+				mMenus->mLevel3AimsOpen = !(mMenus->mLevel3AimsOpen);
+				if(mMenus->mLevel3AimsOpen) {
+					CEGUI::MouseCursor::getSingleton().setVisible(false);
+					if(!(mMenus->mLevel3AimsCreated)) {
+						mMenus->loadLevel3Aims();
+					}
+					mMenus->level3AimsRoot->setVisible(true);
+				}
+				else {
+					mMenus->level3AimsRoot->setVisible(false);
 					CEGUI::MouseCursor::getSingleton().setPosition(CEGUI::Point(mWindow->getWidth()/2, mWindow->getHeight()/2));
 					CEGUI::MouseCursor::getSingleton().setVisible(true);
 				}
@@ -1305,7 +1335,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 	else if(mMenus->mLevel2AimsOpen) {
 		mMenus->loadLevel2Aims();
 	}
-	else if(mMenus->mLevel1CompleteOpen) {
+	else if(mMenus->mLevelCompleteOpen) {
 		CEGUI::System::getSingleton().setGUISheet(mMenus->level1CompleteRoot);
 		mMenus->level1CompleteRoot->setVisible(true);
 	}
@@ -2262,7 +2292,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
 			}
 			levelComplete = true;
-			mMenus->mLevel1CompleteOpen = true;
+			mMenus->mLevelCompleteOpen = true;
 			freeRoam = false;
 			coconutCount = 0;
 			targetCount = 0;
@@ -2379,9 +2409,17 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 			std::cout << "Score: " << levelScore << std::endl;
 			levelComplete = true;
 			freeRoam = false;
-			mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
-			mMenus->mLevel1CompleteOpen = true;
+			float oldHighScore = getOldHighScore(currentLevel);
+			if(levelScore >= oldHighScore) {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, true);
+				saveNewHighScore(currentLevel, levelScore);
+			} 
+			else {
+				mMenus->loadLevelComplete(currentTime, coconutCount, levelScore, currentLevel, false);
+			}
+			mMenus->mLevelCompleteOpen = true;
 			coconutCount = 0;
+			levelScore = 0;
 		}
 	}
 }
@@ -2528,7 +2566,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	changeLevelFish();
 	HUDNode2->detachAllObjects();
 	//Reset GUI messages
-	HUDTargetText->setCaption("Targets killed: 0");
+	HUDTargetText->setCaption("@ Targets killed: 0");
 	HUDCoconutText->setCaption("Coconuts: 0");
 	HUDScoreText->setCaption("Score: 0");
 
@@ -2556,15 +2594,15 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	}
 
 	if(!userLevel) {
-		currentLevel = levelNo;
-		if(levelNo == 1)
+		currentLevel = islandNo;
+		if(islandNo == 1)
 		{
 			createCaelumSystem();
 			HUDNode2->attachObject(HUDTargetText);
 			spinTime = 0;
 			levelTime = 300;
 		}
-		else if (levelNo == 2)
+		else if (islandNo == 2)
 		{
 			createCaelumSystem();
 			createJengaPlatform();
@@ -2716,18 +2754,6 @@ void PGFrameListener::clearTargets(std::deque<EnvironmentObject *> &queue) {
 		currentBody->getSceneNode()->detachAllObjects();
 		currentBody->getBulletCollisionWorld()->removeCollisionObject(currentBody->getBulletRigidBody());
 		delete *iterator;
-		++iterator;
- 	}
-	queue.clear();
-}
-
-void PGFrameListener::clearPalms(std::deque<SceneNode *> &queue) {
-	std::deque<Ogre::SceneNode *>::iterator iterator = queue.begin();
- 	while (queue.end() != iterator)
- 	{   
-		Ogre::SceneNode *node = *iterator;
-		node->detachAllObjects();
-		mSceneMgr->destroySceneNode(node->getName());
 		++iterator;
  	}
 	queue.clear();

@@ -52,11 +52,14 @@ public:
 	CEGUI::Window* level2AimsRoot;
 	bool mLevel2AimsCreated;
 	bool mLevel2AimsOpen;
+	CEGUI::Window* level3AimsRoot;
+	bool mLevel3AimsCreated;
+	bool mLevel3AimsOpen;
 
 	//Level completion flags
 	CEGUI::Window* level1CompleteRoot;
-	bool mLevel1CompleteCreated;
-	bool mLevel1CompleteOpen;
+	bool mLevelCompleteCreated;
+	bool mLevelCompleteOpen;
 	CEGUI::Window* levelFailedRoot;
 	bool mLevelFailedCreated;
 	bool mLevelFailedOpen;
