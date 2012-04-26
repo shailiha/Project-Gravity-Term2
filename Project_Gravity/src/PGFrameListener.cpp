@@ -1409,13 +1409,13 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 	Ogre::Quaternion camOr = mCamera->getOrientation();
 
 	mCamera->setFOVy(Degree(90));
-	mCamera->setAspectRatio(1);
+	//mCamera->setAspectRatio(1);
 
 	for (unsigned int i = 0; i < 6; i++)
 		mTargets[i]->update();
 
 	mCamera->setFOVy(Degree(45));
-	mCamera->setAspectRatio(1.76296); // NEED TO CHANGE
+	//mCamera->setAspectRatio(1.76296); // NEED TO CHANGE
 	mCamera->setPosition(camPosition);
 	mCamera->setOrientation(camOr);
 
