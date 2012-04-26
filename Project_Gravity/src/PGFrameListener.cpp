@@ -12,6 +12,24 @@ bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partI
 	float obj0Friction = obj0->getFriction();
 	float obj1Friction = obj1->getFriction();
 
+	//When jumping player (with friction of 0.99) is on the ground, friction is set to 1.0, thus enabling jumping
+	if (((obj0Friction==0.8f) && (obj1Friction==0.99f)) //Jumping 
+		||((obj0Friction==0.99f) && (obj1Friction==0.8f)))
+	{
+		if (obj0Friction==0.8f) //Ground has friction of 0.8
+		{
+			btRigidBody* player = (btRigidBody*)obj1;
+			btRigidBody* ground = (btRigidBody*)obj0;
+			player->setFriction(1.0f);
+		}
+		else
+		{
+			btRigidBody* ground = (btRigidBody*)obj1;
+			btRigidBody* player = (btRigidBody*)obj0;
+			player->setFriction(1.0f);
+		}
+	}
+
 	//We check for collisions between Targets and Projectiles - we know which is which from their Friction value
 	if (((obj0Friction==0.93f) && (obj1Friction==0.61f))
 		||((obj0Friction==0.61f) && (obj1Friction==0.93f)))
@@ -1617,7 +1635,13 @@ void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 	}
 	if (mGoingUp)
 	{
-		linVelY = 30; //Constant vertical velocity
+		if (playerBody->getBulletRigidBody()->getFriction()==1.0f)
+		{
+			linVelY = 40; //Constant vertical velocity
+			playerBody->getBulletRigidBody()->setFriction(0.99f);
+		}
+		if (editMode)
+			linVelY = 30;
 	}
 
 	playerBody->getBulletRigidBody()->setLinearVelocity(btVector3(linVelX, linVelY, linVelZ));
@@ -2566,7 +2590,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	changeLevelFish();
 	HUDNode2->detachAllObjects();
 	//Reset GUI messages
-	HUDTargetText->setCaption("@ Targets killed: 0");
+	HUDTargetText->setCaption("Targets hit: 0");
 	HUDCoconutText->setCaption("Coconuts: 0");
 	HUDScoreText->setCaption("Score: 0");
 
