@@ -4,8 +4,6 @@
 # animate, xMovement, yMovement, zMovement, speed, rotationX, rotationY, rotationZ, billboard
 # Note: Do not leave spaces between commas and values
 #		animate and billboard are boolean values (0, 1)
-Target,Target.mesh,1550,300,850,0,0,0,1,30,30,30,0.6,0.93,1.0,1,50,50,0,1,0,0,0,1
-Target,Target.mesh,1640,220,2175,1,0,0,0,30,30,30,0.6,0.93,1.0,1,0,50,0,1,0,0,0,1
 Crate,Crate.mesh,905.274,163.294,1511.87,-0.00398582,0.0567919,-0.00516706,0.998365,15,15,15,0.6,0.93,200,0,0,0,0,1,0,0,0,0
 Crate,Crate.mesh,909.081,163.724,1544.47,-0.00398582,0.0567919,-0.00516706,0.998365,15,15,15,0.6,0.93,200,0,0,0,0,1,0,0,0,0
 Crate,Crate.mesh,908.259,195.038,1523.55,-0.00398582,0.0567919,-0.00516706,0.998365,15,15,15,0.6,0.93,200,0,0,0,0,1,0,0,0,0

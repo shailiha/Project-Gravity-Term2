@@ -5,12 +5,34 @@
 extern const int NUM_FISH;
 
 using namespace std;
+/* This class is the main class of the project. It is what deals with all triggered events (mouse or keyboard)
+ * and is in charge of updated the world each frame.
+ * It enables levels to be loaded and saved and is required for swapping out the different weather and ocean systems accordingly.
+ */
 
 //Custom Callback function
 bool CustomCallback(btManifoldPoint& cp, const btCollisionObject* obj0,int partId0,int index0,const btCollisionObject* obj1,int partId1,int index1)
 {
 	float obj0Friction = obj0->getFriction();
 	float obj1Friction = obj1->getFriction();
+
+	//When jumping player (with friction of 0.99) is on the ground, friction is set to 1.0, thus enabling jumping
+	if (((obj0Friction==0.8f) && (obj1Friction==0.99f)) //Jumping 
+		||((obj0Friction==0.99f) && (obj1Friction==0.8f)))
+	{
+		if (obj0Friction==0.8f) //Ground has friction of 0.8
+		{
+			btRigidBody* player = (btRigidBody*)obj1;
+			btRigidBody* ground = (btRigidBody*)obj0;
+			player->setFriction(1.0f);
+		}
+		else
+		{
+			btRigidBody* ground = (btRigidBody*)obj1;
+			btRigidBody* player = (btRigidBody*)obj0;
+			player->setFriction(1.0f);
+		}
+	}
 
 	//We check for collisions between Targets and Projectiles - we know which is which from their Friction value
 	if (((obj0Friction==0.93f) && (obj1Friction==0.61f))
@@ -450,9 +472,9 @@ PGFrameListener::PGFrameListener (
 	HUDNode4 = HUDNode->createChildSceneNode("HUDNode4");
 	timerNode = HUDNode->createChildSceneNode("timerNode");
 	HUDNode2->attachObject(HUDTargetText); //Targets killed
-	HUDNode2->setPosition(-37,-25,0);
+	HUDNode2->setPosition(-30,-25,0);
 	HUDNode3->attachObject(HUDCoconutText); //Coconuts
-	HUDNode3->setPosition(-40, 25,0);
+	HUDNode3->setPosition(-35, 25,0);
 	HUDNode4->attachObject(HUDScoreText); //Score
 	HUDNode4->setPosition(37, 25,0);
 	timerNode->attachObject(timerText);
@@ -463,6 +485,7 @@ PGFrameListener::PGFrameListener (
 	mPausedTime = 0;
 }
 
+//Destructor
 PGFrameListener::~PGFrameListener()
 {
 	// We created the query, and we are also responsible for deleting it.
@@ -497,6 +520,7 @@ PGFrameListener::~PGFrameListener()
 	windowClosed(mWindow);
 }
 
+//Method deals with all pre-framerendered updates
 bool PGFrameListener::frameStarted(const FrameEvent& evt)
 {
 	if(mFrameCount > 1) {
@@ -637,12 +661,14 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
  	return true;
 }
 
+//Method to carry out inal updates before next frame begins
 bool PGFrameListener::frameEnded(const FrameEvent& evt)
 {
  	mFrameCount++;
 	return true;
 }
 
+//Method for pre-rendering hydrax on gun
 void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 {
 	// Hide hydrax and show ogre ocean for gun reflection
@@ -664,6 +690,7 @@ void PGFrameListener::preRenderTargetUpdate(const RenderTargetEvent& evt)
 	else if (evt.source == mTargets[5]) mCamera->yaw(Degree(180));
 }
 
+//Method for returning hydrax to usual settings (undoes pre-render changes)
 void PGFrameListener::postRenderTargetUpdate(const RenderTargetEvent& evt)
 {
 	// Return visibility back to normal
@@ -676,6 +703,7 @@ void PGFrameListener::postRenderTargetUpdate(const RenderTargetEvent& evt)
 	}
 }
 
+//Method to hide stars in gun reflection
 void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
 {
 	if (weatherSystem == 1)
@@ -708,6 +736,7 @@ void PGFrameListener::preRenderTargetUpdate(const Hydrax::RttManager::RttType& R
 	}
 }
 
+//Method to undo alteration to stars so they are displayed normally again
 void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& Rtt)
 {
 	if (weatherSystem == 1)
@@ -737,6 +766,7 @@ void PGFrameListener::postRenderTargetUpdate(const Hydrax::RttManager::RttType& 
 	}
 }
 
+//Creates cube map for gun reflections
 void PGFrameListener::createCubeMap()
 {
 	// create our dynamic cube map texture
@@ -755,9 +785,10 @@ void PGFrameListener::createCubeMap()
 	}
 }
 
+//Key-pressed event handler
 bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 {
-	if(freeRoam) {
+	if(freeRoam) { //Move if not in menu
 		if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = true; // mVariables for camera movement
 		else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = true;
 		else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = true;
@@ -774,7 +805,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
     {
         mWindow->writeContentsToTimestampedFile("screenshot", ".jpg");
     }
-    else if (evt.key == OIS::KC_ESCAPE)
+    else if (evt.key == OIS::KC_ESCAPE) //Load menu/exit menu
     {
         if(!(mMenus->mMainMenu) && !(mMenus->mBackPressedFromMainMenu) && !(mMenus->mLevel1AimsOpen) && !(mMenus->mLevel2AimsOpen)
 			 && !(mMenus->mLevelCompleteOpen) && !(mMenus->mLevelFailedOpen)) {
@@ -797,7 +828,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			}
 		}
     }
-	else if(evt.key == (OIS::KC_TAB)) {
+	else if(evt.key == (OIS::KC_TAB)) { //Load aims/hide aims
 		if(!(mMenus->mInGameMenu) && !(mMenus->mMainMenu) && !(mMenus->mLevelCompleteOpen) && !(mMenus->mLevelFailedOpen)) {
 			if(currentLevel == 1 || currentLevel == 2 || currentLevel == 3) {
 				freeRoam = !freeRoam;
@@ -854,7 +885,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			}
 		}
 	}
-	else if (evt.key == (OIS::KC_I)) 
+	else if (evt.key == (OIS::KC_I))  //Hide/unhide bloom
 	{
 		Ogre::CompositorManager::getSingleton().setCompositorEnabled(
 			mWindow->getViewport(0), "Bloom", !bloomEnabled);
@@ -985,8 +1016,10 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
  	return true;
 }
 
+//Key-released event handler
 bool PGFrameListener::keyReleased(const OIS::KeyEvent &evt)
 {
+	//If you were moveing, stop 
 	if (evt.key == OIS::KC_W || evt.key == OIS::KC_UP) mGoingForward = false; // mVariables for camera movement
 	else if (evt.key == OIS::KC_S || evt.key == OIS::KC_DOWN) mGoingBack = false;
 	else if (evt.key == OIS::KC_A || evt.key == OIS::KC_LEFT) mGoingLeft = false;
@@ -1000,6 +1033,7 @@ bool PGFrameListener::keyReleased(const OIS::KeyEvent &evt)
 	return true;
 }
 
+//Mouse-moved event handler
 bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 {
 	if (freeRoam) // freeroam is the in game camera movement
@@ -1013,7 +1047,7 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 		}
 		else
 		{
-			if (mPickedBody)
+			if (mPickedBody) //If object selected with gun, move it
 			{
 				mPickedBody->getBulletRigidBody()->applyTorqueImpulse(btVector3(0,(10*evt.state.Z.rel),0));
 			}
@@ -1031,16 +1065,17 @@ bool PGFrameListener::mouseMoved( const OIS::MouseEvent &evt )
 	return true;
 }
 
+//Mouse pressed event handler
 bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
-	if(editMode && !(mMenus->mInGameMenu)) {
+	if(editMode && !(mMenus->mInGameMenu)) { //If in edit mode, place the selected object
 		if(id == (OIS::MB_Left)) 
 			placeNewObject(objSpawnType);
 	}
 	else {
-		if (id == OIS::MB_Right && !mRMouseDown)
+		if (id == OIS::MB_Right && !mRMouseDown) //Object selection with gun
 		{
-			// Pick nearest object to player
+			// Pick object nearest object to player
 			Ogre::Vector3 pickPos;
 			Ogre::Ray rayTo;
 			OgreBulletDynamics::RigidBody * body = NULL;
@@ -1076,7 +1111,6 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 					}
 					
 				}
-		
 		
 				if (body->getBulletRigidBody()->getFriction() == 0.12f)
 					platformContact = mCollisionClosestRayResultCallback->getCollisionPoint ();
@@ -1134,7 +1168,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
 			}
 			mRMouseDown = true;
 		}
-		else if (id == OIS::MB_Left && mRMouseDown)
+		else if (id == OIS::MB_Left && mRMouseDown) //Fire object away
 		{
 			if(mPickedBody != NULL && mPickedBody->getBulletRigidBody()->getFriction() != 0.12 && mPickConstraint != NULL) {
 				// was dragging, but button released
@@ -1159,6 +1193,7 @@ bool PGFrameListener::mousePressed( const OIS::MouseEvent &evt, OIS::MouseButton
     return true;
 }
 
+//Mouse released event handler
 bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButtonID id )
 {
 	// Left mouse button up
@@ -1199,6 +1234,7 @@ bool PGFrameListener::mouseReleased( const OIS::MouseEvent &evt, OIS::MouseButto
 	return true;
 }
 
+//Converts variables to strings
 template <class T>
 inline std::string to_string (const T& t)
 {
@@ -1207,6 +1243,7 @@ inline std::string to_string (const T& t)
 	return ss.str();
 }
 
+//Places an object in the environment in edit mode
 void PGFrameListener::placeNewObject(int objectType) {
 	std::string name;
 	std::string mesh;
@@ -1216,6 +1253,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 	float mass;
 	double friction;
 
+	//change properties depending on object type
 	switch(objectType)
 	{
 		case 1: name = "Crate"; mesh = "Crate.mesh"; mass = 0; friction = 0.9; break;
@@ -1261,6 +1299,7 @@ void PGFrameListener::placeNewObject(int objectType) {
 	//We want our collision callback function to work with all level objects
 	newObject->getBody()->getBulletRigidBody()->setCollisionFlags(playerBody->getBulletRigidBody()->getCollisionFlags()  | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
+	//Store object in correct location
 	switch(objectType)
 	{
 		case 1: newObject->getBody()->getBulletRigidBody()->setFriction(0.91f); levelBodies.push_back(newObject); break;
@@ -1278,6 +1317,8 @@ void PGFrameListener::placeNewObject(int objectType) {
 	mNumEntitiesInstanced++;
 }
 
+
+//Converts mouse events into events that can be used by CEGUI
 CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
 {
 	// This function converts the button id from the OIS listener to the cegui id
@@ -1297,6 +1338,7 @@ CEGUI::MouseButton PGFrameListener::convertButton(OIS::MouseButtonID buttonID)
     }
 }
 
+//Method for dealing with world updates each frame
 bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
 {
 	if(mWindow->isClosed())
@@ -1384,6 +1426,7 @@ bool PGFrameListener::frameRenderingQueued(const Ogre::FrameEvent& evt)
     return true;
 }
 
+//Updates entites in world
 void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt) 
 {	
 	if (currentLevel == 2)
@@ -1395,6 +1438,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 	//Move the fish
 	moveFish(evt.timeSinceLastFrame);
 
+	//Gun animations and particles
 	if (shotGun)
 	{
 		gunAnimate->addTime(-evt.timeSinceLastFrame * 10);
@@ -1415,18 +1459,19 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 	Ogre::Quaternion camOr = mCamera->getOrientation();
 
 	mCamera->setFOVy(Degree(90));
-	mCamera->setAspectRatio(1);
 
+	//Move targets
 	for (unsigned int i = 0; i < 6; i++)
 		mTargets[i]->update();
 
+	//Update camera
 	mCamera->setFOVy(Degree(45));
-	mCamera->setAspectRatio(1.76296); // NEED TO CHANGE
 	mCamera->setPosition(camPosition);
 	mCamera->setOrientation(camOr);
 
 	Real pitch = mCamera->getOrientation().getPitch(false).valueRadians();
 	
+	//Alter hydrax appearance based on camera angle
 	if ((pitch > -2.767 && pitch < -Math::PI/2) || 
 		(pitch > 0.384 && pitch < Math::PI/2)) // Possible glitch here
 		mHydrax->setVisible(false);
@@ -1443,6 +1488,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 				mWindow->getViewport(0), "Bloom", bloomEnabled);
 	}
 
+	//Floating crates
 	for (int i = 0; i < levelBodies.size(); i++)
 	{
 		OgreBulletDynamics::RigidBody *body = levelBodies.at(i)->getBody();
@@ -1459,6 +1505,7 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 	}
 }
 
+//Move animated objects around world
 void PGFrameListener::moveTargets(double evtTime){
 	spinTime += evtTime;
 
@@ -1497,6 +1544,7 @@ void PGFrameListener::moveTargets(double evtTime){
 	}
 }
 
+//Update palm animations
 void PGFrameListener::animatePalms(const Ogre::FrameEvent& evt) {
 	for (int i = 0; i < levelPalmAnims.size(); i++) {
 		levelPalmAnims.at(i)->setLoop(true);
@@ -1505,8 +1553,8 @@ void PGFrameListener::animatePalms(const Ogre::FrameEvent& evt) {
 	}
 }
 
+//Here we check the status of collectable coconuts, and remove if necessary and update coconutCount
 void PGFrameListener::checkObjectsForRemoval() {
-	//Here we check the status of collectable coconuts, and remove if necessary and update coconutCount
  	std::deque<EnvironmentObject *>::iterator itLevelCoconuts = levelCoconuts.begin();
  	while (levelCoconuts.end() != itLevelCoconuts)
  	{   
@@ -1532,6 +1580,7 @@ void PGFrameListener::checkObjectsForRemoval() {
  	}
 }
 
+//Deals with window resizing events
 void PGFrameListener::windowResized(Ogre::RenderWindow* rw)
 {
     unsigned int width, height, depth;
@@ -1543,6 +1592,7 @@ void PGFrameListener::windowResized(Ogre::RenderWindow* rw)
     ms.height = height;
 }
 
+//Deals with window being closed - shuts down game
 void PGFrameListener::windowClosed(Ogre::RenderWindow* rw)
 {
     //Only close for window that created OIS (the main window in these demos)
@@ -1559,6 +1609,7 @@ void PGFrameListener::windowClosed(Ogre::RenderWindow* rw)
     }
 }
 
+//Move camera with mouse
 void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 {
 	linVelX = 0.5 * playerBody->getLinearVelocity().x;
@@ -1593,12 +1644,19 @@ void PGFrameListener::moveCamera(Ogre::Real timeSinceLastFrame)
 	}
 	if (mGoingUp)
 	{
-		linVelY = 30; //Constant vertical velocity
+		if (playerBody->getBulletRigidBody()->getFriction()==1.0f)
+		{
+			linVelY = 40; //Constant vertical velocity
+			playerBody->getBulletRigidBody()->setFriction(0.99f);
+		}
+		if (editMode)
+			linVelY = 30;
 	}
 
 	playerBody->getBulletRigidBody()->setLinearVelocity(btVector3(linVelX, linVelY, linVelZ));
 }
 
+//Turns on debug overlays for collision shapes
 void PGFrameListener::showDebugOverlay(bool show)
 {
 	if (mDebugOverlay)
@@ -1610,18 +1668,21 @@ void PGFrameListener::showDebugOverlay(bool show)
 	}
 }
 
+//Shuts down game
 bool PGFrameListener::quit(const CEGUI::EventArgs &e)
 {
     mShutDown = true;
 	return true;
 }
 
+//Method for dealing with inconsistent frame rates to gain consistent speed
 void PGFrameListener::UpdateSpeedFactor(double factor)
 {
     mSpeedFactor = factor;
 	mCaelumSystem->getUniversalClock ()->setTimeScale (mPaused ? 0 : mSpeedFactor);
 }
 
+//Spawns coconuts when tree is hit
 void PGFrameListener::spawnBox(Vector3 spawnPosition)
 {
 	Vector3 size = Vector3::ZERO;	// size of the box
@@ -1678,6 +1739,7 @@ void PGFrameListener::spawnBox(Vector3 spawnPosition)
  	mBodies.push_back(defaultBody);
 }
 
+//Spawns each level's fish
 void PGFrameListener::spawnFish(void)
 {
 	if (currentLevel == 1)
@@ -1753,6 +1815,7 @@ void PGFrameListener::spawnFish(void)
 	}
 }
 
+//Swaps out fish depending on level
 void PGFrameListener::changeLevelFish()
 {
 	for(int i=0; i<mFishNumber; i++)
@@ -1776,6 +1839,7 @@ void PGFrameListener::changeLevelFish()
 	spawnFish();
 }
 
+//Updates each fish's location using Boids algorithm
 void PGFrameListener::moveFish(double timeSinceLastFrame) 
 {
 	float currentTime = GetTickCount();
@@ -1783,6 +1847,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 	int randomGenerator = rand() % 100 + 1;
 	bool randomMove = false;
 	Vector3 randomPosition(0, 50, 0);
+	//Add some randomness
 	if (randomGenerator < 80)
 	{
 		randomMove = true;
@@ -1794,7 +1859,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 
 	for(int i=0; i<mFishNumber; i++) 
 	{
-		if (mFishNodes[i]->getPosition().y > 120 && !mFishDead[i])
+		if (mFishNodes[i]->getPosition().y > 120 && !mFishDead[i]) //If fish not dead
 		{
 			mFishDead[i] = true;
 			mFishAlive -= 1;
@@ -1818,6 +1883,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 			OgreBulletDynamics::RigidBody *defaultBody = new OgreBulletDynamics::RigidBody(
  				"DeadFishBody" + StringConverter::toString(i), mWorld);
 
+			//If fish is being held by gun
 			if(mPickedBody != NULL) 
 			{
 				mWorld->removeConstraint(mPickConstraint);
@@ -1872,7 +1938,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 
 			mFish[i]->getBulletRigidBody()->setAngularVelocity(angVelocity);
 		}
-		else if (!mFishDead[i])
+		else if (!mFishDead[i]) //Update fish positions
 		{
 			Vector3 centreOfMass = Vector3(0, 0, 0);
 			Vector3 averageVelocity = Vector3(0, 0, 0);
@@ -1908,6 +1974,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 			averageVelocity = ((averageVelocity / (mFishAlive - 1)) - mFish[i]->getLinearVelocity()) / 10;
 			Vector3 worldPosition = mFish[i]->getWorldPosition();
 
+			//Set swimming boundaries for fish
 			if (worldPosition.y > 86)
 			{
 				avoidSurface = Vector3(0, -(worldPosition.y - 86)*20, 0);
@@ -1951,6 +2018,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 			if(disFromPlayer.length() <= 180)
 				avoidPlayer += (disFromPlayer)/25;
 
+			//Set new velocity
 			Vector3 finalVelocity = mFish[i]->getLinearVelocity() + (randomVelocity+centreOfMass+averageVelocity+avoidCollision+avoidSurface+avoidPlayer+avoidBorders);
 			finalVelocity.normalise();
 
@@ -1963,6 +2031,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 			else
 				finalVelocity *= 30;
 
+			//Apply updates
 			mFish[i]->setLinearVelocity(finalVelocity);
 			mFishNodes[i]->setPosition(worldPosition);
 			Vector3 localY = mFishNodes[i]->getOrientation() * Vector3::UNIT_Y;
@@ -1976,6 +2045,7 @@ void PGFrameListener::moveFish(double timeSinceLastFrame)
 	}
 }
 
+//Create the bullet terrain
 void PGFrameListener::createBulletTerrain(void)
 {
 	reloadTerrainShape = false;
@@ -2007,6 +2077,7 @@ void PGFrameListener::createBulletTerrain(void)
 	node->attachObject(static_cast <SimpleRenderable *> (debugDrawer));
 }
 
+//Swap out the bullet terrain
 void PGFrameListener::changeBulletTerrain(int level)
 {
 	try
@@ -2070,6 +2141,7 @@ void PGFrameListener::changeBulletTerrain(int level)
 	defaultTerrainBody->setStaticShape (pTerrainNode, mTerrainShape, terrainBodyRestitution, terrainBodyFriction, terrainShiftPos);
 }
 
+//Create the sky system
 void PGFrameListener::createCaelumSystem(void)
 {
 	// Initialize the caelum day/night weather system
@@ -2114,6 +2186,7 @@ void PGFrameListener::createCaelumSystem(void)
     //renderedLight.push_back(mCaelumSystem->getSun()->getMainLight());
 }
 
+//Sets gun's position each frame based on player's movement
 void PGFrameListener::gunController()
 {
 	// Position the Gun
@@ -2220,6 +2293,7 @@ void PGFrameListener::gunController()
 	gunOrBuffer = mCamera->getDerivedOrientation();
 }
 
+//Check if level has been completed or failed
 void PGFrameListener::checkLevelEndCondition() //Here we check if levels are complete and whatnot
 {
 	if ((currentLevel ==1) && (levelComplete ==false))
@@ -2400,6 +2474,7 @@ void PGFrameListener::checkLevelEndCondition() //Here we check if levels are com
 	}
 }
 
+//Find current high score for level
 float PGFrameListener::getOldHighScore(int level) {
 	float oldHighScore;
 
@@ -2416,6 +2491,7 @@ float PGFrameListener::getOldHighScore(int level) {
 	return oldHighScore;
 }
 
+//Save new level high score
 void PGFrameListener::saveNewHighScore(int level, float levelScore) {
 	ofstream outputToHighScoreFile;
 	outputToHighScoreFile.open("../../res/Levels/Level"+to_string(level)+"HighScore.txt");
@@ -2423,6 +2499,7 @@ void PGFrameListener::saveNewHighScore(int level, float levelScore) {
 	outputToHighScoreFile.close();
 }
 
+//Save a level that has been edited
 void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and print to a file
 {
 	// Ordering of levelObjects.txt files:
@@ -2472,6 +2549,7 @@ void PGFrameListener::saveLevel(void) //This will be moved to Level manager, and
 	mMenus->mNewLevelsMade++;
 }
 
+//Generate string for object so it can be saved
 std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<EnvironmentObject *> queue) {
 	std::deque<EnvironmentObject *>::iterator iterate = queue.begin();
 	std::stringstream objectDetails;
@@ -2511,6 +2589,7 @@ std::stringstream PGFrameListener::generateObjectStringForSaving(std::deque<Envi
 	return objectDetails;
 }
 
+//Determine what levels have been made already to find a unique name
 int PGFrameListener::findUniqueName(void) {
 	std::string number;
 
@@ -2527,10 +2606,12 @@ int PGFrameListener::findUniqueName(void) {
 	return uniqueNumber;
 }
 
+//Load a new level
 void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 {
 	clearLevel();
 
+	//Reset variables
 	loadLevelIslandAndWater(islandNo);
 	setPlayerPosition(levelNo);
 	levelComplete = false;
@@ -2538,14 +2619,17 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	coconutCount = 0;
 	targetCount = 0;
 
+	//Load basics
 	loadObjectFile(levelNo, userLevel);
 	changeLevelFish();
 	HUDNode2->detachAllObjects();
+
 	//Reset GUI messages
-	HUDTargetText->setCaption("Targets killed: 0");
+	HUDTargetText->setCaption("Targets hit: 0");
 	HUDCoconutText->setCaption("Coconuts: 0");
 	HUDScoreText->setCaption("Score: 0");
 
+	//Swap sky system
 	if (mCaelumSystem)
 	{
 		mWindow->removeListener(mCaelumSystem);
@@ -2562,13 +2646,14 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 
 	mSceneMgr->setAmbientLight(ColourValue(0.05, 0.05, 0.05, 2));
 	weatherSystem = 0;
-
+	//Set torch value
 	if (spotOn)
 	{
 		mSceneMgr->destroyLight(mSceneMgr->getLight("Spot"));
 		spotOn = false;
 	}
 
+	//If level being loaded is not a user level level challenges
 	if(!userLevel) {
 		currentLevel = islandNo;
 		if(islandNo == 1)
@@ -2584,7 +2669,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 			createJengaPlatform();
 			levelTime = 600;
 		}
-		else //if (levelNo == 3)
+		else 
 		{
 			// Shadow caster
 			Ogre::Light *mLight1 = mSceneMgr->createLight("Light1");
@@ -2612,7 +2697,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 		mHydrax->getRttManager()->setDisableReflectionCustomNearCliplPlaneRenderQueues (caelumskyqueue);
 		mCaelumSystem->getSun()->setSpecularMultiplier(Ogre::ColourValue(0.3, 0.3, 0.3));
 	}
-
+	//Alter weather system
 	if (weatherSystem == 1)
 	{
 		Light *spotlight = mSceneMgr->createLight("Spot");
@@ -2627,6 +2712,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	timer->reset();
 }
 
+//Loads correct island and water for each level
 void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 	mHydrax = new Hydrax::Hydrax(mSceneMgr, mCamera, mWindow->getViewport(0));
 
@@ -2663,6 +2749,7 @@ void PGFrameListener::loadLevelIslandAndWater(int levelNo) {
 	changeBulletTerrain(levelNo);
 }
 
+//Sets player at the starting position for each level
 void PGFrameListener::setPlayerPosition(int level) {
 	if(level == 1) {
 		btTransform transform = playerBody->getCenterOfMassTransform();
@@ -2685,6 +2772,7 @@ void PGFrameListener::setPlayerPosition(int level) {
 	}
 }
 
+//Clears current level of all objects 
 void PGFrameListener::clearLevel(void) 
 {
 	//Remove current level objects (bodies, coconuts, targets) by going through the lists and removing each
@@ -2710,6 +2798,7 @@ void PGFrameListener::clearLevel(void)
 	mHydrax->remove();
 }
 
+//Deletes each object
 void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &queue) {
 	std::deque<OgreBulletDynamics::RigidBody *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
@@ -2722,6 +2811,7 @@ void PGFrameListener::clearObjects(std::deque<OgreBulletDynamics::RigidBody *> &
 	queue.clear();
 }
 
+//Deletes targets
 void PGFrameListener::clearTargets(std::deque<EnvironmentObject *> &queue) {
 	std::deque<EnvironmentObject *>::iterator iterator = queue.begin();
  	while (queue.end() != iterator)
@@ -2735,6 +2825,7 @@ void PGFrameListener::clearTargets(std::deque<EnvironmentObject *> &queue) {
 	queue.clear();
 }
 
+//Load new level's objects file 
 void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
 	std::string object[24];
 	std::ifstream objects;
@@ -2767,6 +2858,7 @@ void PGFrameListener::loadObjectFile(int levelNo, bool userLevel) {
 	}
 }
 
+//Create new object and store it in the correct place
 void PGFrameListener::loadLevelObjects(std::string object[24]) 
 {
 	std::string name = object[0];
@@ -2804,6 +2896,7 @@ void PGFrameListener::loadLevelObjects(std::string object[24])
 	mNumEntitiesInstanced++;				
 }
 
+//Creates terrain from image
 void PGFrameListener::createTerrain(int levelNo)
 {
 	std::cout <<"create terrain" << std::endl;
@@ -2844,6 +2937,7 @@ void PGFrameListener::createTerrain(int levelNo)
     mTerrainGroup->freeTemporaryResources();
 }
 
+//Configures terrain default values
 void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
 {
     // Configure global
@@ -2874,6 +2968,7 @@ void PGFrameListener::configureTerrainDefaults(Ogre::Light* light)
     defaultimp.layerList[2].textureNames.push_back("grass_green-01_normalheight.dds");
 }
 
+//Defines terrain area
 void PGFrameListener::defineTerrain(long x, long y, int levelNo)
 {
     std::cout << "define terrain" <<std::endl;
@@ -2894,6 +2989,7 @@ void PGFrameListener::defineTerrain(long x, long y, int levelNo)
     }
 }
 
+//Gets the terrain image for loading
 void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, int levelNo)
 {
 	std::cout << "get terrainimage " <<std::endl;
@@ -2915,6 +3011,7 @@ void PGFrameListener::getTerrainImage(bool flipX, bool flipY, Ogre::Image& img, 
         img.flipAroundX();
 	std::cout << "terrain image got" <<std::endl;
 }
+
 
 void PGFrameListener::initBlendMaps(Ogre::Terrain* terrain)
 {
@@ -2954,10 +3051,12 @@ void PGFrameListener::initBlendMaps(Ogre::Terrain* terrain)
 		terrain->getMaterialName()))->createTechnique());
 }
 
+//Notify when materials are ready for use
 void PGFrameListener::notifyMaterialSetup(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat)
 {
 }
 
+//Notify when materials are ready for rendering
 void PGFrameListener::notifyMaterialRender(Ogre::uint32 pass_id, Ogre::MaterialPtr &mat)
 {
 	if (pass_id == 3)
@@ -2973,6 +3072,7 @@ void PGFrameListener::notifyMaterialRender(Ogre::uint32 pass_id, Ogre::MaterialP
 	}
 }
 
+//Creates level 2's jenga platform
 void PGFrameListener::createJengaPlatform()
 {
 	platformEntity = mSceneMgr->createEntity("Platform" + StringConverter::toString(mNumEntitiesInstanced), "Platform.mesh");
@@ -3006,6 +3106,7 @@ void PGFrameListener::createJengaPlatform()
 	spawnedPlatform = true;
 }
 
+//Destroys level 2's jenga platform
 void PGFrameListener::destroyJengaPlatform()
 {
 	mWorld->getBulletDynamicsWorld()->removeRigidBody(platformBody->getBulletRigidBody());
@@ -3018,6 +3119,7 @@ void PGFrameListener::destroyJengaPlatform()
 	spawnedPlatform = false;
 }
 
+//Updates position of the jenga platform
 void PGFrameListener::moveJengaPlatform(double timeSinceLastFrame)
 {
 	if (!beginJenga && (playerBody->getWorldPosition() - platformBody->getWorldPosition()).length() < 1000)
