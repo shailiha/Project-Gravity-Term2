@@ -427,7 +427,7 @@ PGFrameListener::PGFrameListener (
 	sunNode->attachObject(sunParticle);
 	sunParticle->setEmitting(true);
 	//HUD
-	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "@ Targets hit: 0 ", "000_@KaiTi_33", 3.3f);
+	HUDTargetText = new MovableText("targetText" + StringConverter::toString(mNumEntitiesInstanced), "Targets hit: 0 ", "000_@KaiTi_33", 3.3f);
 	HUDCoconutText = new MovableText("coconutText" + StringConverter::toString(mNumEntitiesInstanced), "Coconuts: 0 ", "000_@KaiTi_33", 3.3f);
 	HUDScoreText = new MovableText("scoreText" + StringConverter::toString(mNumEntitiesInstanced), "Score: 0 ", "000_@KaiTi_33", 3.3f);
 	timerText = new MovableText("timerText" + StringConverter::toString(mNumEntitiesInstanced), "00:00 ", "000_@KaiTi_33", 3.3f);
@@ -460,6 +460,7 @@ PGFrameListener::PGFrameListener (
 	timer = new Timer();
 	currentTime = 0;
 	levelTime = 0; //Target time for level in seconds
+	mPausedTime = 0;
 }
 
 PGFrameListener::~PGFrameListener()
@@ -614,7 +615,11 @@ bool PGFrameListener::frameStarted(const FrameEvent& evt)
 
 		if(freeRoam) {
 			//update timer text
-			currentTime = (timer->getMilliseconds() + mPausedTime);
+			if(editMode) {
+				currentTime = 0;
+			} else {
+				currentTime = (timer->getMilliseconds() + mPausedTime);
+			}
 			if (((int)currentTime/1000)%60<10) //0 padding
 			{
 				timeString = StringConverter::toString((int)currentTime/60000)+":0"+StringConverter::toString(((int)currentTime/1000)%60);
@@ -761,29 +766,7 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		else if (evt.key == OIS::KC_PGDOWN) mGoingDown = true;
 		else if (evt.key == OIS::KC_LSHIFT) mFastMove = true;
 	}
-    if (evt.key == OIS::KC_R)   // cycle polygon rendering mode
-    {
-        Ogre::String newVal;
-        Ogre::PolygonMode pm;
-
-        switch (mCamera->getPolygonMode())
-        {
-        case Ogre::PM_SOLID:
-            newVal = "Wireframe";
-            pm = Ogre::PM_WIREFRAME;
-            break;
-        case Ogre::PM_WIREFRAME:
-            newVal = "Points";
-            pm = Ogre::PM_POINTS;
-            break;
-        default:
-            newVal = "Solid";
-            pm = Ogre::PM_SOLID;
-        }
-
-        mCamera->setPolygonMode(pm);
-    }
-    else if(evt.key == OIS::KC_F5)   // refresh all textures
+    if(evt.key == OIS::KC_F5)   // refresh all textures
     {
         Ogre::TextureManager::getSingleton().reloadAll();
     }
@@ -871,7 +854,6 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 			}
 		}
 	}
-	else if(evt.key == (OIS::KC_K))	hideHydrax = !hideHydrax;
 	else if (evt.key == (OIS::KC_I)) 
 	{
 		Ogre::CompositorManager::getSingleton().setCompositorEnabled(
@@ -879,12 +861,6 @@ bool PGFrameListener::keyPressed(const OIS::KeyEvent& evt)
 		bloomEnabled = !bloomEnabled;
 	}
 
-	else if (evt.key == OIS::KC_PGUP) editMode = !editMode; //Toggle edit mode
-	else if(evt.key == OIS::KC_Q) {
-		if(!editMode) {
-			spawnBox((mCamera->getDerivedPosition() + mCamera->getDerivedDirection().normalisedCopy() * 100));
-		}
-	}
 
 	if(editMode) {
 		//Toggle object to place
@@ -2566,7 +2542,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 	changeLevelFish();
 	HUDNode2->detachAllObjects();
 	//Reset GUI messages
-	HUDTargetText->setCaption("@ Targets killed: 0");
+	HUDTargetText->setCaption("Targets killed: 0");
 	HUDCoconutText->setCaption("Coconuts: 0");
 	HUDScoreText->setCaption("Score: 0");
 
