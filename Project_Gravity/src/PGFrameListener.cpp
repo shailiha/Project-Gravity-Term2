@@ -505,7 +505,15 @@ PGFrameListener::~PGFrameListener()
  	{   
  		delete *itBody; 
  		++itBody;
- 	}	
+ 	}
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itProjectiles = levelProjectiles.begin();
+ 	while (levelProjectiles.end() != itProjectiles)
+ 	{
+		(*itProjectiles)->getSceneNode()->detachAllObjects();
+		//mSceneMgr->destroySceneNode((*itProjectiles)->getSceneNode());
+ 		delete *itProjectiles; 
+ 		++itProjectiles;
+ 	}
  	// OgreBullet physic delete - Shapes
  	std::deque<OgreBulletCollisions::CollisionShape *>::iterator itShape = mShapes.begin();
  	while (mShapes.end() != itShape)
@@ -515,6 +523,7 @@ PGFrameListener::~PGFrameListener()
  	}
  	mBodies.clear();
  	mShapes.clear();
+	levelProjectiles.clear();
 
 	Ogre::WindowEventUtilities::removeWindowEventListener(mWindow, this);
 	windowClosed(mWindow);
@@ -1503,6 +1512,38 @@ void PGFrameListener::worldUpdates(const Ogre::FrameEvent& evt)
 				body->getLinearVelocity().z);
 		}
 	}
+	//Floating coconuts
+	for (int i = 0; i < levelProjectiles.size(); i++)
+	{
+		OgreBulletDynamics::RigidBody *body = levelProjectiles.at(i);
+		if (body->getWorldPosition().y < 92)
+			body->getBulletRigidBody()->setDamping(0.25, 0.1);
+		else
+			body->getBulletRigidBody()->setDamping(0.0, 0.0);
+		if (body->getWorldPosition().y < 92)
+		{
+			body->setLinearVelocity(body->getLinearVelocity().x,
+				body->getLinearVelocity().y + 1.5,
+				body->getLinearVelocity().z);
+		}
+	}
+	for (int i = 0; i < NUM_FISH; i++)
+	{
+		if (mFishDead[i])
+		{
+			OgreBulletDynamics::RigidBody *body = mFish[i];
+			if (body->getWorldPosition().y < 92)
+				body->getBulletRigidBody()->setDamping(0.25, 0.1);
+			else
+				body->getBulletRigidBody()->setDamping(0.0, 0.0);
+			if (body->getWorldPosition().y < 92)
+			{
+				body->setLinearVelocity(body->getLinearVelocity().x,
+					body->getLinearVelocity().y + 1.5,
+					body->getLinearVelocity().z);
+			}
+		}
+	}
 }
 
 //Move animated objects around world
@@ -1736,7 +1777,8 @@ void PGFrameListener::spawnBox(Vector3 spawnPosition)
 
  	// push the created objects to the deque
  	mShapes.push_back(sceneSphereShape);
- 	mBodies.push_back(defaultBody);
+	levelProjectiles.push_back(defaultBody);
+ 	//mBodies.push_back(defaultBody);
 }
 
 //Spawns each level's fish
@@ -2710,6 +2752,7 @@ void PGFrameListener::loadLevel(int levelNo, int islandNo, bool userLevel)
 
 	//Reset timer
 	timer->reset();
+	mPausedTime=0;
 }
 
 //Loads correct island and water for each level
@@ -2788,7 +2831,16 @@ void PGFrameListener::clearLevel(void)
 	std::cout << "remove blue blocks" << std::endl;
 	clearTargets(levelRed);
 	std::cout << "remove red blocks" << std::endl;
-	
+	//Remove projectiles
+ 	std::deque<OgreBulletDynamics::RigidBody *>::iterator itProjectiles = levelProjectiles.begin();
+ 	while (levelProjectiles.end() != itProjectiles)
+ 	{  
+		(*itProjectiles)->getSceneNode()->detachAllObjects();
+		//mSceneMgr->destroySceneNode((*itProjectiles)->getSceneNode());
+ 		delete *itProjectiles; 
+ 		++itProjectiles;
+ 	}
+	levelProjectiles.clear();
 	mTerrainGroup->removeAllTerrains();
 
 	if (spawnedPlatform)

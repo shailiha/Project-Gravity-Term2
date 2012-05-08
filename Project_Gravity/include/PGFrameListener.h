@@ -107,6 +107,7 @@ private:
 	// Bullet objects
 	std::deque<OgreBulletDynamics::RigidBody *>         mBodies;
 	std::deque<OgreBulletCollisions::CollisionShape *>  mShapes;
+	std::deque<OgreBulletDynamics::RigidBody *>  levelProjectiles;
 	OgreBulletDynamics::RigidBody*				        mFish[NUM_FISH];
 	Ogre::SceneNode*									mFishNodes[NUM_FISH];
 	Ogre::Entity*										mFishEnts[NUM_FISH];
